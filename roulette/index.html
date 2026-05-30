@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오늘 뭐 먹지? 🍽️ 메뉴 룰렛 (실시간)</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0f1226; --card:#1a1f3d; --card2:#232a52; --line:#2e376a;
+    --txt:#eef1ff; --sub:#9aa3d4; --accent:#ff6b6b; --accent2:#ffd93d;
+    --good:#4ade80; --blue:#60a5fa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI','Apple SD Gothic Neo',system-ui,sans-serif}
+  body{background:radial-gradient(1200px 600px at 50% -10%,#1c2350,#0f1226);color:var(--txt);min-height:100vh;padding:20px}
+  .wrap{max-width:1080px;margin:0 auto}
+  header{text-align:center;margin-bottom:14px}
+  header h1{font-size:30px;letter-spacing:-.5px}
+  header p{color:var(--sub);margin-top:6px;font-size:14px}
+  @media(max-width:640px){
+    body{padding:12px}
+    header h1{font-size:24px} header p{font-size:13px}
+    .card{padding:15px;border-radius:15px}
+    .grid{gap:12px}
+    .result{font-size:21px}
+    .btn{padding:13px 16px} .tab{padding:9px 4px;font-size:12px}
+    input,select{padding:11px} .newName,#newName{min-width:0}
+    .row .btn{flex:1}
+  }
+  .status{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 12px;border-radius:999px;margin-top:8px;background:var(--card2);border:1px solid var(--line);color:var(--sub)}
+  .dot{width:8px;height:8px;border-radius:50%;background:#888}
+  .dot.on{background:var(--good);box-shadow:0 0 8px var(--good)}
+  .dot.off{background:#ff8b8b}
+  .grid{display:grid;grid-template-columns:1.3fr 1fr;gap:18px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+  .card h2{font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .wheelbox{position:relative;width:min(320px,82vw);aspect-ratio:1;margin:6px auto 14px}
+  .pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:5;
+    width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;
+    border-top:26px solid var(--accent);filter:drop-shadow(0 2px 3px #0008)}
+  canvas{width:100%;height:100%;border-radius:50%;box-shadow:0 0 0 8px #ffffff10,0 14px 40px #0007;transition:transform 4.5s cubic-bezier(.17,.67,.12,1)}
+  .center{position:absolute;top:50%;left:50%;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;
+    background:#fff;color:#1a1f3d;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:0 4px 14px #0006;z-index:4;user-select:none;font-size:15px}
+  .center:active{transform:scale(.94)}
+  .result{text-align:center;font-size:24px;font-weight:800;min-height:34px;margin:6px 0}
+  .result small{display:block;color:var(--sub);font-size:13px;font-weight:500;margin-top:2px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:11px 16px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
+  .btn:hover{filter:brightness(1.08)} .btn:active{transform:scale(.97)}
+  .btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+  .btn.sm{padding:6px 10px;font-size:12px;border-radius:9px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--sub);cursor:pointer;font-size:13px}
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .menulist{display:flex;flex-direction:column;gap:6px;max-height:230px;overflow:auto;margin-bottom:10px}
+  .mitem{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .mitem .nm{flex:1;font-size:14px}
+  .mitem .cat{font-size:11px;color:var(--sub);background:#0003;padding:2px 7px;border-radius:6px}
+  .mitem .del{background:none;border:none;color:#ff8b8b;cursor:pointer;font-size:16px}
+  input,select{background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;font-size:14px}
+  input{flex:1}
+  .fortune{background:linear-gradient(135deg,#2a2150,#3a2a6e);border:1px solid #4a3a8e;border-radius:14px;padding:16px;text-align:center}
+  .fortune .stars{font-size:18px;letter-spacing:2px;margin-bottom:6px}
+  .fortune .txt{font-size:15px;line-height:1.5}
+  .fortune .lucky{color:var(--accent2);font-size:12px;margin-top:8px}
+  .tally .trow{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px}
+  .tally .bar{height:18px;border-radius:6px;background:linear-gradient(90deg,var(--accent),var(--accent2));min-width:6px}
+  .tally .tn{width:80px;flex-shrink:0} .tally .tc{color:var(--sub);width:26px;text-align:right}
+  .feed{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow:auto}
+  .feed .f{display:flex;justify-content:space-between;font-size:13px;background:var(--card2);border-radius:9px;padding:7px 10px}
+  .feed .f .who{color:var(--blue);font-weight:600}
+  .feed .f .t{color:var(--sub);font-size:11px}
+  .note{color:var(--sub);font-size:12px;margin-top:8px;line-height:1.5}
+  .tabs{display:flex;gap:6px;margin-bottom:12px}
+  .tab{flex:1;text-align:center;padding:8px;border-radius:10px;background:var(--card2);border:1px solid var(--line);cursor:pointer;font-size:13px;color:var(--sub)}
+  .tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .hidden{display:none}
+  .settings{margin-top:10px}
+  a{color:var(--blue)}
+  .banner{background:#3a2a2a;border:1px solid #6e4a4a;color:#ffd0d0;border-radius:12px;padding:12px;font-size:13px;margin-bottom:14px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🍽️ 오늘 뭐 먹지?</h1>
+    <p>룰렛을 돌려 메뉴를 정하고, 동료들의 선택을 실시간으로 확인하세요</p>
+    <div class="status"><span class="dot" id="connDot"></span><span id="connTxt">연결 확인 중…</span></div>
+  </header>
+
+  <div id="setupBanner" class="banner hidden"></div>
+
+  <div class="grid">
+    <!-- 좌: 룰렛 -->
+    <div class="card">
+      <h2>🎯 메뉴 룰렛</h2>
+      <div class="chips" id="catChips"></div>
+      <div class="wheelbox">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="320" height="320"></canvas>
+        <div class="center" id="spinBtn">SPIN</div>
+      </div>
+      <div class="result" id="result">버튼 또는 SPIN을 눌러 돌려보세요</div>
+      <div class="row" style="justify-content:center">
+        <button class="btn" id="spinBtn2">🎲 돌리기</button>
+        <button class="btn sec" id="confirmBtn">✅ 이걸로 결정!</button>
+      </div>
+      <label style="font-size:13px;color:var(--sub);display:flex;align-items:center;gap:6px;margin-top:12px">
+        <input type="checkbox" id="excludeRecent" style="flex:none;width:16px;height:16px" checked>
+        최근 고른 메뉴는 룰렛에서 잠시 제외
+      </label>
+    </div>
+
+    <!-- 우: 탭 -->
+    <div class="card">
+      <div class="tabs">
+        <div class="tab on" data-tab="board">👥 실시간 현황</div>
+        <div class="tab" data-tab="fortune">🔮 운세</div>
+        <div class="tab" data-tab="menu">✏️ 메뉴편집</div>
+        <div class="tab" data-tab="setup">⚙️ 연결</div>
+      </div>
+
+      <!-- 게시판 -->
+      <div id="tab-board">
+        <h2 style="font-size:14px">오늘의 집계</h2>
+        <div class="tally" id="tally"><div class="note">아직 선택 기록이 없어요.</div></div>
+        <h2 style="font-size:14px;margin-top:16px">최근 선택</h2>
+        <div class="feed" id="feed"></div>
+      </div>
+
+      <!-- 운세 -->
+      <div id="tab-fortune" class="hidden">
+        <div class="fortune">
+          <div class="stars" id="fStars">★★★☆☆</div>
+          <div class="txt" id="fText">오늘의 운세를 확인하세요</div>
+          <div class="lucky" id="fLucky"></div>
+        </div>
+        <div class="row" style="margin-top:12px;justify-content:center">
+          <button class="btn sec sm" id="fortuneBtn">오늘의 운세 보기</button>
+        </div>
+        <div class="note">운세는 매일 1회 같은 결과가 나와요(날짜 기준). 재미로만 봐주세요 😉</div>
+      </div>
+
+      <!-- 메뉴 편집 -->
+      <div id="tab-menu" class="hidden">
+        <h2 style="font-size:14px">현재 메뉴 (<span id="menuCount">0</span>)</h2>
+        <div class="menulist" id="menuList"></div>
+        <div class="row">
+          <input id="newName" placeholder="메뉴 이름 (예: 마라탕)">
+          <select id="newCat"></select>
+          <button class="btn sm" id="addBtn">추가</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn sec sm" id="resetBtn">기본 메뉴로 초기화</button>
+        </div>
+        <div class="note">메뉴 목록은 이 기기에 저장됩니다(개인 설정).</div>
+      </div>
+
+      <!-- 연결 설정 -->
+      <div id="tab-setup" class="hidden">
+        <h2 style="font-size:14px">Supabase 연결</h2>
+        <div class="note" style="margin-top:0">아래 두 값은 Supabase 프로젝트의 Settings → API에서 복사하세요. 입력 후 저장하면 실시간 공유가 켜집니다.</div>
+        <div class="row" style="margin-top:10px"><input id="supaUrl" placeholder="Project URL (https://xxxx.supabase.co)"></div>
+        <div class="row" style="margin-top:8px"><input id="supaKey" placeholder="anon public key"></div>
+        <div class="row" style="margin-top:8px">
+          <input id="teamCode" placeholder="팀 코드 (예: dev-team-2026)">
+          <input id="userName" placeholder="내 이름">
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn sm" id="saveConn">저장 & 연결</button>
+          <button class="btn sec sm" id="clearConn">연결 해제</button>
+        </div>
+        <div class="note" id="connNote">같은 <b>팀 코드</b>를 입력한 사람끼리 선택을 공유합니다.</div>
+      </div>
+    </div>
+  </div>
+  <p class="note" style="text-align:center;margin-top:16px">설정값은 이 브라우저에 저장됩니다 · 공유 기록은 Supabase에 저장됩니다</p>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const LS='menuRouletteSupa_v1';
+const CATS=['한식','중식','일식','양식','분식','아시안','기타'];
+const DEFAULT_MENUS=[
+  {n:'김치찌개',c:'한식'},{n:'된장찌개',c:'한식'},{n:'제육볶음',c:'한식'},{n:'비빔밥',c:'한식'},
+  {n:'설렁탕',c:'한식'},{n:'짜장면',c:'중식'},{n:'짬뽕',c:'중식'},{n:'마라탕',c:'중식'},
+  {n:'초밥',c:'일식'},{n:'돈카츠',c:'일식'},{n:'라멘',c:'일식'},{n:'파스타',c:'양식'},
+  {n:'스테이크',c:'양식'},{n:'햄버거',c:'양식'},{n:'떡볶이',c:'분식'},{n:'김밥',c:'분식'},
+  {n:'쌀국수',c:'아시안'},{n:'팟타이',c:'아시안'},{n:'샐러드',c:'기타'},{n:'치킨',c:'기타'}
+];
+const FORTUNES=[
+  {s:5,t:'오늘은 무엇을 골라도 인생 맛집! 망설이지 말고 도전하세요.'},
+  {s:4,t:'든든하게 먹으면 오후 업무가 술술 풀립니다.'},
+  {s:4,t:'새로운 메뉴에 행운이 깃들어요. 평소 안 먹던 걸 골라보세요.'},
+  {s:3,t:'무난한 선택이 가장 안전한 날. 익숙한 맛을 추천합니다.'},
+  {s:3,t:'동료와 함께 먹으면 즐거움이 두 배가 됩니다.'},
+  {s:2,t:'과식은 금물! 적당히 먹고 산책 한 바퀴 어때요?'},
+  {s:5,t:'오늘의 한 끼가 작은 행복을 가져다줄 거예요.'},
+  {s:4,t:'매콤한 메뉴가 기분 전환에 도움이 되는 날입니다.'},
+  {s:3,t:'국물 있는 메뉴로 속을 따뜻하게 데워보세요.'},
+  {s:2,t:'결정 장애가 올 수 있는 날. 룰렛에 맡겨보세요!'}
+];
+const LUCKY_FOOD=['단무지','계란후라이','김치','피클','된장국','콜라','아메리카노'];
+
+let state=load();
+let supa=null, channel=null, picks=[];
+function load(){
+  try{const o=JSON.parse(localStorage.getItem(LS));if(o&&o.menus)return o;}catch(e){}
+  return {menus:DEFAULT_MENUS.slice(),filter:'전체',recent:[],
+          supaUrl:'',supaKey:'',teamCode:'',user:''};
+}
+function save(){localStorage.setItem(LS,JSON.stringify(state));}
+
+/* ---- 카테고리 ---- */
+function renderChips(){
+  const all=['전체',...CATS];
+  $('#catChips').innerHTML=all.map(c=>`<div class="chip ${state.filter===c?'on':''}" data-c="${c}">${c}</div>`).join('');
+  $$('#catChips .chip').forEach(ch=>ch.onclick=()=>{state.filter=ch.dataset.c;save();renderChips();drawWheel();});
+}
+function activeMenus(){
+  let m=state.menus;
+  if(state.filter!=='전체')m=m.filter(x=>x.c===state.filter);
+  if($('#excludeRecent').checked&&m.length>state.recent.length+1){
+    const ex=m.filter(x=>!state.recent.includes(x.n));if(ex.length>=2)m=ex;
+  }
+  return m;
+}
+
+/* ---- 룰렛 ---- */
+const cv=$('#wheel'),ctx=cv.getContext('2d');
+const COLORS=['#ff6b6b','#ffd93d','#6bcB77','#4d96ff','#ff9f45','#a66cff','#ff6fb5','#34d399'];
+let rotation=0,spinning=false,wheelMenus=[];
+function drawWheel(){
+  wheelMenus=activeMenus();
+  const n=wheelMenus.length,R=160,cx=160,cy=160;
+  ctx.clearRect(0,0,320,320);
+  if(n===0){ctx.fillStyle='#444';ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText('메뉴 없음',cx,cy);return;}
+  const arc=2*Math.PI/n;
+  for(let i=0;i<n;i++){
+    const a0=i*arc,a1=a0+arc;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,a0,a1);ctx.closePath();
+    ctx.fillStyle=COLORS[i%COLORS.length];ctx.fill();
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(a0+arc/2);
+    ctx.fillStyle='#1a1f3d';ctx.font='bold 13px sans-serif';ctx.textAlign='right';
+    let nm=wheelMenus[i].n;if(nm.length>6)nm=nm.slice(0,6)+'…';
+    ctx.fillText(nm,R-14,5);ctx.restore();
+  }
+}
+function spin(){
+  if(spinning)return;const n=wheelMenus.length;if(n===0){alert('해당 카테고리에 메뉴가 없어요!');return;}
+  spinning=true;$('#result').textContent='🎰 돌리는 중...';
+  const idx=Math.floor(Math.random()*n),arc=360/n;
+  const target=360*6+(270-(idx*arc+arc/2));
+  rotation=rotation-(rotation%360)+target;
+  cv.style.transform=`rotate(${rotation}deg)`;
+  setTimeout(()=>{
+    spinning=false;const pick=wheelMenus[idx];
+    $('#result').innerHTML=`🎉 <span style="color:var(--accent2)">${pick.n}</span><small>${pick.c} · "이걸로 결정!"을 눌러 기록하세요</small>`;
+    state.lastPick=pick.n;
+  },4600);
+}
+
+/* ---- 메뉴 편집 ---- */
+function renderMenu(){
+  $('#menuCount').textContent=state.menus.length;
+  $('#menuList').innerHTML=state.menus.map((m,i)=>
+    `<div class="mitem"><span class="nm">${m.n}</span><span class="cat">${m.c}</span>
+     <button class="del" data-i="${i}">✕</button></div>`).join('');
+  $$('#menuList .del').forEach(b=>b.onclick=()=>{state.menus.splice(+b.dataset.i,1);save();renderMenu();drawWheel();});
+  $('#newCat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
+}
+function addMenu(){
+  const nm=$('#newName').value.trim();if(!nm)return;
+  state.menus.push({n:nm,c:$('#newCat').value});$('#newName').value='';
+  save();renderMenu();drawWheel();
+}
+
+/* ---- 운세 ---- */
+function todaySeed(){const d=new Date();return d.getFullYear()*1000+d.getMonth()*40+d.getDate();}
+function showFortune(){
+  const seed=todaySeed(),f=FORTUNES[seed%FORTUNES.length],luck=LUCKY_FOOD[seed%LUCKY_FOOD.length];
+  $('#fStars').textContent='★★★★★☆☆☆☆☆'.slice(5-f.s,10-f.s);
+  $('#fText').textContent=f.t;
+  $('#fLucky').textContent=`🍀 오늘의 행운 사이드: ${luck}`;
+}
+
+/* ---- Supabase 연동 ---- */
+function setConn(on,msg){
+  $('#connDot').className='dot '+(on?'on':'off');
+  $('#connTxt').textContent=msg;
+}
+function initSupa(){
+  if(!state.supaUrl||!state.supaKey){
+    setConn(false,'미연결 — ⚙️ 연결 탭에서 설정하세요');
+    return;
+  }
+  try{
+    supa=window.supabase.createClient(state.supaUrl,state.supaKey);
+    setConn(true,'연결됨 · 팀: '+(state.teamCode||'(코드 없음)'));
+    loadPicks();subscribe();
+  }catch(e){setConn(false,'연결 실패: '+e.message);}
+}
+async function loadPicks(){
+  if(!supa)return;
+  const start=new Date();start.setHours(0,0,0,0);
+  let q=supa.from('picks').select('*').gte('created_at',start.toISOString()).order('created_at',{ascending:false}).limit(100);
+  if(state.teamCode)q=q.eq('team',state.teamCode);
+  const {data,error}=await q;
+  if(error){setConn(false,'조회 오류: '+error.message);return;}
+  picks=data||[];renderBoard();
+}
+function subscribe(){
+  if(!supa)return;
+  if(channel)supa.removeChannel(channel);
+  channel=supa.channel('picks-'+(state.teamCode||'all'))
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'picks'},payload=>{
+      const r=payload.new;
+      if(state.teamCode&&r.team!==state.teamCode)return;
+      picks.unshift(r);picks=picks.slice(0,100);renderBoard();
+    }).subscribe();
+}
+async function recordPick(){
+  const nm=state.lastPick;if(!nm){alert('먼저 룰렛을 돌려주세요!');return;}
+  const user=(state.user||$('#userName').value.trim()||'익명');
+  state.user=user;save();
+  state.recent.unshift(nm);state.recent=state.recent.slice(0,3);save();drawWheel();
+  if(!supa){
+    // 로컬 폴백
+    picks.unshift({menu:nm,who:user,team:state.teamCode,created_at:new Date().toISOString()});
+    renderBoard();
+    $('#result').innerHTML=`✅ <span style="color:var(--good)">${nm}</span> (로컬 기록)<small>연결하면 동료와 공유됩니다</small>`;
+    return;
+  }
+  const {error}=await supa.from('picks').insert({menu:nm,who:user,team:state.teamCode||null});
+  if(error){$('#result').innerHTML=`⚠️ 저장 실패: ${error.message}`;return;}
+  $('#result').innerHTML=`✅ <span style="color:var(--good)">${nm}</span> 공유 완료!<small>${user}님의 선택이 모두에게 표시돼요</small>`;
+}
+function renderBoard(){
+  const start=new Date();start.setHours(0,0,0,0);
+  const tp=picks.filter(p=>new Date(p.created_at)>=start);
+  const cnt={};tp.forEach(p=>cnt[p.menu]=(cnt[p.menu]||0)+1);
+  const arr=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const max=arr.length?arr[0][1]:1;
+  $('#tally').innerHTML=arr.length?arr.map(([n,c])=>
+    `<div class="trow"><span class="tn">${n}</span>
+     <div class="bar" style="width:${Math.max(8,c/max*70)}%"></div><span class="tc">${c}</span></div>`).join('')
+    :'<div class="note">오늘은 아직 선택 기록이 없어요.</div>';
+  $('#feed').innerHTML=picks.slice(0,15).map(p=>{
+    const d=new Date(p.created_at);const hm=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `<div class="f"><span><span class="who">${p.who}</span> → ${p.menu}</span><span class="t">${hm}</span></div>`;
+  }).join('')||'<div class="note">기록 없음</div>';
+}
+
+/* ---- 탭 ---- */
+$$('.tab').forEach(t=>t.onclick=()=>{
+  $$('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+  ['board','fortune','menu','setup'].forEach(id=>$('#tab-'+id).classList.add('hidden'));
+  $('#tab-'+t.dataset.tab).classList.remove('hidden');
+});
+
+/* ---- 이벤트 ---- */
+$('#spinBtn').onclick=spin;$('#spinBtn2').onclick=spin;
+$('#confirmBtn').onclick=recordPick;
+$('#fortuneBtn').onclick=showFortune;
+$('#addBtn').onclick=addMenu;
+$('#newName').addEventListener('keydown',e=>{if(e.key==='Enter')addMenu();});
+$('#resetBtn').onclick=()=>{if(confirm('기본 메뉴 20종으로 초기화할까요?')){state.menus=DEFAULT_MENUS.slice();save();renderMenu();drawWheel();}};
+$('#saveConn').onclick=()=>{
+  state.supaUrl=$('#supaUrl').value.trim();state.supaKey=$('#supaKey').value.trim();
+  state.teamCode=$('#teamCode').value.trim();state.user=$('#userName').value.trim();
+  save();if(channel&&supa){supa.removeChannel(channel);channel=null;}initSupa();
+};
+$('#clearConn').onclick=()=>{
+  state.supaUrl='';state.supaKey='';save();
+  if(channel&&supa){supa.removeChannel(channel);}supa=null;channel=null;
+  setConn(false,'연결 해제됨');
+};
+
+/* ---- 초기 ---- */
+$('#supaUrl').value=state.supaUrl||'';$('#supaKey').value=state.supaKey||'';
+$('#teamCode').value=state.teamCode||'';$('#userName').value=state.user||'';
+if(!window.supabase){
+  $('#setupBanner').classList.remove('hidden');
+  $('#setupBanner').innerHTML='⚠️ Supabase 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침하세요.';
+}
+renderChips();drawWheel();renderMenu();renderBoard();showFortune();initSupa();
+</script>
+</body>
+</html>
