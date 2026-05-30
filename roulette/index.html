@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>오늘 뭐 먹지? 🍽️ 메뉴 룰렛 (실시간)</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>오늘 뭐 먹지? 🍽️ 메뉴 룰렛</title>
 <style>
   :root{
     --bg:#0f1226; --card:#1a1f3d; --card2:#232a52; --line:#2e376a;
@@ -17,20 +16,8 @@
   header{text-align:center;margin-bottom:14px}
   header h1{font-size:30px;letter-spacing:-.5px}
   header p{color:var(--sub);margin-top:6px;font-size:14px}
-  @media(max-width:640px){
-    body{padding:12px}
-    header h1{font-size:24px} header p{font-size:13px}
-    .card{padding:15px;border-radius:15px}
-    .grid{gap:12px}
-    .result{font-size:21px}
-    .btn{padding:13px 16px} .tab{padding:9px 4px;font-size:12px}
-    input,select{padding:11px} .newName,#newName{min-width:0}
-    .row .btn{flex:1}
-  }
-  .status{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 12px;border-radius:999px;margin-top:8px;background:var(--card2);border:1px solid var(--line);color:var(--sub)}
-  .dot{width:8px;height:8px;border-radius:50%;background:#888}
-  .dot.on{background:var(--good);box-shadow:0 0 8px var(--good)}
-  .dot.off{background:#ff8b8b}
+  .nav{text-align:center;margin-top:10px;font-size:13px}
+  .nav a{color:var(--blue);text-decoration:none;margin:0 8px}
   .grid{display:grid;grid-template-columns:1.3fr 1fr;gap:18px}
   @media(max-width:860px){.grid{grid-template-columns:1fr}}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
@@ -77,20 +64,21 @@
   .tab{flex:1;text-align:center;padding:8px;border-radius:10px;background:var(--card2);border:1px solid var(--line);cursor:pointer;font-size:13px;color:var(--sub)}
   .tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
   .hidden{display:none}
-  .settings{margin-top:10px}
-  a{color:var(--blue)}
-  .banner{background:#3a2a2a;border:1px solid #6e4a4a;color:#ffd0d0;border-radius:12px;padding:12px;font-size:13px;margin-bottom:14px;line-height:1.5}
+  @media(max-width:640px){
+    body{padding:12px} header h1{font-size:24px} header p{font-size:13px}
+    .card{padding:15px;border-radius:15px} .grid{gap:12px}
+    .result{font-size:21px} .btn{padding:13px 16px} .tab{padding:9px 4px;font-size:12px}
+    input,select{padding:11px} .row .btn{flex:1}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>🍽️ 오늘 뭐 먹지?</h1>
-    <p>룰렛을 돌려 메뉴를 정하고, 동료들의 선택을 실시간으로 확인하세요</p>
-    <div class="status"><span class="dot" id="connDot"></span><span id="connTxt">연결 확인 중…</span></div>
+    <p>룰렛을 돌려 점심·저녁 메뉴를 정하세요</p>
+    <div class="nav"><a href="/">🍽️ 메뉴 룰렛</a> · <a href="/outfit/">👕 의상 룰렛</a></div>
   </header>
-
-  <div id="setupBanner" class="banner hidden"></div>
 
   <div class="grid">
     <!-- 좌: 룰렛 -->
@@ -116,22 +104,13 @@
     <!-- 우: 탭 -->
     <div class="card">
       <div class="tabs">
-        <div class="tab on" data-tab="board">👥 실시간 현황</div>
-        <div class="tab" data-tab="fortune">🔮 운세</div>
+        <div class="tab on" data-tab="fortune">🔮 운세</div>
         <div class="tab" data-tab="menu">✏️ 메뉴편집</div>
-        <div class="tab" data-tab="setup">⚙️ 연결</div>
-      </div>
-
-      <!-- 게시판 -->
-      <div id="tab-board">
-        <h2 style="font-size:14px">오늘의 집계</h2>
-        <div class="tally" id="tally"><div class="note">아직 선택 기록이 없어요.</div></div>
-        <h2 style="font-size:14px;margin-top:16px">최근 선택</h2>
-        <div class="feed" id="feed"></div>
+        <div class="tab" data-tab="board">📊 오늘의 기록</div>
       </div>
 
       <!-- 운세 -->
-      <div id="tab-fortune" class="hidden">
+      <div id="tab-fortune">
         <div class="fortune">
           <div class="stars" id="fStars">★★★☆☆</div>
           <div class="txt" id="fText">오늘의 운세를 확인하세요</div>
@@ -156,33 +135,25 @@
         <div class="row" style="margin-top:10px">
           <button class="btn sec sm" id="resetBtn">기본 메뉴로 초기화</button>
         </div>
-        <div class="note">위 분류를 선택하면 해당 카테고리만 보고 바로 추가할 수 있어요. 메뉴 목록은 이 기기에 저장됩니다(개인 설정).</div>
+        <div class="note">위 분류를 선택하면 해당 카테고리만 보고 바로 추가할 수 있어요. 메뉴 목록은 이 기기에 저장됩니다.</div>
       </div>
 
-      <!-- 연결 설정 -->
-      <div id="tab-setup" class="hidden">
-        <h2 style="font-size:14px">Supabase 연결</h2>
-        <div class="note" style="margin-top:0">아래 두 값은 Supabase 프로젝트의 Settings → API에서 복사하세요. 입력 후 저장하면 실시간 공유가 켜집니다.</div>
-        <div class="row" style="margin-top:10px"><input id="supaUrl" placeholder="Project URL (https://xxxx.supabase.co)"></div>
-        <div class="row" style="margin-top:8px"><input id="supaKey" placeholder="anon public key"></div>
-        <div class="row" style="margin-top:8px">
-          <input id="teamCode" placeholder="팀 코드 (예: dev-team-2026)">
-          <input id="userName" placeholder="내 이름">
-        </div>
-        <div class="row" style="margin-top:10px">
-          <button class="btn sm" id="saveConn">저장 & 연결</button>
-          <button class="btn sec sm" id="clearConn">연결 해제</button>
-        </div>
-        <div class="note" id="connNote">같은 <b>팀 코드</b>를 입력한 사람끼리 선택을 공유합니다.</div>
+      <!-- 기록 -->
+      <div id="tab-board" class="hidden">
+        <h2 style="font-size:14px">오늘의 집계</h2>
+        <div class="tally" id="tally"><div class="note">아직 선택 기록이 없어요.</div></div>
+        <h2 style="font-size:14px;margin-top:16px">최근 선택</h2>
+        <div class="feed" id="feed"></div>
+        <div class="note">"이걸로 결정!"을 누르면 이 기기에 기록돼요.</div>
       </div>
     </div>
   </div>
-  <p class="note" style="text-align:center;margin-top:16px">설정값은 이 브라우저에 저장됩니다 · 공유 기록은 Supabase에 저장됩니다</p>
+  <p class="note" style="text-align:center;margin-top:16px">모든 데이터는 이 브라우저에 저장됩니다 · 새로고침해도 유지돼요</p>
 </div>
 
 <script>
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
-const LS='menuRouletteSupa_v1';
+const LS='menuRoulette_local_v1';
 const CATS=['한식','중식','일식','양식','분식','아시안','기타'];
 const DEFAULT_MENUS=[
   {n:'김치찌개',c:'한식'},{n:'된장찌개',c:'한식'},{n:'제육볶음',c:'한식'},{n:'비빔밥',c:'한식'},
@@ -206,11 +177,9 @@ const FORTUNES=[
 const LUCKY_FOOD=['단무지','계란후라이','김치','피클','된장국','콜라','아메리카노'];
 
 let state=load();
-let supa=null, channel=null, picks=[];
 function load(){
   try{const o=JSON.parse(localStorage.getItem(LS));if(o&&o.menus)return o;}catch(e){}
-  return {menus:DEFAULT_MENUS.slice(),filter:'전체',recent:[],
-          supaUrl:'',supaKey:'',teamCode:'',user:''};
+  return {menus:DEFAULT_MENUS.slice(),filter:'전체',editCat:'전체',recent:[],picks:[]};
 }
 function save(){localStorage.setItem(LS,JSON.stringify(state));}
 
@@ -255,8 +224,7 @@ function spin(){
   spinning=true;$('#result').textContent='🎰 돌리는 중...';
   const idx=Math.floor(Math.random()*n),arc=360/n;
   const target=360*6+(270-(idx*arc+arc/2));
-  rotation=rotation-(rotation%360)+target;
-  cv.style.transform=`rotate(${rotation}deg)`;
+  rotation=rotation-(rotation%360)+target;cv.style.transform=`rotate(${rotation}deg)`;
   setTimeout(()=>{
     spinning=false;const pick=wheelMenus[idx];
     $('#result').innerHTML=`🎉 <span style="color:var(--accent2)">${pick.n}</span><small>${pick.c} · "이걸로 결정!"을 눌러 기록하세요</small>`;
@@ -271,31 +239,26 @@ function renderEditChips(){
     const cnt=c==='전체'?state.menus.length:state.menus.filter(m=>m.c===c).length;
     return `<div class="chip ${state.editCat===c?'on':''}" data-c="${c}">${c} <span style="opacity:.6">${cnt}</span></div>`;
   }).join('');
-  $$('#editChips .chip').forEach(ch=>ch.onclick=()=>{
-    state.editCat=ch.dataset.c;save();renderMenu();
-  });
+  $$('#editChips .chip').forEach(ch=>ch.onclick=()=>{state.editCat=ch.dataset.c;save();renderMenu();});
 }
 function renderMenu(){
   if(!state.editCat)state.editCat='전체';
   $('#menuCount').textContent=state.menus.length;
   renderEditChips();
-  // 실제 인덱스를 유지하기 위해 인덱스를 함께 보관
   let rows=state.menus.map((m,i)=>({m,i}));
   let html='';
   if(state.editCat==='전체'){
     CATS.forEach(cat=>{
-      const items=rows.filter(r=>r.m.c===cat);
-      if(!items.length)return;
+      const its=rows.filter(r=>r.m.c===cat);if(!its.length)return;
       html+=`<div style="font-size:12px;color:var(--sub);margin:6px 2px 2px">${cat}</div>`;
-      html+=items.map(({m,i})=>mitem(m,i)).join('');
+      html+=its.map(({m,i})=>mitem(m,i)).join('');
     });
   }else{
-    const items=rows.filter(r=>r.m.c===state.editCat);
-    html=items.length?items.map(({m,i})=>mitem(m,i)).join(''):'<div class="note">이 분류에 메뉴가 없어요. 아래에서 추가하세요.</div>';
+    const its=rows.filter(r=>r.m.c===state.editCat);
+    html=its.length?its.map(({m,i})=>mitem(m,i)).join(''):'<div class="note">이 분류에 메뉴가 없어요. 아래에서 추가하세요.</div>';
   }
   $('#menuList').innerHTML=html;
   $$('#menuList .del').forEach(b=>b.onclick=()=>{state.menus.splice(+b.dataset.i,1);save();renderMenu();drawWheel();});
-  // 추가 폼의 카테고리: 분류를 골라뒀으면 그 분류를 기본값으로
   $('#newCat').innerHTML=CATS.map(c=>`<option ${state.editCat===c?'selected':''}>${c}</option>`).join('');
 }
 function mitem(m,i){
@@ -317,77 +280,34 @@ function showFortune(){
   $('#fLucky').textContent=`🍀 오늘의 행운 사이드: ${luck}`;
 }
 
-/* ---- Supabase 연동 ---- */
-function setConn(on,msg){
-  $('#connDot').className='dot '+(on?'on':'off');
-  $('#connTxt').textContent=msg;
-}
-function initSupa(){
-  if(!state.supaUrl||!state.supaKey){
-    setConn(false,'미연결 — ⚙️ 연결 탭에서 설정하세요');
-    return;
-  }
-  try{
-    supa=window.supabase.createClient(state.supaUrl,state.supaKey);
-    setConn(true,'연결됨 · 팀: '+(state.teamCode||'(코드 없음)'));
-    loadPicks();subscribe();
-  }catch(e){setConn(false,'연결 실패: '+e.message);}
-}
-async function loadPicks(){
-  if(!supa)return;
-  const start=new Date();start.setHours(0,0,0,0);
-  let q=supa.from('picks').select('*').gte('created_at',start.toISOString()).order('created_at',{ascending:false}).limit(100);
-  if(state.teamCode)q=q.eq('team',state.teamCode);
-  const {data,error}=await q;
-  if(error){setConn(false,'조회 오류: '+error.message);return;}
-  picks=data||[];renderBoard();
-}
-function subscribe(){
-  if(!supa)return;
-  if(channel)supa.removeChannel(channel);
-  channel=supa.channel('picks-'+(state.teamCode||'all'))
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'picks'},payload=>{
-      const r=payload.new;
-      if(state.teamCode&&r.team!==state.teamCode)return;
-      picks.unshift(r);picks=picks.slice(0,100);renderBoard();
-    }).subscribe();
-}
-async function recordPick(){
+/* ---- 기록 (로컬) ---- */
+function recordPick(){
   const nm=state.lastPick;if(!nm){alert('먼저 룰렛을 돌려주세요!');return;}
-  const user=(state.user||$('#userName').value.trim()||'익명');
-  state.user=user;save();
-  state.recent.unshift(nm);state.recent=state.recent.slice(0,3);save();drawWheel();
-  if(!supa){
-    // 로컬 폴백
-    picks.unshift({menu:nm,who:user,team:state.teamCode,created_at:new Date().toISOString()});
-    renderBoard();
-    $('#result').innerHTML=`✅ <span style="color:var(--good)">${nm}</span> (로컬 기록)<small>연결하면 동료와 공유됩니다</small>`;
-    return;
-  }
-  const {error}=await supa.from('picks').insert({menu:nm,who:user,team:state.teamCode||null});
-  if(error){$('#result').innerHTML=`⚠️ 저장 실패: ${error.message}`;return;}
-  $('#result').innerHTML=`✅ <span style="color:var(--good)">${nm}</span> 공유 완료!<small>${user}님의 선택이 모두에게 표시돼요</small>`;
+  state.picks.unshift({n:nm,t:Date.now()});state.picks=state.picks.slice(0,50);
+  state.recent.unshift(nm);state.recent=state.recent.slice(0,3);
+  save();renderBoard();drawWheel();
+  $('#result').innerHTML=`✅ <span style="color:var(--good)">${nm}</span> 기록 완료!<small>오늘의 기록에 저장되었어요</small>`;
 }
 function renderBoard(){
   const start=new Date();start.setHours(0,0,0,0);
-  const tp=picks.filter(p=>new Date(p.created_at)>=start);
-  const cnt={};tp.forEach(p=>cnt[p.menu]=(cnt[p.menu]||0)+1);
+  const tp=state.picks.filter(p=>p.t>=start.getTime());
+  const cnt={};tp.forEach(p=>cnt[p.n]=(cnt[p.n]||0)+1);
   const arr=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
   const max=arr.length?arr[0][1]:1;
   $('#tally').innerHTML=arr.length?arr.map(([n,c])=>
     `<div class="trow"><span class="tn">${n}</span>
      <div class="bar" style="width:${Math.max(8,c/max*70)}%"></div><span class="tc">${c}</span></div>`).join('')
     :'<div class="note">오늘은 아직 선택 기록이 없어요.</div>';
-  $('#feed').innerHTML=picks.slice(0,15).map(p=>{
-    const d=new Date(p.created_at);const hm=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    return `<div class="f"><span><span class="who">${p.who}</span> → ${p.menu}</span><span class="t">${hm}</span></div>`;
+  $('#feed').innerHTML=state.picks.slice(0,15).map(p=>{
+    const d=new Date(p.t);const hm=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `<div class="f"><span>${p.n}</span><span class="t">${hm}</span></div>`;
   }).join('')||'<div class="note">기록 없음</div>';
 }
 
 /* ---- 탭 ---- */
 $$('.tab').forEach(t=>t.onclick=()=>{
   $$('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
-  ['board','fortune','menu','setup'].forEach(id=>$('#tab-'+id).classList.add('hidden'));
+  ['fortune','menu','board'].forEach(id=>$('#tab-'+id).classList.add('hidden'));
   $('#tab-'+t.dataset.tab).classList.remove('hidden');
 });
 
@@ -398,25 +318,9 @@ $('#fortuneBtn').onclick=showFortune;
 $('#addBtn').onclick=addMenu;
 $('#newName').addEventListener('keydown',e=>{if(e.key==='Enter')addMenu();});
 $('#resetBtn').onclick=()=>{if(confirm('기본 메뉴 20종으로 초기화할까요?')){state.menus=DEFAULT_MENUS.slice();save();renderMenu();drawWheel();}};
-$('#saveConn').onclick=()=>{
-  state.supaUrl=$('#supaUrl').value.trim();state.supaKey=$('#supaKey').value.trim();
-  state.teamCode=$('#teamCode').value.trim();state.user=$('#userName').value.trim();
-  save();if(channel&&supa){supa.removeChannel(channel);channel=null;}initSupa();
-};
-$('#clearConn').onclick=()=>{
-  state.supaUrl='';state.supaKey='';save();
-  if(channel&&supa){supa.removeChannel(channel);}supa=null;channel=null;
-  setConn(false,'연결 해제됨');
-};
 
 /* ---- 초기 ---- */
-$('#supaUrl').value=state.supaUrl||'';$('#supaKey').value=state.supaKey||'';
-$('#teamCode').value=state.teamCode||'';$('#userName').value=state.user||'';
-if(!window.supabase){
-  $('#setupBanner').classList.remove('hidden');
-  $('#setupBanner').innerHTML='⚠️ Supabase 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침하세요.';
-}
-renderChips();drawWheel();renderMenu();renderBoard();showFortune();initSupa();
+renderChips();drawWheel();renderMenu();renderBoard();showFortune();
 </script>
 </body>
 </html>

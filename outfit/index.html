@@ -20,7 +20,6 @@
   .nav a{color:var(--blue);text-decoration:none;margin:0 8px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
   .card h2{font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-  /* 성별 게이트 */
   .gender{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px}
   .gbtn{padding:34px 10px;border-radius:16px;border:2px solid var(--line);background:var(--card2);
     cursor:pointer;text-align:center;transition:.15s}
@@ -29,6 +28,9 @@
   .gbtn:hover{transform:translateY(-2px)}
   .gbtn.f.on{border-color:var(--pink);background:#3a2440;box-shadow:0 0 0 3px #ff6fb533}
   .gbtn.m.on{border-color:var(--blue);background:#1f2c50;box-shadow:0 0 0 3px #60a5fa33}
+  .tabs{display:flex;gap:6px;margin-bottom:14px}
+  .tab{flex:1;text-align:center;padding:9px;border-radius:10px;background:var(--card2);border:1px solid var(--line);cursor:pointer;font-size:13px;color:var(--sub)}
+  .tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;justify-content:center}
   .chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--sub);cursor:pointer;font-size:13px}
   .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -51,12 +53,17 @@
   .tip{background:linear-gradient(135deg,#2a2150,#3a2a6e);border:1px solid #4a3a8e;border-radius:14px;padding:14px;text-align:center;margin-top:14px;font-size:14px;line-height:1.5}
   .tip b{color:var(--accent2)}
   .note{color:var(--sub);font-size:12px;margin-top:10px;line-height:1.5;text-align:center}
+  .menulist{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow:auto;margin-bottom:10px}
+  .mitem{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .mitem .nm{flex:1;font-size:14px} .mitem .del{background:none;border:none;color:#ff8b8b;cursor:pointer;font-size:16px}
+  input,select{background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;font-size:14px}
+  input{flex:1}
   .hidden{display:none}
   @media(max-width:640px){
     body{padding:12px} header h1{font-size:24px}
     .card{padding:16px;border-radius:15px}
     .gbtn{padding:26px 8px} .gbtn .emo{font-size:40px}
-    .result{font-size:21px} .btn{flex:1}
+    .result{font-size:21px} .row .btn{flex:1}
   }
 </style>
 </head>
@@ -78,26 +85,49 @@
     <div class="note">선택은 이 기기에 저장돼서, 다음에 오면 바로 룰렛으로 들어가요.</div>
   </div>
 
-  <!-- 2단계: 룰렛 -->
+  <!-- 2단계 -->
   <div class="card hidden" id="step2">
-    <h2><span id="gLabel"></span> 의상 룰렛 <button class="btn sec sm" id="changeG" style="margin-left:auto">성별 바꾸기</button></h2>
-    <div class="chips" id="catChips"></div>
-    <div class="wheelbox">
-      <div class="pointer"></div>
-      <canvas id="wheel" width="320" height="320"></canvas>
-      <div class="center" id="spinBtn">SPIN</div>
+    <h2><span id="gLabel"></span> <button class="btn sec sm" id="changeG" style="margin-left:auto">성별 바꾸기</button></h2>
+    <div class="tabs">
+      <div class="tab on" data-tab="roul">🎯 룰렛</div>
+      <div class="tab" data-tab="edit">✏️ 옷 편집</div>
     </div>
-    <div class="result" id="result">SPIN을 눌러 오늘의 코디를 정해보세요</div>
-    <div class="row"><button class="btn" id="spinBtn2">🎲 돌리기</button></div>
-    <div class="tip hidden" id="tip"></div>
-    <div class="note">카테고리를 고르면 그 종류 안에서만 돌아가요. "전체"면 모든 옷에서 랜덤.</div>
+
+    <!-- 룰렛 -->
+    <div id="tab-roul">
+      <div class="chips" id="catChips"></div>
+      <div class="wheelbox">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="320" height="320"></canvas>
+        <div class="center" id="spinBtn">SPIN</div>
+      </div>
+      <div class="result" id="result">SPIN을 눌러 오늘의 코디를 정해보세요</div>
+      <div class="row"><button class="btn" id="spinBtn2">🎲 돌리기</button></div>
+      <div class="tip hidden" id="tip"></div>
+      <div class="note">카테고리를 고르면 그 종류 안에서만 돌아가요. "전체"면 모든 옷에서 랜덤.</div>
+    </div>
+
+    <!-- 옷 편집 -->
+    <div id="tab-edit" class="hidden">
+      <div class="chips" id="editChips"></div>
+      <div class="menulist" id="menuList"></div>
+      <div class="row" style="justify-content:flex-start">
+        <input id="newName" placeholder="옷/코디 이름 (예: 트렌치코트)">
+        <select id="newCat"></select>
+        <button class="btn sm" id="addBtn">추가</button>
+      </div>
+      <div class="row" style="justify-content:flex-start;margin-top:10px">
+        <button class="btn sec sm" id="resetBtn">기본 옷으로 초기화</button>
+      </div>
+      <div class="note">분류를 선택하면 그 카테고리만 보고 바로 추가할 수 있어요. 편집 내용은 이 기기에 저장됩니다.</div>
+    </div>
   </div>
 </div>
 
 <script>
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
-const LS='outfitRoulette_v1';
-const DATA={
+const LS='outfitRoulette_v2';
+const DEFAULTS={
   '여성':{
     '상의':['블라우스','니트 스웨터','가디건','후드티','셔츠','크롭 티'],
     '하의':['청바지','슬랙스','A라인 스커트','와이드 팬츠','플리츠 스커트','레깅스'],
@@ -122,32 +152,45 @@ const TIPS=[
   '한 가지 톤으로 맞추면 실패 확률이 줄어듭니다.',
   '오늘은 평소 안 입던 조합에 도전해봐도 좋은 날!'
 ];
+const clone=o=>JSON.parse(JSON.stringify(o));
 
 let state=load();
-function load(){try{const o=JSON.parse(localStorage.getItem(LS));if(o&&o.gender)return o;}catch(e){}return {gender:'',cat:'전체'};}
+function load(){
+  try{const o=JSON.parse(localStorage.getItem(LS));if(o&&o.items)return o;}catch(e){}
+  return {gender:'',cat:'전체',editCat:'전체',items:clone(DEFAULTS)};
+}
 function save(){localStorage.setItem(LS,JSON.stringify(state));}
-
-function cats(){return ['전체',...Object.keys(DATA[state.gender])];}
+function gData(){return state.items[state.gender];}
+function cats(){return Object.keys(gData());}
 function activeItems(){
-  const g=DATA[state.gender];
-  if(state.cat==='전체')return Object.values(g).flat();
-  return g[state.cat]||[];
+  const g=gData();
+  if(state.cat==='전체')return Object.entries(g).flatMap(([c,arr])=>arr.map(n=>({n,c})));
+  return (g[state.cat]||[]).map(n=>({n,c:state.cat}));
 }
 
 /* 성별 선택 */
-$$('.gbtn').forEach(b=>b.onclick=()=>{state.gender=b.dataset.g;state.cat='전체';save();enterRoulette();});
+$$('.gbtn').forEach(b=>b.onclick=()=>{state.gender=b.dataset.g;state.cat='전체';state.editCat='전체';save();enterStep2();});
 $('#changeG').onclick=()=>{$('#step1').classList.remove('hidden');$('#step2').classList.add('hidden');
   $$('.gbtn').forEach(x=>x.classList.remove('on'));};
 
-function enterRoulette(){
+function enterStep2(){
   $('#step1').classList.add('hidden');$('#step2').classList.remove('hidden');
   $('#gLabel').textContent=state.gender==='여성'?'👗 여성복':'👔 남성복';
   document.documentElement.style.setProperty('--accent',state.gender==='여성'?'#ff6fb5':'#4d96ff');
-  renderChips();drawWheel();$('#tip').classList.add('hidden');
-  $('#result').textContent='SPIN을 눌러 오늘의 코디를 정해보세요';
+  renderChips();drawWheel();renderMenu();
+  $('#tip').classList.add('hidden');$('#result').textContent='SPIN을 눌러 오늘의 코디를 정해보세요';
 }
+
+/* 탭 */
+$$('.tab').forEach(t=>t.onclick=()=>{
+  $$('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+  $('#tab-roul').classList.toggle('hidden',t.dataset.tab!=='roul');
+  $('#tab-edit').classList.toggle('hidden',t.dataset.tab!=='edit');
+});
+
+/* 룰렛 카테고리 */
 function renderChips(){
-  $('#catChips').innerHTML=cats().map(c=>`<div class="chip ${state.cat===c?'on':''}" data-c="${c}">${c}</div>`).join('');
+  $('#catChips').innerHTML=['전체',...cats()].map(c=>`<div class="chip ${state.cat===c?'on':''}" data-c="${c}">${c}</div>`).join('');
   $$('#catChips .chip').forEach(ch=>ch.onclick=()=>{state.cat=ch.dataset.c;save();renderChips();drawWheel();});
 }
 
@@ -158,7 +201,8 @@ let rotation=0,spinning=false,items=[];
 function drawWheel(){
   items=activeItems();const n=items.length,R=160,cx=160,cy=160;
   ctx.clearRect(0,0,320,320);
-  if(n===0){ctx.fillStyle='#444';ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();return;}
+  if(n===0){ctx.fillStyle='#444';ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText('옷 없음',cx,cy);return;}
   const arc=2*Math.PI/n;
   for(let i=0;i<n;i++){
     const a0=i*arc,a1=a0+arc;
@@ -166,28 +210,63 @@ function drawWheel(){
     ctx.fillStyle=COLORS[i%COLORS.length];ctx.fill();
     ctx.save();ctx.translate(cx,cy);ctx.rotate(a0+arc/2);
     ctx.fillStyle='#1a1f3d';ctx.font='bold 12px sans-serif';ctx.textAlign='right';
-    let nm=items[i];if(nm.length>8)nm=nm.slice(0,8)+'…';
+    let nm=items[i].n;if(nm.length>8)nm=nm.slice(0,8)+'…';
     ctx.fillText(nm,R-12,4);ctx.restore();
   }
 }
 function spin(){
-  if(spinning)return;const n=items.length;if(n===0)return;
+  if(spinning)return;const n=items.length;if(n===0){alert('이 분류에 옷이 없어요!');return;}
   spinning=true;$('#result').textContent='🎰 고르는 중...';$('#tip').classList.add('hidden');
   const idx=Math.floor(Math.random()*n),arc=360/n;
   const target=360*6+(270-(idx*arc+arc/2));
-  rotation=rotation-(rotation%360)+target;
-  cv.style.transform=`rotate(${rotation}deg)`;
+  rotation=rotation-(rotation%360)+target;cv.style.transform=`rotate(${rotation}deg)`;
   setTimeout(()=>{
     spinning=false;const pick=items[idx];
-    $('#result').innerHTML=`🎉 오늘은 <span style="color:var(--accent2)">${pick}</span><small>${state.gender==='여성'?'여성복':'남성복'} · ${state.cat}</small>`;
+    $('#result').innerHTML=`🎉 오늘은 <span style="color:var(--accent2)">${pick.n}</span><small>${state.gender==='여성'?'여성복':'남성복'} · ${pick.c}</small>`;
     const tip=TIPS[Math.floor(Math.random()*TIPS.length)];
     $('#tip').innerHTML=`💡 <b>코디 팁</b><br>${tip}`;$('#tip').classList.remove('hidden');
   },4600);
 }
 $('#spinBtn').onclick=spin;$('#spinBtn2').onclick=spin;
 
+/* 옷 편집 */
+function renderEditChips(){
+  const all=['전체',...cats()];
+  $('#editChips').innerHTML=all.map(c=>{
+    const cnt=c==='전체'?Object.values(gData()).flat().length:(gData()[c]||[]).length;
+    return `<div class="chip ${state.editCat===c?'on':''}" data-c="${c}">${c} <span style="opacity:.6">${cnt}</span></div>`;
+  }).join('');
+  $$('#editChips .chip').forEach(ch=>ch.onclick=()=>{state.editCat=ch.dataset.c;save();renderMenu();});
+}
+function renderMenu(){
+  if(!state.editCat)state.editCat='전체';
+  renderEditChips();
+  const g=gData();let html='';
+  const showCats=state.editCat==='전체'?cats():[state.editCat];
+  showCats.forEach(cat=>{
+    const arr=g[cat]||[];
+    if(state.editCat==='전체'){html+=`<div style="font-size:12px;color:var(--sub);margin:6px 2px 2px">${cat}</div>`;}
+    if(!arr.length&&state.editCat!=='전체'){html+='<div class="note" style="text-align:left">이 분류에 옷이 없어요. 아래에서 추가하세요.</div>';}
+    html+=arr.map((nm,i)=>`<div class="mitem"><span class="nm">${nm}</span>
+      <button class="del" data-cat="${cat}" data-i="${i}">✕</button></div>`).join('');
+  });
+  $('#menuList').innerHTML=html;
+  $$('#menuList .del').forEach(b=>b.onclick=()=>{gData()[b.dataset.cat].splice(+b.dataset.i,1);save();renderMenu();drawWheel();renderChips();});
+  $('#newCat').innerHTML=cats().map(c=>`<option ${state.editCat===c?'selected':''}>${c}</option>`).join('');
+}
+function addItem(){
+  const nm=$('#newName').value.trim();if(!nm)return;
+  const c=$('#newCat').value;(gData()[c]=gData()[c]||[]).push(nm);
+  $('#newName').value='';save();renderMenu();drawWheel();renderChips();
+}
+$('#addBtn').onclick=addItem;
+$('#newName').addEventListener('keydown',e=>{if(e.key==='Enter')addItem();});
+$('#resetBtn').onclick=()=>{if(confirm(state.gender+'복 옷 목록을 기본값으로 되돌릴까요?')){
+  state.items[state.gender]=clone(DEFAULTS[state.gender]);state.cat='전체';state.editCat='전체';
+  save();renderChips();drawWheel();renderMenu();}};
+
 /* 초기 */
-if(state.gender){$$('.gbtn').forEach(x=>x.classList.toggle('on',x.dataset.g===state.gender));enterRoulette();}
+if(state.gender){$$('.gbtn').forEach(x=>x.classList.toggle('on',x.dataset.g===state.gender));enterStep2();}
 </script>
 </body>
 </html>
