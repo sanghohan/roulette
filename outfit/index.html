@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오늘 뭐 입지? 👗👔 의상 룰렛</title>
+<style>
+  :root{
+    --bg:#0f1226; --card:#1a1f3d; --card2:#232a52; --line:#2e376a;
+    --txt:#eef1ff; --sub:#9aa3d4; --accent:#7c5cff; --accent2:#ffd93d;
+    --good:#4ade80; --blue:#60a5fa; --pink:#ff6fb5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI','Apple SD Gothic Neo',system-ui,sans-serif}
+  body{background:radial-gradient(1200px 600px at 50% -10%,#241c50,#0f1226);color:var(--txt);min-height:100vh;padding:20px}
+  .wrap{max-width:760px;margin:0 auto}
+  header{text-align:center;margin-bottom:14px}
+  header h1{font-size:30px;letter-spacing:-.5px}
+  header p{color:var(--sub);margin-top:6px;font-size:14px}
+  .nav{text-align:center;margin-bottom:12px;font-size:13px}
+  .nav a{color:var(--blue);text-decoration:none;margin:0 8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
+  .card h2{font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  /* 성별 게이트 */
+  .gender{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px}
+  .gbtn{padding:34px 10px;border-radius:16px;border:2px solid var(--line);background:var(--card2);
+    cursor:pointer;text-align:center;transition:.15s}
+  .gbtn .emo{font-size:46px;display:block;margin-bottom:8px}
+  .gbtn .lab{font-size:17px;font-weight:700}
+  .gbtn:hover{transform:translateY(-2px)}
+  .gbtn.f.on{border-color:var(--pink);background:#3a2440;box-shadow:0 0 0 3px #ff6fb533}
+  .gbtn.m.on{border-color:var(--blue);background:#1f2c50;box-shadow:0 0 0 3px #60a5fa33}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;justify-content:center}
+  .chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--sub);cursor:pointer;font-size:13px}
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .wheelbox{position:relative;width:min(320px,82vw);aspect-ratio:1;margin:6px auto 14px}
+  .pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:5;
+    width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;
+    border-top:26px solid var(--accent2);filter:drop-shadow(0 2px 3px #0008)}
+  canvas{width:100%;height:100%;border-radius:50%;box-shadow:0 0 0 8px #ffffff10,0 14px 40px #0007;transition:transform 4.5s cubic-bezier(.17,.67,.12,1)}
+  .center{position:absolute;top:50%;left:50%;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;
+    background:#fff;color:#1a1f3d;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:0 4px 14px #0006;z-index:4;user-select:none;font-size:15px}
+  .center:active{transform:scale(.94)}
+  .result{text-align:center;font-size:24px;font-weight:800;min-height:34px;margin:6px 0}
+  .result small{display:block;color:var(--sub);font-size:13px;font-weight:500;margin-top:2px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
+  .btn:hover{filter:brightness(1.1)} .btn:active{transform:scale(.97)}
+  .btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+  .btn.sm{padding:7px 12px;font-size:12px;border-radius:9px}
+  .tip{background:linear-gradient(135deg,#2a2150,#3a2a6e);border:1px solid #4a3a8e;border-radius:14px;padding:14px;text-align:center;margin-top:14px;font-size:14px;line-height:1.5}
+  .tip b{color:var(--accent2)}
+  .note{color:var(--sub);font-size:12px;margin-top:10px;line-height:1.5;text-align:center}
+  .hidden{display:none}
+  @media(max-width:640px){
+    body{padding:12px} header h1{font-size:24px}
+    .card{padding:16px;border-radius:15px}
+    .gbtn{padding:26px 8px} .gbtn .emo{font-size:40px}
+    .result{font-size:21px} .btn{flex:1}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>👗👔 오늘 뭐 입지?</h1>
+    <p>성별을 고르면 그에 맞는 옷 룰렛이 시작돼요</p>
+  </header>
+  <div class="nav"><a href="/">🍽️ 메뉴 룰렛</a> · <a href="/outfit/">👕 의상 룰렛</a></div>
+
+  <!-- 1단계: 성별 -->
+  <div class="card" id="step1">
+    <h2>① 오늘은?</h2>
+    <div class="gender">
+      <div class="gbtn f" data-g="여성"><span class="emo">👗</span><span class="lab">여성복</span></div>
+      <div class="gbtn m" data-g="남성"><span class="emo">👔</span><span class="lab">남성복</span></div>
+    </div>
+    <div class="note">선택은 이 기기에 저장돼서, 다음에 오면 바로 룰렛으로 들어가요.</div>
+  </div>
+
+  <!-- 2단계: 룰렛 -->
+  <div class="card hidden" id="step2">
+    <h2><span id="gLabel"></span> 의상 룰렛 <button class="btn sec sm" id="changeG" style="margin-left:auto">성별 바꾸기</button></h2>
+    <div class="chips" id="catChips"></div>
+    <div class="wheelbox">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="320" height="320"></canvas>
+      <div class="center" id="spinBtn">SPIN</div>
+    </div>
+    <div class="result" id="result">SPIN을 눌러 오늘의 코디를 정해보세요</div>
+    <div class="row"><button class="btn" id="spinBtn2">🎲 돌리기</button></div>
+    <div class="tip hidden" id="tip"></div>
+    <div class="note">카테고리를 고르면 그 종류 안에서만 돌아가요. "전체"면 모든 옷에서 랜덤.</div>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+const LS='outfitRoulette_v1';
+const DATA={
+  '여성':{
+    '상의':['블라우스','니트 스웨터','가디건','후드티','셔츠','크롭 티'],
+    '하의':['청바지','슬랙스','A라인 스커트','와이드 팬츠','플리츠 스커트','레깅스'],
+    '원피스':['셔츠 원피스','니트 원피스','플로럴 원피스','미디 원피스'],
+    '아우터':['트렌치코트','블레이저','패딩','야상','데님 자켓'],
+    '캐주얼룩':['맨투맨+청바지','후드+레깅스','니트+슬랙스','티셔츠+스커트'],
+    '포멀룩':['정장 세트','블레이저+슬랙스','셔츠+스커트']
+  },
+  '남성':{
+    '상의':['셔츠','티셔츠','니트','맨투맨','후드티','피케 셔츠'],
+    '하의':['청바지','슬랙스','치노 팬츠','조거 팬츠','반바지'],
+    '아우터':['블레이저','코트','패딩','블루종','데님 자켓'],
+    '캐주얼룩':['후드+청바지','맨투맨+조거','티셔츠+치노','니트+슬랙스'],
+    '포멀룩':['정장','블레이저+슬랙스','셔츠+슬랙스','니트+슬랙스']
+  }
+};
+const TIPS=[
+  '오늘은 포인트 컬러 하나만 더해보세요. 가방이나 양말로도 충분해요.',
+  '날씨 확인! 일교차 크면 가벼운 아우터 하나 챙기는 게 좋아요.',
+  '신발만 바꿔도 분위기가 확 달라집니다.',
+  '깔끔한 게 최고. 다림질 한 번이면 인상이 달라져요.',
+  '한 가지 톤으로 맞추면 실패 확률이 줄어듭니다.',
+  '오늘은 평소 안 입던 조합에 도전해봐도 좋은 날!'
+];
+
+let state=load();
+function load(){try{const o=JSON.parse(localStorage.getItem(LS));if(o&&o.gender)return o;}catch(e){}return {gender:'',cat:'전체'};}
+function save(){localStorage.setItem(LS,JSON.stringify(state));}
+
+function cats(){return ['전체',...Object.keys(DATA[state.gender])];}
+function activeItems(){
+  const g=DATA[state.gender];
+  if(state.cat==='전체')return Object.values(g).flat();
+  return g[state.cat]||[];
+}
+
+/* 성별 선택 */
+$$('.gbtn').forEach(b=>b.onclick=()=>{state.gender=b.dataset.g;state.cat='전체';save();enterRoulette();});
+$('#changeG').onclick=()=>{$('#step1').classList.remove('hidden');$('#step2').classList.add('hidden');
+  $$('.gbtn').forEach(x=>x.classList.remove('on'));};
+
+function enterRoulette(){
+  $('#step1').classList.add('hidden');$('#step2').classList.remove('hidden');
+  $('#gLabel').textContent=state.gender==='여성'?'👗 여성복':'👔 남성복';
+  document.documentElement.style.setProperty('--accent',state.gender==='여성'?'#ff6fb5':'#4d96ff');
+  renderChips();drawWheel();$('#tip').classList.add('hidden');
+  $('#result').textContent='SPIN을 눌러 오늘의 코디를 정해보세요';
+}
+function renderChips(){
+  $('#catChips').innerHTML=cats().map(c=>`<div class="chip ${state.cat===c?'on':''}" data-c="${c}">${c}</div>`).join('');
+  $$('#catChips .chip').forEach(ch=>ch.onclick=()=>{state.cat=ch.dataset.c;save();renderChips();drawWheel();});
+}
+
+/* 룰렛 */
+const cv=$('#wheel'),ctx=cv.getContext('2d');
+const COLORS=['#ff6b6b','#ffd93d','#6bcB77','#4d96ff','#ff9f45','#a66cff','#ff6fb5','#34d399'];
+let rotation=0,spinning=false,items=[];
+function drawWheel(){
+  items=activeItems();const n=items.length,R=160,cx=160,cy=160;
+  ctx.clearRect(0,0,320,320);
+  if(n===0){ctx.fillStyle='#444';ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();return;}
+  const arc=2*Math.PI/n;
+  for(let i=0;i<n;i++){
+    const a0=i*arc,a1=a0+arc;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,a0,a1);ctx.closePath();
+    ctx.fillStyle=COLORS[i%COLORS.length];ctx.fill();
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(a0+arc/2);
+    ctx.fillStyle='#1a1f3d';ctx.font='bold 12px sans-serif';ctx.textAlign='right';
+    let nm=items[i];if(nm.length>8)nm=nm.slice(0,8)+'…';
+    ctx.fillText(nm,R-12,4);ctx.restore();
+  }
+}
+function spin(){
+  if(spinning)return;const n=items.length;if(n===0)return;
+  spinning=true;$('#result').textContent='🎰 고르는 중...';$('#tip').classList.add('hidden');
+  const idx=Math.floor(Math.random()*n),arc=360/n;
+  const target=360*6+(270-(idx*arc+arc/2));
+  rotation=rotation-(rotation%360)+target;
+  cv.style.transform=`rotate(${rotation}deg)`;
+  setTimeout(()=>{
+    spinning=false;const pick=items[idx];
+    $('#result').innerHTML=`🎉 오늘은 <span style="color:var(--accent2)">${pick}</span><small>${state.gender==='여성'?'여성복':'남성복'} · ${state.cat}</small>`;
+    const tip=TIPS[Math.floor(Math.random()*TIPS.length)];
+    $('#tip').innerHTML=`💡 <b>코디 팁</b><br>${tip}`;$('#tip').classList.remove('hidden');
+  },4600);
+}
+$('#spinBtn').onclick=spin;$('#spinBtn2').onclick=spin;
+
+/* 초기 */
+if(state.gender){$$('.gbtn').forEach(x=>x.classList.toggle('on',x.dataset.g===state.gender));enterRoulette();}
+</script>
+</body>
+</html>
