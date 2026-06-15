@@ -28,7 +28,6 @@
   .cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
   .cat{padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--sub);cursor:pointer;font-size:13px}
   .cat.on{background:var(--accent);color:#04201d;border-color:var(--accent);font-weight:700}
-  /* 목록 */
   .list{display:flex;flex-direction:column}
   .post{display:flex;gap:12px;padding:13px 6px;border-bottom:1px solid var(--line);cursor:pointer;align-items:flex-start}
   .post:hover{background:#ffffff08}
@@ -39,25 +38,24 @@
   .post .meta{font-size:12px;color:var(--sub)}
   .post .meta span{margin-right:10px}
   .empty{text-align:center;color:var(--sub);padding:40px 0;font-size:14px}
-  /* 상세 */
   .detail .badge{font-size:12px;color:var(--accent2);font-weight:700}
   .detail h2{font-size:20px;margin:6px 0}
   .detail .meta{font-size:12px;color:var(--sub);margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:12px}
   .detail .content{font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
-  .detail img.media{max-width:100%;border-radius:12px;margin:12px 0}
-  .detail video.media{max-width:100%;border-radius:12px;margin:12px 0}
+  .detail img.media,.detail video.media,.detail iframe.media{max-width:100%;border-radius:12px;margin:12px 0}
   .likebar{display:flex;gap:10px;align-items:center;margin:16px 0}
   .comments{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
   .comment{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:8px}
   .comment .who{color:var(--blue);font-weight:600;font-size:13px} .comment .ct{color:var(--sub);font-size:11px;float:right}
   .comment .cx{font-size:14px;margin-top:3px;white-space:pre-wrap}
-  /* 폼 */
   .form label{display:block;font-size:12px;color:var(--sub);margin:10px 0 4px}
   .form input,.form select,.form textarea{width:100%;background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:14px}
   .form textarea{min-height:160px;resize:vertical;line-height:1.6}
   .hidden{display:none}
   .note{color:var(--sub);font-size:12px;line-height:1.5}
-  .banner{background:#13343a;border:1px solid #1c6e63;color:#bdeee6;border-radius:12px;padding:11px 14px;font-size:12.5px;margin-bottom:14px;line-height:1.5}
+  .banner{border-radius:12px;padding:11px 14px;font-size:12.5px;margin-bottom:14px;line-height:1.5}
+  .banner.local{background:#13343a;border:1px solid #1c6e63;color:#bdeee6}
+  .banner.err{background:#3a2a2a;border:1px solid #6e4a4a;color:#ffd0d0}
   @media(max-width:640px){
     body{padding:12px} header h1{font-size:24px}
     .card{padding:14px;border-radius:14px}
@@ -73,9 +71,9 @@
     <div class="nav"><a href="/">🍽️ 메뉴</a> · <a href="/outfit/">👕 의상</a> · <a href="/pingpong/">🏓 탁구</a></div>
   </header>
 
-  <div class="banner">ℹ️ 지금은 미리보기 버전이라 글은 <b>이 브라우저에만</b> 저장돼요. 곧 서버를 붙이면 모두가 함께 보는 진짜 게시판이 됩니다.</div>
+  <div id="banner"></div>
 
-  <!-- 목록 화면 -->
+  <!-- 목록 -->
   <div class="card" id="listView">
     <div class="toolbar">
       <input id="search" placeholder="🔍 제목·내용·작성자 검색">
@@ -85,10 +83,10 @@
     <div class="list" id="list"></div>
   </div>
 
-  <!-- 상세 화면 -->
+  <!-- 상세 -->
   <div class="card detail hidden" id="detailView"></div>
 
-  <!-- 글쓰기 화면 -->
+  <!-- 글쓰기 -->
   <div class="card form hidden" id="writeView">
     <h2 style="font-size:18px">✏️ 새 글 쓰기</h2>
     <label>게시판</label>
@@ -101,6 +99,8 @@
     <input id="wMedia" placeholder="https://... (jpg, png, mp4, youtube 링크)">
     <label>내용</label>
     <textarea id="wContent" placeholder="내용을 입력하세요"></textarea>
+    <label>비밀번호 — 수정/삭제할 때 필요해요</label>
+    <input id="wPassword" type="password" placeholder="글 비밀번호">
     <div class="toolbar" style="margin-top:14px;margin-bottom:0">
       <button class="btn" id="submitBtn">등록</button>
       <button class="btn sec" id="cancelBtn">취소</button>
@@ -110,7 +110,19 @@
 
 <script>
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
-const LS='pingpong_v1';
+
+/* ===================================================================
+   백엔드 주소 설정
+   - 배포한 Spring Boot 서버 주소를 넣으면 모두가 공유하는 게시판이 됩니다.
+     예: const API_BASE = "https://api.donjiral.net";
+   - 비워두면("") 이 브라우저에만 저장되는 로컬 미리보기로 동작합니다.
+   - 코드 수정 없이 바꾸려면 브라우저 콘솔에서:
+     localStorage.setItem('pingpong_api','https://api.donjiral.net'); location.reload();
+=================================================================== */
+let API_BASE = "";
+API_BASE = localStorage.getItem('pingpong_api') || API_BASE;
+const USE_API = !!API_BASE;
+
 const CATS=[
   {k:'free', n:'자유게시판', e:'💬'},
   {k:'gear', n:'장비 리뷰', e:'🏓'},
@@ -120,59 +132,115 @@ const CATS=[
   {k:'tip', n:'팁 & 강좌', e:'📚'}
 ];
 const catName=k=>(CATS.find(c=>c.k===k)||{n:'기타',e:'🏓'});
+let filter='전체';
 
+/* ---------- 데이터 계층: API 또는 localStorage ---------- */
+const LS='pingpong_v1';
 const SEED=[
-  {id:1,cat:'free',title:'오늘 점심에 한 게임 치실 분?',author:'스매싱김',content:'점심시간에 회사 탁구대에서 한 게임 어때요? 12시 반에 모입니다!',media:'',likes:3,views:24,comments:[{who:'드라이브박',cx:'저요!',t:Date.now()-3600e3}],t:Date.now()-7200e3},
-  {id:2,cat:'gear',title:'버터플라이 티모볼 ALC 한 달 사용 후기',author:'러버장인',content:'반발력 좋고 회전 잘 먹습니다. 입문 후 첫 블레이드 업그레이드로 추천해요.\n무게감은 살짝 있는 편.',media:'',likes:7,views:58,comments:[],t:Date.now()-86400e3},
-  {id:3,cat:'match',title:'강남 주말 탁구 같이 치실 분 구해요',author:'주말랠리',content:'토요일 오전 강남 탁구장에서 같이 치실 분! 초중급 환영합니다.',media:'',likes:2,views:31,comments:[],t:Date.now()-2*86400e3},
-  {id:4,cat:'tip',title:'포핸드 드라이브 기본기 정리',author:'코치한',content:'1) 무릎 살짝 굽히고 2) 허리 회전으로 힘 전달 3) 공은 정점에서 임팩트.\n매일 100개씩 연습하면 한 달 안에 달라집니다.',media:'',likes:11,views:90,comments:[],t:Date.now()-3*86400e3}
+  {id:1,category:'free',title:'오늘 점심에 한 게임 치실 분?',author:'스매싱김',content:'점심시간에 회사 탁구대에서 한 게임 어때요? 12시 반에 모입니다!',media:'',likes:3,views:24,comments:[{id:11,author:'드라이브박',content:'저요!',createdAt:Date.now()-3600e3}],createdAt:Date.now()-7200e3},
+  {id:2,category:'gear',title:'버터플라이 티모볼 ALC 한 달 사용 후기',author:'러버장인',content:'반발력 좋고 회전 잘 먹습니다. 입문 후 첫 블레이드 업그레이드로 추천해요.\n무게감은 살짝 있는 편.',media:'',likes:7,views:58,comments:[],createdAt:Date.now()-86400e3},
+  {id:3,category:'match',title:'강남 주말 탁구 같이 치실 분 구해요',author:'주말랠리',content:'토요일 오전 강남 탁구장에서 같이 치실 분! 초중급 환영합니다.',media:'',likes:2,views:31,comments:[],createdAt:Date.now()-2*86400e3},
+  {id:4,category:'tip',title:'포핸드 드라이브 기본기 정리',author:'코치한',content:'1) 무릎 살짝 굽히고 2) 허리 회전으로 힘 전달 3) 공은 정점에서 임팩트.\n매일 100개씩 연습하면 한 달 안에 달라집니다.',media:'',likes:11,views:90,comments:[],createdAt:Date.now()-3*86400e3}
 ];
+function lsLoad(){try{const o=JSON.parse(localStorage.getItem(LS));if(o&&o.posts)return o;}catch(e){}return {posts:SEED.slice(),nextId:100,nextCid:1000};}
+function lsSave(d){localStorage.setItem(LS,JSON.stringify(d));}
 
-let state=load();
-function load(){try{const o=JSON.parse(localStorage.getItem(LS));if(o&&o.posts)return o;}catch(e){}
-  return {posts:SEED.slice(),filter:'전체',nextId:100};}
-function save(){localStorage.setItem(LS,JSON.stringify(state));}
+async function apiFetch(path,opts){
+  const r=await fetch(API_BASE+path,{headers:{'Content-Type':'application/json'},...opts});
+  if(!r.ok){let m='요청 실패 ('+r.status+')';try{const j=await r.json();if(j.message)m=j.message;}catch(e){}throw new Error(m);}
+  if(r.status===204)return null;
+  return r.json();
+}
 
-function fmt(t){const d=new Date(t),now=Date.now(),diff=(now-t)/1000;
+const data={
+  async list(cat,q){
+    if(USE_API){
+      const p=new URLSearchParams();if(cat&&cat!=='전체')p.set('category',cat);if(q)p.set('q',q);
+      return apiFetch('/api/posts?'+p.toString());
+    }
+    const d=lsLoad();let posts=d.posts.slice().sort((a,b)=>b.createdAt-a.createdAt);
+    if(cat&&cat!=='전체')posts=posts.filter(p=>p.category===cat);
+    if(q){const s=q.toLowerCase();posts=posts.filter(p=>(p.title+p.content+p.author).toLowerCase().includes(s));}
+    return posts.map(p=>({...p,commentCount:p.comments.length}));
+  },
+  async get(id){
+    if(USE_API)return apiFetch('/api/posts/'+id);
+    const d=lsLoad();const p=d.posts.find(x=>x.id===id);if(!p)throw new Error('글 없음');
+    p.views++;lsSave(d);return p;
+  },
+  async create(body){
+    if(USE_API)return apiFetch('/api/posts',{method:'POST',body:JSON.stringify(body)});
+    const d=lsLoad();const p={id:d.nextId++,category:body.category,title:body.title,author:body.author||'익명',
+      content:body.content,media:body.media||'',likes:0,views:0,comments:[],createdAt:Date.now(),_pw:body.password};
+    d.posts.push(p);lsSave(d);return p;
+  },
+  async remove(id,password){
+    if(USE_API)return apiFetch('/api/posts/'+id,{method:'DELETE',body:JSON.stringify({password})});
+    const d=lsLoad();const p=d.posts.find(x=>x.id===id);
+    if(p&&p._pw&&p._pw!==password)throw new Error('비밀번호가 일치하지 않습니다');
+    d.posts=d.posts.filter(x=>x.id!==id);lsSave(d);return null;
+  },
+  async like(id){
+    if(USE_API)return apiFetch('/api/posts/'+id+'/like',{method:'POST'});
+    const d=lsLoad();const p=d.posts.find(x=>x.id===id);p.likes++;lsSave(d);return {likes:p.likes};
+  },
+  async comment(id,body){
+    if(USE_API)return apiFetch('/api/posts/'+id+'/comments',{method:'POST',body:JSON.stringify(body)});
+    const d=lsLoad();const p=d.posts.find(x=>x.id===id);
+    const c={id:d.nextCid++,author:body.author||'익명',content:body.content,createdAt:Date.now()};
+    p.comments.push(c);lsSave(d);return c;
+  }
+};
+
+/* ---------- 유틸 ---------- */
+function fmt(t){const ms=typeof t==='number'?t:new Date(t).getTime();const diff=(Date.now()-ms)/1000;
   if(diff<60)return '방금';if(diff<3600)return Math.floor(diff/60)+'분 전';
   if(diff<86400)return Math.floor(diff/3600)+'시간 전';
   if(diff<7*86400)return Math.floor(diff/86400)+'일 전';
-  return `${d.getMonth()+1}/${d.getDate()}`;}
+  const d=new Date(ms);return `${d.getMonth()+1}/${d.getDate()}`;}
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
-/* 카테고리 */
-function renderCats(){
+/* ---------- 배너 ---------- */
+function showBanner(){
+  const b=$('#banner');
+  if(USE_API){b.className='banner local';b.innerHTML=`✅ 서버 연결됨 — 모두가 함께 보는 게시판입니다. <span class="note">(${esc(API_BASE)})</span>`;}
+  else{b.className='banner local';b.innerHTML='ℹ️ 미리보기 모드 — 글이 <b>이 브라우저에만</b> 저장돼요. 서버를 연결하면 모두가 함께 보는 게시판이 됩니다.';}
+}
+function bannerError(msg){const b=$('#banner');b.className='banner err';b.innerHTML='⚠️ '+esc(msg);}
+
+/* ---------- 카테고리 ---------- */
+function renderCats(counts){
   const all=['전체',...CATS.map(c=>c.k)];
   $('#cats').innerHTML=all.map(k=>{
     const lab=k==='전체'?'전체':catName(k).e+' '+catName(k).n;
-    const cnt=k==='전체'?state.posts.length:state.posts.filter(p=>p.cat===k).length;
-    return `<div class="cat ${state.filter===k?'on':''}" data-k="${k}">${lab} ${cnt}</div>`;
+    return `<div class="cat ${filter===k?'on':''}" data-k="${k}">${lab}</div>`;
   }).join('');
-  $$('#cats .cat').forEach(c=>c.onclick=()=>{state.filter=c.dataset.k;save();renderList();renderCats();});
+  $$('#cats .cat').forEach(c=>c.onclick=()=>{filter=c.dataset.k;renderList();renderCats();});
 }
 
-/* 목록 */
-function renderList(){
-  const q=($('#search').value||'').trim().toLowerCase();
-  let posts=state.posts.slice().sort((a,b)=>b.t-a.t);
-  if(state.filter!=='전체')posts=posts.filter(p=>p.cat===state.filter);
-  if(q)posts=posts.filter(p=>(p.title+p.content+p.author).toLowerCase().includes(q));
+/* ---------- 목록 ---------- */
+async function renderList(){
+  $('#list').innerHTML='<div class="empty">불러오는 중…</div>';
+  let posts;
+  try{posts=await data.list(filter,($('#search').value||'').trim());}
+  catch(e){bannerError('목록을 불러오지 못했어요: '+e.message);$('#list').innerHTML='<div class="empty">불러오기 실패</div>';return;}
+  showBanner();
   if(!posts.length){$('#list').innerHTML='<div class="empty">글이 없어요. 첫 글을 남겨보세요! ✏️</div>';return;}
   $('#list').innerHTML=posts.map(p=>{
-    const c=catName(p.cat);
+    const c=catName(p.category);
     const thumb=p.media&&/\.(jpg|jpeg|png|gif|webp)$/i.test(p.media)?`<img class="thumb" src="${esc(p.media)}" onerror="this.style.display='none'">`:'';
     return `<div class="post" data-id="${p.id}">${thumb}
       <div class="body">
         <div class="badge">${c.e} ${c.n}</div>
         <div class="title">${esc(p.title)}</div>
-        <div class="meta"><span>👤 ${esc(p.author)}</span><span>🕒 ${fmt(p.t)}</span>
-          <span>👁 ${p.views}</span><span>❤ ${p.likes}</span><span>💬 ${p.comments.length}</span></div>
+        <div class="meta"><span>👤 ${esc(p.author)}</span><span>🕒 ${fmt(p.createdAt)}</span>
+          <span>👁 ${p.views}</span><span>❤ ${p.likes}</span><span>💬 ${p.commentCount}</span></div>
       </div></div>`;
   }).join('');
   $$('#list .post').forEach(el=>el.onclick=()=>openDetail(+el.dataset.id));
 }
 
-/* 상세 */
+/* ---------- 상세 ---------- */
 function mediaHTML(url){
   if(!url)return '';
   if(/\.(jpg|jpeg|png|gif|webp)$/i.test(url))return `<img class="media" src="${esc(url)}" onerror="this.style.display='none'">`;
@@ -181,15 +249,14 @@ function mediaHTML(url){
   if(yt)return `<iframe class="media" width="100%" height="240" src="https://www.youtube.com/embed/${yt[1]}" frameborder="0" allowfullscreen></iframe>`;
   return `<div class="note">🔗 <a href="${esc(url)}" target="_blank" style="color:var(--blue)">${esc(url)}</a></div>`;
 }
-function openDetail(id){
-  const p=state.posts.find(x=>x.id===id);if(!p)return;
-  p.views++;save();
-  const c=catName(p.cat);
+async function openDetail(id){
+  let p;try{p=await data.get(id);}catch(e){bannerError('글을 불러오지 못했어요: '+e.message);return;}
+  const c=catName(p.category);
   $('#detailView').innerHTML=`
     <button class="btn sec sm" id="backBtn">← 목록</button>
     <div style="margin-top:12px" class="badge">${c.e} ${c.n}</div>
     <h2>${esc(p.title)}</h2>
-    <div class="meta">👤 ${esc(p.author)} · 🕒 ${new Date(p.t).toLocaleString('ko-KR')} · 👁 ${p.views}</div>
+    <div class="meta">👤 ${esc(p.author)} · 🕒 ${fmt(p.createdAt)} · 👁 ${p.views}</div>
     ${mediaHTML(p.media)}
     <div class="content">${esc(p.content)}</div>
     <div class="likebar">
@@ -197,7 +264,7 @@ function openDetail(id){
       <button class="btn sec sm" id="delBtn">🗑 삭제</button>
     </div>
     <div class="comments">
-      <h2 style="font-size:15px;margin-bottom:10px">💬 댓글 ${p.comments.length}</h2>
+      <h2 style="font-size:15px;margin-bottom:10px">💬 댓글 <span id="cCount">${p.comments.length}</span></h2>
       <div id="commentList"></div>
       <div class="toolbar" style="margin-top:10px">
         <input id="cWho" placeholder="닉네임" style="max-width:120px">
@@ -205,52 +272,59 @@ function openDetail(id){
         <button class="btn sm" id="cAdd">등록</button>
       </div>
     </div>`;
-  renderComments(p);
+  renderComments(p.comments);
   $('#listView').classList.add('hidden');$('#writeView').classList.add('hidden');
   $('#detailView').classList.remove('hidden');window.scrollTo(0,0);
   $('#backBtn').onclick=showList;
-  $('#likeBtn').onclick=()=>{p.likes++;save();$('#likeBtn').textContent='❤ 좋아요 '+p.likes;};
-  $('#delBtn').onclick=()=>{if(confirm('이 글을 삭제할까요?')){state.posts=state.posts.filter(x=>x.id!==id);save();showList();}};
-  $('#cAdd').onclick=()=>{
-    const who=($('#cWho').value||'익명').trim(),cx=$('#cText').value.trim();if(!cx)return;
-    p.comments.push({who,cx,t:Date.now()});save();renderComments(p);$('#cText').value='';
+  $('#likeBtn').onclick=async()=>{try{const r=await data.like(id);$('#likeBtn').textContent='❤ 좋아요 '+r.likes;}catch(e){alert(e.message);}};
+  $('#delBtn').onclick=async()=>{
+    const pw=prompt('글 비밀번호를 입력하세요');if(pw===null)return;
+    try{await data.remove(id,pw);showList();}catch(e){alert(e.message);}
+  };
+  $('#cAdd').onclick=async()=>{
+    const author=($('#cWho').value||'익명').trim(),content=$('#cText').value.trim();if(!content)return;
+    try{await data.comment(id,{author,content});const np=await data.get(id);
+      renderComments(np.comments);$('#cCount').textContent=np.comments.length;$('#cText').value='';
+    }catch(e){alert(e.message);}
   };
 }
-function renderComments(p){
-  $('#commentList').innerHTML=p.comments.length?p.comments.map(c=>
-    `<div class="comment"><span class="who">${esc(c.who)}</span><span class="ct">${fmt(c.t)}</span>
-     <div class="cx">${esc(c.cx)}</div></div>`).join(''):'<div class="note">첫 댓글을 남겨보세요.</div>';
+function renderComments(list){
+  $('#commentList').innerHTML=(list&&list.length)?list.map(c=>
+    `<div class="comment"><span class="who">${esc(c.author)}</span><span class="ct">${fmt(c.createdAt)}</span>
+     <div class="cx">${esc(c.content)}</div></div>`).join(''):'<div class="note">첫 댓글을 남겨보세요.</div>';
 }
 
-/* 글쓰기 */
+/* ---------- 글쓰기 ---------- */
 function showWrite(){
-  $('#wCat').innerHTML=CATS.map(c=>`<option value="${c.k}" ${state.filter===c.k?'selected':''}>${c.e} ${c.n}</option>`).join('');
-  $('#wTitle').value='';$('#wAuthor').value='';$('#wMedia').value='';$('#wContent').value='';
+  $('#wCat').innerHTML=CATS.map(c=>`<option value="${c.k}" ${filter===c.k?'selected':''}>${c.e} ${c.n}</option>`).join('');
+  ['wTitle','wAuthor','wMedia','wContent','wPassword'].forEach(id=>$('#'+id).value='');
   $('#listView').classList.add('hidden');$('#detailView').classList.add('hidden');
   $('#writeView').classList.remove('hidden');window.scrollTo(0,0);
 }
-function submitPost(){
-  const title=$('#wTitle').value.trim(),content=$('#wContent').value.trim();
+async function submitPost(){
+  const title=$('#wTitle').value.trim(),content=$('#wContent').value.trim(),password=$('#wPassword').value;
   if(!title){alert('제목을 입력하세요');return;}
   if(!content){alert('내용을 입력하세요');return;}
-  state.posts.push({id:state.nextId++,cat:$('#wCat').value,title,
-    author:($('#wAuthor').value||'익명').trim(),content,media:$('#wMedia').value.trim(),
-    likes:0,views:0,comments:[],t:Date.now()});
-  save();showList();
+  if(!password){alert('비밀번호를 입력하세요 (수정/삭제에 필요)');return;}
+  try{
+    await data.create({category:$('#wCat').value,title,author:$('#wAuthor').value.trim(),
+      content,media:$('#wMedia').value.trim(),password});
+    showList();
+  }catch(e){alert('등록 실패: '+e.message);}
 }
 function showList(){
   $('#detailView').classList.add('hidden');$('#writeView').classList.add('hidden');
   $('#listView').classList.remove('hidden');renderCats();renderList();window.scrollTo(0,0);
 }
 
-/* 이벤트 */
+/* ---------- 이벤트 ---------- */
 $('#writeBtn').onclick=showWrite;
 $('#submitBtn').onclick=submitPost;
 $('#cancelBtn').onclick=showList;
-$('#search').addEventListener('input',renderList);
+let searchTimer;$('#search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(renderList,250);});
 
-/* 초기 */
-renderCats();renderList();
+/* ---------- 초기 ---------- */
+showBanner();renderCats();renderList();
 </script>
 </body>
 </html>

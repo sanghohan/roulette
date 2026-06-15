@@ -1,0 +1,53 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: pingpong-backend
+
+  # ===== 기본 프로필: H2 파일 DB (무료, 추가 인프라 불필요) =====
+  datasource:
+    url: jdbc:h2:file:./data/pingpong;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+    open-in-view: false
+  h2:
+    console:
+      enabled: true      # http://localhost:8080/h2-console (개발용)
+
+# 프론트엔드 허용 출처 (CORS)
+app:
+  cors:
+    allowed-origins: >-
+      https://www.donjiral.net,
+      https://donjiral.net,
+      http://localhost:8000,
+      http://127.0.0.1:5500
+
+---
+# ===== 운영 프로필: PostgreSQL (예: AWS RDS / EC2 내 설치) =====
+# 실행: java -jar app.jar --spring.profiles.active=postgres
+# 환경변수 DB_URL, DB_USER, DB_PASSWORD 설정 후 사용
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pingpong}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USER:pingpong}
+    password: ${DB_PASSWORD:pingpong}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false

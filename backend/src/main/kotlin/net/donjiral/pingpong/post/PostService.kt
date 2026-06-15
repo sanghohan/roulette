@@ -1,0 +1,90 @@
+package net.donjiral.pingpong.post
+
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.server.ResponseStatusException
+import org.springframework.http.HttpStatus
+
+@Service
+class PostService(
+    private val postRepository: PostRepository,
+    private val commentRepository: CommentRepository
+) {
+    private val encoder = BCryptPasswordEncoder()
+
+    @Transactional(readOnly = true)
+    fun list(category: String?, q: String?): List<PostSummaryResponse> {
+        val cat = category?.takeIf { it.isNotBlank() && it != "전체" }
+        val query = q?.takeIf { it.isNotBlank() }
+        return postRepository.search(cat, query).map { it.toSummary() }
+    }
+
+    @Transactional
+    fun get(id: Long): PostDetailResponse {
+        val post = find(id)
+        post.views += 1
+        return post.toDetail()
+    }
+
+    @Transactional
+    fun create(req: PostCreateRequest): PostDetailResponse {
+        val post = Post(
+            category = req.category,
+            title = req.title.trim(),
+            author = req.author?.trim()?.takeIf { it.isNotEmpty() } ?: "익명",
+            content = req.content,
+            media = req.media?.trim()?.takeIf { it.isNotEmpty() },
+            passwordHash = encoder.encode(req.password)
+        )
+        return postRepository.save(post).toDetail()
+    }
+
+    @Transactional
+    fun update(id: Long, req: PostUpdateRequest): PostDetailResponse {
+        val post = find(id)
+        verify(post, req.password)
+        post.title = req.title.trim()
+        post.content = req.content
+        post.media = req.media?.trim()?.takeIf { it.isNotEmpty() }
+        return post.toDetail()
+    }
+
+    @Transactional
+    fun delete(id: Long, password: String) {
+        val post = find(id)
+        verify(post, password)
+        postRepository.delete(post)
+    }
+
+    @Transactional
+    fun like(id: Long): Int {
+        val post = find(id)
+        post.likes += 1
+        return post.likes
+    }
+
+    @Transactional
+    fun addComment(id: Long, req: CommentCreateRequest): CommentResponse {
+        val post = find(id)
+        val comment = Comment(
+            post = post,
+            author = req.author?.trim()?.takeIf { it.isNotEmpty() } ?: "익명",
+            content = req.content
+        )
+        post.comments.add(comment)
+        val saved = commentRepository.save(comment)
+        return CommentResponse(saved.id, saved.author, saved.content, saved.createdAt)
+    }
+
+    private fun find(id: Long): Post =
+        postRepository.findById(id).orElseThrow {
+            ResponseStatusException(HttpStatus.NOT_FOUND, "글을 찾을 수 없습니다")
+        }
+
+    private fun verify(post: Post, password: String) {
+        if (!encoder.matches(password, post.passwordHash)) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "비밀번호가 일치하지 않습니다")
+        }
+    }
+}
