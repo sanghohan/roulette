@@ -18,6 +18,13 @@ class PostService(
     private val encoder = BCryptPasswordEncoder()
     private val reserved = reservedRaw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 
+    // 공백·특수문자 제거 + 소문자화 (예: " 돈지랄 ", "$$돈지랄$$", "돈 지 랄" → "돈지랄")
+    private fun normalize(s: String) = s.lowercase().replace(Regex("[^\\p{L}\\p{N}]"), "")
+    private fun isReservedName(author: String): Boolean {
+        val a = normalize(author)
+        return reserved.any { a.contains(normalize(it)) }
+    }
+
     @Transactional(readOnly = true)
     fun list(category: String?, q: String?, page: Int, size: Int): PageResponse<PostSummaryResponse> {
         val cat = category?.takeIf { it.isNotBlank() && it != "전체" }
@@ -44,9 +51,8 @@ class PostService(
     @Transactional
     fun create(req: PostCreateRequest): PostDetailResponse {
         val author = req.author?.trim()?.takeIf { it.isNotEmpty() } ?: "익명"
-        // 예약 이름(돈지랄 등)은 관리자 암호가 맞아야만 사용 가능
-        val isReserved = reserved.any { it.equals(author, ignoreCase = true) }
-        if (isReserved && (adminSecret.isBlank() || req.adminPassword != adminSecret)) {
+        // 예약 이름(돈지랄 등)은 관리자 암호가 맞아야만 사용 가능 (공백·특수문자 우회 차단)
+        if (isReservedName(author) && (adminSecret.isBlank() || req.adminPassword != adminSecret)) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "‘$author’ 은(는) 관리자만 사용할 수 있는 이름이에요")
         }
         val post = Post(

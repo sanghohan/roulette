@@ -410,9 +410,10 @@ $('#submitBtn').onclick=submitPost;
 $('#cancelBtn').onclick=showList;
 $('#wFile').addEventListener('change',()=>{const f=$('#wFile').files[0];$('#uploadState').textContent=f?('선택됨: '+f.name):'';});
 const RESERVED=['돈지랄'];
+const normalizeName=s=>(s||'').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
+function isReservedName(s){const a=normalizeName(s);return RESERVED.some(r=>a.includes(normalizeName(r)));}
 $('#wAuthor').addEventListener('input',()=>{
-  const r=RESERVED.includes($('#wAuthor').value.trim());
-  $('#adminRow').classList.toggle('hidden',!r);
+  $('#adminRow').classList.toggle('hidden',!isReservedName($('#wAuthor').value));
 });
 let searchTimer;$('#search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{page=0;renderList();},250);});
 
