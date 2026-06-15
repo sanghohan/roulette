@@ -1,5 +1,6 @@
 package net.donjiral.pingpong.post
 
+import org.springframework.data.domain.PageRequest
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -14,10 +15,19 @@ class PostService(
     private val encoder = BCryptPasswordEncoder()
 
     @Transactional(readOnly = true)
-    fun list(category: String?, q: String?): List<PostSummaryResponse> {
+    fun list(category: String?, q: String?, page: Int, size: Int): PageResponse<PostSummaryResponse> {
         val cat = category?.takeIf { it.isNotBlank() && it != "전체" }
         val query = q?.takeIf { it.isNotBlank() }
-        return postRepository.search(cat, query).map { it.toSummary() }
+        val safePage = page.coerceAtLeast(0)
+        val safeSize = size.coerceIn(1, 50)
+        val result = postRepository.search(cat, query, PageRequest.of(safePage, safeSize))
+        return PageResponse(
+            items = result.content.map { it.toSummary() },
+            page = result.number,
+            size = result.size,
+            totalPages = result.totalPages,
+            totalElements = result.totalElements
+        )
     }
 
     @Transactional

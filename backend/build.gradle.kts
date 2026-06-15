@@ -28,6 +28,10 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
+    // AWS S3 (이미지 업로드). 인증은 EC2 인스턴스 역할(IAM Role) 자동 사용
+    implementation(platform("software.amazon.awssdk:bom:2.25.60"))
+    implementation("software.amazon.awssdk:s3")
+
     // 기본 DB: H2 (파일 모드, 무료). 운영 전환 시 postgresql 주석 해제
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")

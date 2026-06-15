@@ -13,8 +13,10 @@ class PostController(
     @GetMapping
     fun list(
         @RequestParam(required = false) category: String?,
-        @RequestParam(required = false) q: String?
-    ): List<PostSummaryResponse> = postService.list(category, q)
+        @RequestParam(required = false) q: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int
+    ): PageResponse<PostSummaryResponse> = postService.list(category, q, page, size)
 
     // 상세 (조회수 +1)
     @GetMapping("/{id}")

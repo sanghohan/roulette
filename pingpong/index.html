@@ -38,6 +38,10 @@
   .post .meta{font-size:12px;color:var(--sub)}
   .post .meta span{margin-right:10px}
   .empty{text-align:center;color:var(--sub);padding:40px 0;font-size:14px}
+  .pager{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:16px}
+  .pager button{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 14px;font-size:13px;cursor:pointer}
+  .pager button:disabled{opacity:.4;cursor:default}
+  .pager .pinfo{font-size:13px;color:var(--sub)}
   .detail .badge{font-size:12px;color:var(--accent2);font-weight:700}
   .detail h2{font-size:20px;margin:6px 0}
   .detail .meta{font-size:12px;color:var(--sub);margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:12px}
@@ -81,22 +85,25 @@
     </div>
     <div class="cats" id="cats"></div>
     <div class="list" id="list"></div>
+    <div class="pager" id="pager"></div>
   </div>
 
   <!-- 상세 -->
   <div class="card detail hidden" id="detailView"></div>
 
-  <!-- 글쓰기 -->
+  <!-- 글쓰기/수정 -->
   <div class="card form hidden" id="writeView">
-    <h2 style="font-size:18px">✏️ 새 글 쓰기</h2>
+    <h2 style="font-size:18px" id="writeTitle">✏️ 새 글 쓰기</h2>
     <label>게시판</label>
     <select id="wCat"></select>
     <label>제목</label>
     <input id="wTitle" placeholder="제목을 입력하세요">
-    <label>작성자</label>
+    <label id="authorLabel">작성자</label>
     <input id="wAuthor" placeholder="닉네임">
-    <label>이미지/영상 링크 (선택) — 사진/영상 게시판용</label>
-    <input id="wMedia" placeholder="https://... (jpg, png, mp4, youtube 링크)">
+    <label>이미지/영상 — 파일을 올리거나 링크를 붙여넣으세요</label>
+    <input type="file" id="wFile" accept="image/*,video/*">
+    <div id="uploadState" class="note"></div>
+    <input id="wMedia" placeholder="또는 https://... (jpg, png, mp4, youtube 링크)" style="margin-top:6px">
     <label>내용</label>
     <textarea id="wContent" placeholder="내용을 입력하세요"></textarea>
     <label>비밀번호 — 수정/삭제할 때 필요해요</label>
@@ -152,16 +159,20 @@ async function apiFetch(path,opts){
   return r.json();
 }
 
+const PAGE_SIZE=10;
 const data={
-  async list(cat,q){
+  async list(cat,q,page){
     if(USE_API){
       const p=new URLSearchParams();if(cat&&cat!=='전체')p.set('category',cat);if(q)p.set('q',q);
+      p.set('page',page);p.set('size',PAGE_SIZE);
       return apiFetch('/api/posts?'+p.toString());
     }
     const d=lsLoad();let posts=d.posts.slice().sort((a,b)=>b.createdAt-a.createdAt);
     if(cat&&cat!=='전체')posts=posts.filter(p=>p.category===cat);
     if(q){const s=q.toLowerCase();posts=posts.filter(p=>(p.title+p.content+p.author).toLowerCase().includes(s));}
-    return posts.map(p=>({...p,commentCount:p.comments.length}));
+    const total=posts.length,totalPages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+    const items=posts.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE).map(p=>({...p,commentCount:p.comments.length}));
+    return {items,page,size:PAGE_SIZE,totalPages,totalElements:total};
   },
   async get(id){
     if(USE_API)return apiFetch('/api/posts/'+id);
@@ -173,6 +184,21 @@ const data={
     const d=lsLoad();const p={id:d.nextId++,category:body.category,title:body.title,author:body.author||'익명',
       content:body.content,media:body.media||'',likes:0,views:0,comments:[],createdAt:Date.now(),_pw:body.password};
     d.posts.push(p);lsSave(d);return p;
+  },
+  async update(id,body){
+    if(USE_API)return apiFetch('/api/posts/'+id,{method:'PUT',body:JSON.stringify(body)});
+    const d=lsLoad();const p=d.posts.find(x=>x.id===id);if(!p)throw new Error('글 없음');
+    if(p._pw&&p._pw!==body.password)throw new Error('비밀번호가 일치하지 않습니다');
+    p.title=body.title;p.content=body.content;p.media=body.media||'';lsSave(d);return p;
+  },
+  async upload(file){
+    if(USE_API){
+      const fd=new FormData();fd.append('file',file);
+      const r=await fetch(API_BASE+'/api/uploads',{method:'POST',body:fd});
+      if(!r.ok){let m='업로드 실패 ('+r.status+')';try{const j=await r.json();if(j.message)m=j.message;}catch(e){}throw new Error(m);}
+      return (await r.json()).url;
+    }
+    return await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file);});
   },
   async remove(id,password){
     if(USE_API)return apiFetch('/api/posts/'+id,{method:'DELETE',body:JSON.stringify({password})});
@@ -199,11 +225,14 @@ function fmt(t){const ms=typeof t==='number'?t:new Date(t).getTime();const diff=
   if(diff<7*86400)return Math.floor(diff/86400)+'일 전';
   const d=new Date(ms);return `${d.getMonth()+1}/${d.getDate()}`;}
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function isImg(u){return /^data:image\//.test(u)||/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(u);}
+function isVid(u){return /^data:video\//.test(u)||/\.(mp4|webm|ogg)(\?|$)/i.test(u);}
+let page=0;
 
 /* ---------- 배너 ---------- */
 function showBanner(){
   const b=$('#banner');
-  if(USE_API){b.className='banner local';b.innerHTML=`✅ 서버 연결됨 — 모두가 함께 보는 게시판입니다. <span class="note">(${esc(API_BASE)})</span>`;}
+  if(USE_API){b.className='banner local';b.innerHTML='✅ 모두가 함께 보는 게시판입니다.';}
   else{b.className='banner local';b.innerHTML='ℹ️ 미리보기 모드 — 글이 <b>이 브라우저에만</b> 저장돼요. 서버를 연결하면 모두가 함께 보는 게시판이 됩니다.';}
 }
 function bannerError(msg){const b=$('#banner');b.className='banner err';b.innerHTML='⚠️ '+esc(msg);}
@@ -215,20 +244,21 @@ function renderCats(counts){
     const lab=k==='전체'?'전체':catName(k).e+' '+catName(k).n;
     return `<div class="cat ${filter===k?'on':''}" data-k="${k}">${lab}</div>`;
   }).join('');
-  $$('#cats .cat').forEach(c=>c.onclick=()=>{filter=c.dataset.k;renderList();renderCats();});
+  $$('#cats .cat').forEach(c=>c.onclick=()=>{filter=c.dataset.k;page=0;renderList();renderCats();});
 }
 
 /* ---------- 목록 ---------- */
 async function renderList(){
-  $('#list').innerHTML='<div class="empty">불러오는 중…</div>';
-  let posts;
-  try{posts=await data.list(filter,($('#search').value||'').trim());}
+  $('#list').innerHTML='<div class="empty">불러오는 중…</div>';$('#pager').innerHTML='';
+  let res;
+  try{res=await data.list(filter,($('#search').value||'').trim(),page);}
   catch(e){bannerError('목록을 불러오지 못했어요: '+e.message);$('#list').innerHTML='<div class="empty">불러오기 실패</div>';return;}
   showBanner();
+  const posts=res.items||[];
   if(!posts.length){$('#list').innerHTML='<div class="empty">글이 없어요. 첫 글을 남겨보세요! ✏️</div>';return;}
   $('#list').innerHTML=posts.map(p=>{
     const c=catName(p.category);
-    const thumb=p.media&&/\.(jpg|jpeg|png|gif|webp)$/i.test(p.media)?`<img class="thumb" src="${esc(p.media)}" onerror="this.style.display='none'">`:'';
+    const thumb=p.media&&isImg(p.media)?`<img class="thumb" src="${esc(p.media)}" onerror="this.style.display='none'">`:'';
     return `<div class="post" data-id="${p.id}">${thumb}
       <div class="body">
         <div class="badge">${c.e} ${c.n}</div>
@@ -238,19 +268,30 @@ async function renderList(){
       </div></div>`;
   }).join('');
   $$('#list .post').forEach(el=>el.onclick=()=>openDetail(+el.dataset.id));
+  renderPager(res.page,res.totalPages);
+}
+function renderPager(cur,total){
+  if(total<=1){$('#pager').innerHTML='';return;}
+  $('#pager').innerHTML=`<button id="prevPage" ${cur<=0?'disabled':''}>← 이전</button>
+    <span class="pinfo">${cur+1} / ${total}</span>
+    <button id="nextPage" ${cur>=total-1?'disabled':''}>다음 →</button>`;
+  $('#prevPage').onclick=()=>{if(page>0){page--;renderList();window.scrollTo(0,0);}};
+  $('#nextPage').onclick=()=>{if(page<total-1){page++;renderList();window.scrollTo(0,0);}};
 }
 
 /* ---------- 상세 ---------- */
 function mediaHTML(url){
   if(!url)return '';
-  if(/\.(jpg|jpeg|png|gif|webp)$/i.test(url))return `<img class="media" src="${esc(url)}" onerror="this.style.display='none'">`;
-  if(/\.(mp4|webm|ogg)$/i.test(url))return `<video class="media" src="${esc(url)}" controls></video>`;
+  if(isImg(url))return `<img class="media" src="${esc(url)}" onerror="this.style.display='none'">`;
+  if(isVid(url))return `<video class="media" src="${esc(url)}" controls></video>`;
   const yt=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
   if(yt)return `<iframe class="media" width="100%" height="240" src="https://www.youtube.com/embed/${yt[1]}" frameborder="0" allowfullscreen></iframe>`;
   return `<div class="note">🔗 <a href="${esc(url)}" target="_blank" style="color:var(--blue)">${esc(url)}</a></div>`;
 }
+let currentPost=null;
 async function openDetail(id){
   let p;try{p=await data.get(id);}catch(e){bannerError('글을 불러오지 못했어요: '+e.message);return;}
+  currentPost=p;
   const c=catName(p.category);
   $('#detailView').innerHTML=`
     <button class="btn sec sm" id="backBtn">← 목록</button>
@@ -261,6 +302,7 @@ async function openDetail(id){
     <div class="content">${esc(p.content)}</div>
     <div class="likebar">
       <button class="btn sm" id="likeBtn">❤ 좋아요 ${p.likes}</button>
+      <button class="btn sec sm" id="editBtn">✏️ 수정</button>
       <button class="btn sec sm" id="delBtn">🗑 삭제</button>
     </div>
     <div class="comments">
@@ -277,6 +319,7 @@ async function openDetail(id){
   $('#detailView').classList.remove('hidden');window.scrollTo(0,0);
   $('#backBtn').onclick=showList;
   $('#likeBtn').onclick=async()=>{try{const r=await data.like(id);$('#likeBtn').textContent='❤ 좋아요 '+r.likes;}catch(e){alert(e.message);}};
+  $('#editBtn').onclick=()=>showEdit(p);
   $('#delBtn').onclick=async()=>{
     const pw=prompt('글 비밀번호를 입력하세요');if(pw===null)return;
     try{await data.remove(id,pw);showList();}catch(e){alert(e.message);}
@@ -294,23 +337,61 @@ function renderComments(list){
      <div class="cx">${esc(c.content)}</div></div>`).join(''):'<div class="note">첫 댓글을 남겨보세요.</div>';
 }
 
-/* ---------- 글쓰기 ---------- */
+/* ---------- 글쓰기 / 수정 ---------- */
+let editingId=null;
 function showWrite(){
+  editingId=null;
+  $('#writeTitle').textContent='✏️ 새 글 쓰기';
+  $('#authorLabel').textContent='작성자';
   $('#wCat').innerHTML=CATS.map(c=>`<option value="${c.k}" ${filter===c.k?'selected':''}>${c.e} ${c.n}</option>`).join('');
+  $('#wCat').disabled=false;
   ['wTitle','wAuthor','wMedia','wContent','wPassword'].forEach(id=>$('#'+id).value='');
+  $('#wFile').value='';$('#uploadState').textContent='';
+  $('#authorLabel').style.display='';$('#wAuthor').style.display='';
+  $('#submitBtn').textContent='등록';
+  swapToForm();
+}
+function showEdit(p){
+  editingId=p.id;
+  $('#writeTitle').textContent='✏️ 글 수정';
+  $('#wCat').innerHTML=CATS.map(c=>`<option value="${c.k}" ${p.category===c.k?'selected':''}>${c.e} ${c.n}</option>`).join('');
+  $('#wCat').disabled=true; // 카테고리는 수정 불가
+  $('#wTitle').value=p.title;
+  $('#wAuthor').value=p.author;$('#authorLabel').style.display='none';$('#wAuthor').style.display='none';
+  $('#wMedia').value=p.media||'';$('#wContent').value=p.content;
+  $('#wFile').value='';$('#uploadState').textContent='';$('#wPassword').value='';
+  $('#submitBtn').textContent='수정 완료';
+  swapToForm();
+}
+function swapToForm(){
   $('#listView').classList.add('hidden');$('#detailView').classList.add('hidden');
   $('#writeView').classList.remove('hidden');window.scrollTo(0,0);
+}
+async function maybeUpload(){
+  const f=$('#wFile').files[0];if(!f)return null;
+  $('#uploadState').textContent='⏳ 업로드 중...';
+  const url=await data.upload(f);
+  $('#uploadState').textContent='✅ 업로드 완료';
+  return url;
 }
 async function submitPost(){
   const title=$('#wTitle').value.trim(),content=$('#wContent').value.trim(),password=$('#wPassword').value;
   if(!title){alert('제목을 입력하세요');return;}
   if(!content){alert('내용을 입력하세요');return;}
-  if(!password){alert('비밀번호를 입력하세요 (수정/삭제에 필요)');return;}
+  if(!password){alert('비밀번호를 입력하세요'+(editingId?' (작성 시 입력한 값)':' (수정/삭제에 필요)'));return;}
+  $('#submitBtn').disabled=true;
   try{
-    await data.create({category:$('#wCat').value,title,author:$('#wAuthor').value.trim(),
-      content,media:$('#wMedia').value.trim(),password});
-    showList();
-  }catch(e){alert('등록 실패: '+e.message);}
+    let media=$('#wMedia').value.trim();
+    const uploaded=await maybeUpload();if(uploaded)media=uploaded;
+    if(editingId){
+      await data.update(editingId,{title,content,media,password});
+      const np=await data.get(editingId);openDetail(np.id);
+    }else{
+      await data.create({category:$('#wCat').value,title,author:$('#wAuthor').value.trim(),content,media,password});
+      page=0;showList();
+    }
+  }catch(e){alert((editingId?'수정':'등록')+' 실패: '+e.message);}
+  finally{$('#submitBtn').disabled=false;}
 }
 function showList(){
   $('#detailView').classList.add('hidden');$('#writeView').classList.add('hidden');
@@ -321,7 +402,8 @@ function showList(){
 $('#writeBtn').onclick=showWrite;
 $('#submitBtn').onclick=submitPost;
 $('#cancelBtn').onclick=showList;
-let searchTimer;$('#search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(renderList,250);});
+$('#wFile').addEventListener('change',()=>{const f=$('#wFile').files[0];$('#uploadState').textContent=f?('선택됨: '+f.name):'';});
+let searchTimer;$('#search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{page=0;renderList();},250);});
 
 /* ---------- 초기 ---------- */
 showBanner();renderCats();renderList();

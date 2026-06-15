@@ -22,6 +22,11 @@ spring:
     console:
       enabled: true      # http://localhost:8080/h2-console (개발용)
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 # 프론트엔드 허용 출처 (CORS)
 app:
   cors:
@@ -30,6 +35,12 @@ app:
       https://donjiral.net,
       http://localhost:8000,
       http://127.0.0.1:5500
+  s3:
+    enabled: ${S3_ENABLED:false}          # true로 켜면 업로드 활성화
+    bucket: ${S3_BUCKET:}                  # 예: donjiral-uploads
+    region: ${S3_REGION:ap-southeast-2}    # 시드니. EC2 리전에 맞추세요
+    key-prefix: uploads/                   # 버킷 내 저장 경로
+    public-base-url: ${S3_PUBLIC_BASE_URL:} # CloudFront 등 별도 도메인 쓸 때만
 
 ---
 # ===== 운영 프로필: PostgreSQL (예: AWS RDS / EC2 내 설치) =====

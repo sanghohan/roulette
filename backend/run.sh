@@ -10,6 +10,11 @@ NAME=pingpong-api
 DATA_DIR="${DATA_DIR:-$HOME/pingpong-data}"
 ORIGINS="${APP_CORS_ALLOWED_ORIGINS:-https://www.donjiral.net,https://donjiral.net}"
 
+# ===== S3 이미지 업로드 설정 =====
+S3_ENABLED="${S3_ENABLED:-true}"
+S3_BUCKET="${S3_BUCKET:-s3-donjiral-uploads}"
+S3_REGION="${S3_REGION:-ap-southeast-2}"
+
 mkdir -p "$DATA_DIR"
 
 echo "▶ 이미지 빌드 (몇 분 걸릴 수 있어요)..."
@@ -23,6 +28,9 @@ docker run -d --name "$NAME" --restart unless-stopped \
   -p 8080:8080 \
   -v "$DATA_DIR:/app/data" \
   -e APP_CORS_ALLOWED_ORIGINS="$ORIGINS" \
+  -e S3_ENABLED="$S3_ENABLED" \
+  -e S3_BUCKET="$S3_BUCKET" \
+  -e S3_REGION="$S3_REGION" \
   "$IMAGE"
 
 echo ""
