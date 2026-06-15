@@ -6,6 +6,10 @@ import java.time.Instant
 @Entity
 @Table(name = "posts")
 class Post(
+    // 게시판 구분 (예: pingpong, dev). 기존 데이터는 null → pingpong 취급
+    @Column(length = 20)
+    var board: String? = "pingpong",
+
     @Column(nullable = false, length = 30)
     var category: String,
 

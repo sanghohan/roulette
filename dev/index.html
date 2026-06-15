@@ -3,15 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🏓 탁구 커뮤니티 · donjiral</title>
+<title>🤖 AI 프로그래밍 커뮤니티 · donjiral</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <style>
   :root{
-    --bg:#0f1226; --card:#1a1f3d; --card2:#232a52; --line:#2e376a;
-    --txt:#eef1ff; --sub:#9aa3d4; --accent:#1fb6a6; --accent2:#ffd93d;
+    --bg:#0f1226; --card:#171a33; --card2:#222647; --line:#2e3566;
+    --txt:#eef1ff; --sub:#9aa3d4; --accent:#8b5cf6; --accent2:#22d3ee;
     --good:#4ade80; --blue:#60a5fa; --red:#ff6b6b;
   }
   *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI','Apple SD Gothic Neo',system-ui,sans-serif}
-  body{background:radial-gradient(1200px 600px at 50% -10%,#15324a,#0f1226);color:var(--txt);min-height:100vh;padding:20px}
+  body{background:radial-gradient(1200px 600px at 50% -10%,#241a52,#0f1226);color:var(--txt);min-height:100vh;padding:20px}
   .wrap{max-width:880px;margin:0 auto}
   header{text-align:center;margin-bottom:12px}
   header h1{font-size:30px;letter-spacing:-.5px}
@@ -21,13 +25,13 @@
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
   .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
   .toolbar input{flex:1;min-width:140px;background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:14px}
-  .btn{background:var(--accent);color:#04201d;border:none;border-radius:11px;padding:10px 16px;font-size:14px;font-weight:800;cursor:pointer;transition:.15s;white-space:nowrap}
-  .btn:hover{filter:brightness(1.08)} .btn:active{transform:scale(.97)}
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:11px;padding:10px 16px;font-size:14px;font-weight:800;cursor:pointer;transition:.15s;white-space:nowrap}
+  .btn:hover{filter:brightness(1.1)} .btn:active{transform:scale(.97)}
   .btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line);font-weight:600}
   .btn.sm{padding:7px 11px;font-size:12px}
   .cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
   .cat{padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--sub);cursor:pointer;font-size:13px}
-  .cat.on{background:var(--accent);color:#04201d;border-color:var(--accent);font-weight:700}
+  .cat.on{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
   .list{display:flex;flex-direction:column}
   .post{display:flex;gap:12px;padding:13px 6px;border-bottom:1px solid var(--line);cursor:pointer;align-items:flex-start}
   .post:hover{background:#ffffff08}
@@ -45,8 +49,19 @@
   .detail .badge{font-size:12px;color:var(--accent2);font-weight:700}
   .detail h2{font-size:20px;margin:6px 0}
   .detail .meta{font-size:12px;color:var(--sub);margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:12px}
-  .detail .content{font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
-  .detail img.media,.detail video.media,.detail iframe.media{max-width:100%;border-radius:12px;margin:12px 0}
+  .md{font-size:15px;line-height:1.7;word-break:break-word}
+  .md h1,.md h2,.md h3{margin:14px 0 8px;line-height:1.3}
+  .md h1{font-size:22px}.md h2{font-size:19px}.md h3{font-size:16px}
+  .md p{margin:8px 0}
+  .md ul,.md ol{margin:8px 0 8px 22px}
+  .md a{color:var(--blue)}
+  .md code{background:#0e1230;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-family:'SFMono-Regular',Consolas,monospace;font-size:13px}
+  .md pre{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;margin:10px 0}
+  .md pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.5}
+  .md img{max-width:100%;border-radius:10px}
+  .md blockquote{border-left:3px solid var(--accent);margin:8px 0;padding:4px 12px;color:var(--sub)}
+  .md table{border-collapse:collapse;margin:10px 0}.md th,.md td{border:1px solid var(--line);padding:6px 10px}
+  .media{max-width:100%;border-radius:12px;margin:12px 0}
   .likebar{display:flex;gap:10px;align-items:center;margin:16px 0}
   .comments{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
   .comment{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:8px}
@@ -54,14 +69,14 @@
   .comment .cx{font-size:14px;margin-top:3px;white-space:pre-wrap}
   .form label{display:block;font-size:12px;color:var(--sub);margin:10px 0 4px}
   .form input,.form select,.form textarea{width:100%;background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:14px}
-  .form textarea{min-height:160px;resize:vertical;line-height:1.6}
+  .form textarea{min-height:200px;resize:vertical;line-height:1.6;font-family:'SFMono-Regular',Consolas,monospace}
   .hidden{display:none}
   .note{color:var(--sub);font-size:12px;line-height:1.5}
   .banner{border-radius:12px;padding:11px 14px;font-size:12.5px;margin-bottom:14px;line-height:1.5}
-  .banner.local{background:#13343a;border:1px solid #1c6e63;color:#bdeee6}
+  .banner.local{background:#1c1a3a;border:1px solid #3a3470;color:#cdc9f0}
   .banner.err{background:#3a2a2a;border:1px solid #6e4a4a;color:#ffd0d0}
   @media(max-width:640px){
-    body{padding:12px} header h1{font-size:24px}
+    body{padding:12px} header h1{font-size:23px}
     .card{padding:14px;border-radius:14px}
     .thumb{width:44px;height:44px}
   }
@@ -70,14 +85,13 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>🏓 탁구 커뮤니티</h1>
-    <p>같이 치고, 장비 나누고, 멋진 랠리를 공유하는 공간</p>
+    <h1>🤖 AI 프로그래밍</h1>
+    <p>프롬프트·모델·코드·삽질을 함께 나누는 개발자 공간</p>
     <div class="nav"><a href="/">🍽️ 메뉴</a> · <a href="/outfit/">👕 의상</a> · <a href="/pingpong/">🏓 탁구</a> · <a href="/dev/">🤖 AI개발</a></div>
   </header>
 
   <div id="banner"></div>
 
-  <!-- 목록 -->
   <div class="card" id="listView">
     <div class="toolbar">
       <input id="search" placeholder="🔍 제목·내용·작성자 검색">
@@ -88,10 +102,8 @@
     <div class="pager" id="pager"></div>
   </div>
 
-  <!-- 상세 -->
   <div class="card detail hidden" id="detailView"></div>
 
-  <!-- 글쓰기/수정 -->
   <div class="card form hidden" id="writeView">
     <h2 style="font-size:18px" id="writeTitle">✏️ 새 글 쓰기</h2>
     <label>게시판</label>
@@ -108,8 +120,8 @@
     <input type="file" id="wFile" accept="image/*,video/*">
     <div id="uploadState" class="note"></div>
     <input id="wMedia" placeholder="또는 https://... (jpg, png, mp4, youtube 링크)" style="margin-top:6px">
-    <label>내용</label>
-    <textarea id="wContent" placeholder="내용을 입력하세요"></textarea>
+    <label>내용 — <b>마크다운</b> 지원 (코드는 ```언어 로 감싸면 색상 강조)</label>
+    <textarea id="wContent" placeholder="## 제목&#10;설명...&#10;&#10;```python&#10;print('hello')&#10;```"></textarea>
     <label>비밀번호 — 수정/삭제할 때 필요해요</label>
     <input id="wPassword" type="password" placeholder="글 비밀번호">
     <div class="toolbar" style="margin-top:14px;margin-bottom:0">
@@ -121,37 +133,29 @@
 
 <script>
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+const BOARD='dev';
 
-/* ===================================================================
-   백엔드 주소 설정
-   - 배포한 Spring Boot 서버 주소를 넣으면 모두가 공유하는 게시판이 됩니다.
-     예: const API_BASE = "https://api.donjiral.net";
-   - 비워두면("") 이 브라우저에만 저장되는 로컬 미리보기로 동작합니다.
-   - 코드 수정 없이 바꾸려면 브라우저 콘솔에서:
-     localStorage.setItem('pingpong_api','https://api.donjiral.net'); location.reload();
-=================================================================== */
 let API_BASE = "https://api.donjiral.net";
 API_BASE = localStorage.getItem('pingpong_api') || API_BASE;
 const USE_API = !!API_BASE;
 
 const CATS=[
-  {k:'free', n:'자유게시판', e:'💬'},
-  {k:'gear', n:'장비 리뷰', e:'🏓'},
-  {k:'market', n:'중고장터', e:'🛒'},
-  {k:'media', n:'사진/영상', e:'📸'},
-  {k:'match', n:'같이 쳐요', e:'🤝'},
-  {k:'tip', n:'팁 & 강좌', e:'📚'}
+  {k:'qna', n:'질문답변', e:'💬'},
+  {k:'free', n:'자유게시판', e:'☕'},
+  {k:'prompt', n:'프롬프트·팁', e:'✨'},
+  {k:'model', n:'모델·툴 정보', e:'🧰'},
+  {k:'showcase', n:'프로젝트 자랑', e:'🚀'},
+  {k:'trouble', n:'트러블슈팅', e:'🐞'}
 ];
-const catName=k=>(CATS.find(c=>c.k===k)||{n:'기타',e:'🏓'});
+const catName=k=>(CATS.find(c=>c.k===k)||{n:'기타',e:'🤖'});
 let filter='전체';
 
-/* ---------- 데이터 계층: API 또는 localStorage ---------- */
-const LS='pingpong_v1';
+/* ---------- 데이터 계층 ---------- */
+const LS='dev_v1';
 const SEED=[
-  {id:1,category:'free',title:'오늘 점심에 한 게임 치실 분?',author:'스매싱김',content:'점심시간에 회사 탁구대에서 한 게임 어때요? 12시 반에 모입니다!',media:'',likes:3,views:24,comments:[{id:11,author:'드라이브박',content:'저요!',createdAt:Date.now()-3600e3}],createdAt:Date.now()-7200e3},
-  {id:2,category:'gear',title:'버터플라이 티모볼 ALC 한 달 사용 후기',author:'러버장인',content:'반발력 좋고 회전 잘 먹습니다. 입문 후 첫 블레이드 업그레이드로 추천해요.\n무게감은 살짝 있는 편.',media:'',likes:7,views:58,comments:[],createdAt:Date.now()-86400e3},
-  {id:3,category:'match',title:'강남 주말 탁구 같이 치실 분 구해요',author:'주말랠리',content:'토요일 오전 강남 탁구장에서 같이 치실 분! 초중급 환영합니다.',media:'',likes:2,views:31,comments:[],createdAt:Date.now()-2*86400e3},
-  {id:4,category:'tip',title:'포핸드 드라이브 기본기 정리',author:'코치한',content:'1) 무릎 살짝 굽히고 2) 허리 회전으로 힘 전달 3) 공은 정점에서 임팩트.\n매일 100개씩 연습하면 한 달 안에 달라집니다.',media:'',likes:11,views:90,comments:[],createdAt:Date.now()-3*86400e3}
+  {id:1,board:'dev',category:'prompt',title:'코드 리뷰 받을 때 잘 먹히는 프롬프트',author:'프롬프트요정',content:'아래처럼 역할과 기준을 주면 품질이 확 올라가요.\n\n```\n너는 시니어 개발자야. 아래 코드를 보안/성능/가독성 관점에서 리뷰하고, 우선순위를 매겨줘.\n```\n\n핵심은 **관점을 명시**하는 거예요.',media:'',likes:9,views:62,comments:[],createdAt:Date.now()-7200e3},
+  {id:2,board:'dev',category:'trouble',title:'CORS 에러 해결 기록',author:'삽질러',content:'프론트(다른 도메인)에서 API 호출 시 CORS가 막힐 때:\n\n```kotlin\nregistry.addMapping("/api/**").allowedOrigins("https://example.com")\n```\n\n서버에서 허용 출처를 명시하면 됩니다.',media:'',likes:5,views:40,comments:[],createdAt:Date.now()-86400e3},
+  {id:3,board:'dev',category:'showcase',title:'주말에 만든 메뉴 룰렛 + 커뮤니티',author:'돈지랄',content:'정적 프론트(GitHub Pages) + Kotlin/Spring 백엔드(EC2/Docker)로 만들었어요. AI랑 페어로 개발했습니다 🤝',media:'',likes:14,views:120,comments:[],createdAt:Date.now()-2*86400e3}
 ];
 function lsLoad(){try{const o=JSON.parse(localStorage.getItem(LS));if(o&&o.posts)return o;}catch(e){}return {posts:SEED.slice(),nextId:100,nextCid:1000};}
 function lsSave(d){localStorage.setItem(LS,JSON.stringify(d));}
@@ -167,7 +171,7 @@ const PAGE_SIZE=10;
 const data={
   async list(cat,q,page){
     if(USE_API){
-      const p=new URLSearchParams();if(cat&&cat!=='전체')p.set('category',cat);if(q)p.set('q',q);
+      const p=new URLSearchParams();p.set('board',BOARD);if(cat&&cat!=='전체')p.set('category',cat);if(q)p.set('q',q);
       p.set('page',page);p.set('size',PAGE_SIZE);
       return apiFetch('/api/posts?'+p.toString());
     }
@@ -184,8 +188,8 @@ const data={
     p.views++;lsSave(d);return p;
   },
   async create(body){
-    if(USE_API)return apiFetch('/api/posts',{method:'POST',body:JSON.stringify(body)});
-    const d=lsLoad();const p={id:d.nextId++,category:body.category,title:body.title,author:body.author||'익명',
+    if(USE_API)return apiFetch('/api/posts',{method:'POST',body:JSON.stringify({...body,board:BOARD})});
+    const d=lsLoad();const p={id:d.nextId++,board:BOARD,category:body.category,title:body.title,author:body.author||'익명',
       content:body.content,media:body.media||'',likes:0,views:0,comments:[],createdAt:Date.now(),_pw:body.password};
     d.posts.push(p);lsSave(d);return p;
   },
@@ -233,16 +237,24 @@ function isImg(u){return /^data:image\//.test(u)||/\.(jpg|jpeg|png|gif|webp)(\?|
 function isVid(u){return /^data:video\//.test(u)||/\.(mp4|webm|ogg)(\?|$)/i.test(u);}
 let page=0;
 
+/* 마크다운 렌더 (XSS 방지: DOMPurify) */
+marked.setOptions({gfm:true,breaks:true});
+function renderMarkdown(md){return DOMPurify.sanitize(marked.parse(md||''));}
+
+const RESERVED=['돈지랄'];
+const normalizeName=s=>(s||'').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
+function isReservedName(s){const a=normalizeName(s);return RESERVED.some(r=>a.includes(normalizeName(r)));}
+
 /* ---------- 배너 ---------- */
 function showBanner(){
   const b=$('#banner');
   if(USE_API){b.className='banner local';b.innerHTML='✅ 모두가 함께 보는 게시판입니다.';}
-  else{b.className='banner local';b.innerHTML='ℹ️ 미리보기 모드 — 글이 <b>이 브라우저에만</b> 저장돼요. 서버를 연결하면 모두가 함께 보는 게시판이 됩니다.';}
+  else{b.className='banner local';b.innerHTML='ℹ️ 미리보기 모드 — 글이 <b>이 브라우저에만</b> 저장돼요.';}
 }
 function bannerError(msg){const b=$('#banner');b.className='banner err';b.innerHTML='⚠️ '+esc(msg);}
 
 /* ---------- 카테고리 ---------- */
-function renderCats(counts){
+function renderCats(){
   const all=['전체',...CATS.map(c=>c.k)];
   $('#cats').innerHTML=all.map(k=>{
     const lab=k==='전체'?'전체':catName(k).e+' '+catName(k).n;
@@ -292,10 +304,8 @@ function mediaHTML(url){
   if(yt)return `<iframe class="media" style="width:100%;aspect-ratio:16/9;height:auto;border:0" src="https://www.youtube.com/embed/${yt[1]}" allowfullscreen></iframe>`;
   return `<div class="note">🔗 <a href="${esc(url)}" target="_blank" style="color:var(--blue)">${esc(url)}</a></div>`;
 }
-let currentPost=null;
 async function openDetail(id){
   let p;try{p=await data.get(id);}catch(e){bannerError('글을 불러오지 못했어요: '+e.message);return;}
-  currentPost=p;
   const c=catName(p.category);
   $('#detailView').innerHTML=`
     <button class="btn sec sm" id="backBtn">← 목록</button>
@@ -303,7 +313,7 @@ async function openDetail(id){
     <h2>${esc(p.title)}</h2>
     <div class="meta">👤 ${esc(p.author)} · 🕒 ${fmt(p.createdAt)} · 👁 ${p.views}</div>
     ${mediaHTML(p.media)}
-    <div class="content">${esc(p.content)}</div>
+    <div class="md" id="mdBody">${renderMarkdown(p.content)}</div>
     <div class="likebar">
       <button class="btn sm" id="likeBtn">❤ 좋아요 ${p.likes}</button>
       <button class="btn sec sm" id="editBtn">✏️ 수정</button>
@@ -318,6 +328,7 @@ async function openDetail(id){
         <button class="btn sm" id="cAdd">등록</button>
       </div>
     </div>`;
+  $('#mdBody').querySelectorAll('pre code').forEach(b=>hljs.highlightElement(b));
   renderComments(p.comments);
   $('#listView').classList.add('hidden');$('#writeView').classList.add('hidden');
   $('#detailView').classList.remove('hidden');window.scrollTo(0,0);
@@ -346,7 +357,6 @@ let editingId=null;
 function showWrite(){
   editingId=null;
   $('#writeTitle').textContent='✏️ 새 글 쓰기';
-  $('#authorLabel').textContent='작성자';
   $('#wCat').innerHTML=CATS.map(c=>`<option value="${c.k}" ${filter===c.k?'selected':''}>${c.e} ${c.n}</option>`).join('');
   $('#wCat').disabled=false;
   ['wTitle','wAuthor','wMedia','wContent','wPassword','wAdmin'].forEach(id=>$('#'+id).value='');
@@ -360,9 +370,10 @@ function showEdit(p){
   editingId=p.id;
   $('#writeTitle').textContent='✏️ 글 수정';
   $('#wCat').innerHTML=CATS.map(c=>`<option value="${c.k}" ${p.category===c.k?'selected':''}>${c.e} ${c.n}</option>`).join('');
-  $('#wCat').disabled=true; // 카테고리는 수정 불가
+  $('#wCat').disabled=true;
   $('#wTitle').value=p.title;
   $('#wAuthor').value=p.author;$('#authorLabel').style.display='none';$('#wAuthor').style.display='none';
+  $('#adminRow').classList.add('hidden');
   $('#wMedia').value=p.media||'';$('#wContent').value=p.content;
   $('#wFile').value='';$('#uploadState').textContent='';$('#wPassword').value='';
   $('#submitBtn').textContent='수정 완료';
@@ -408,14 +419,9 @@ function showList(){
 $('#writeBtn').onclick=showWrite;
 $('#submitBtn').onclick=submitPost;
 $('#cancelBtn').onclick=showList;
-$('#wFile').addEventListener('change',()=>{const f=$('#wFile').files[0];$('#uploadState').textContent=f?('선택됨: '+f.name):'';});
-const RESERVED=['돈지랄'];
-const normalizeName=s=>(s||'').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
-function isReservedName(s){const a=normalizeName(s);return RESERVED.some(r=>a.includes(normalizeName(r)));}
-$('#wAuthor').addEventListener('input',()=>{
-  $('#adminRow').classList.toggle('hidden',!isReservedName($('#wAuthor').value));
-});
 let searchTimer;$('#search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{page=0;renderList();},250);});
+$('#wFile').addEventListener('change',()=>{const f=$('#wFile').files[0];$('#uploadState').textContent=f?('선택됨: '+f.name):'';});
+$('#wAuthor').addEventListener('input',()=>{$('#adminRow').classList.toggle('hidden',!isReservedName($('#wAuthor').value));});
 
 /* ---------- 초기 ---------- */
 showBanner();renderCats();renderList();

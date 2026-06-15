@@ -26,12 +26,12 @@ class PostService(
     }
 
     @Transactional(readOnly = true)
-    fun list(category: String?, q: String?, page: Int, size: Int): PageResponse<PostSummaryResponse> {
+    fun list(board: String, category: String?, q: String?, page: Int, size: Int): PageResponse<PostSummaryResponse> {
         val cat = category?.takeIf { it.isNotBlank() && it != "전체" }
         val query = q?.takeIf { it.isNotBlank() }
         val safePage = page.coerceAtLeast(0)
         val safeSize = size.coerceIn(1, 50)
-        val result = postRepository.search(cat, query, PageRequest.of(safePage, safeSize))
+        val result = postRepository.search(board, cat, query, PageRequest.of(safePage, safeSize))
         return PageResponse(
             items = result.content.map { it.toSummary() },
             page = result.number,
@@ -56,6 +56,7 @@ class PostService(
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "‘$author’ 은(는) 관리자만 사용할 수 있는 이름이에요")
         }
         val post = Post(
+            board = req.board?.trim()?.takeIf { it.isNotEmpty() } ?: "pingpong",
             category = req.category,
             title = req.title.trim(),
             author = author,

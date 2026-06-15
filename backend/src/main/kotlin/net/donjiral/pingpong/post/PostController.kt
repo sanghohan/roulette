@@ -12,11 +12,12 @@ class PostController(
     // 목록 (카테고리/검색)
     @GetMapping
     fun list(
+        @RequestParam(defaultValue = "pingpong") board: String,
         @RequestParam(required = false) category: String?,
         @RequestParam(required = false) q: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int
-    ): PageResponse<PostSummaryResponse> = postService.list(category, q, page, size)
+    ): PageResponse<PostSummaryResponse> = postService.list(board, category, q, page, size)
 
     // 상세 (조회수 +1)
     @GetMapping("/{id}")

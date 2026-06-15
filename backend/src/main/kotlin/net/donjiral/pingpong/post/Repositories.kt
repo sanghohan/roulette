@@ -11,7 +11,8 @@ interface PostRepository : JpaRepository<Post, Long> {
     @Query(
         """
         SELECT p FROM Post p
-        WHERE (:category IS NULL OR p.category = :category)
+        WHERE (p.board = :board OR (:board = 'pingpong' AND p.board IS NULL))
+          AND (:category IS NULL OR p.category = :category)
           AND (
             :q IS NULL
             OR LOWER(p.title) LIKE LOWER(CONCAT('%', :q, '%'))
@@ -21,7 +22,7 @@ interface PostRepository : JpaRepository<Post, Long> {
         ORDER BY p.createdAt DESC
         """
     )
-    fun search(@Param("category") category: String?, @Param("q") q: String?, pageable: Pageable): Page<Post>
+    fun search(@Param("board") board: String, @Param("category") category: String?, @Param("q") q: String?, pageable: Pageable): Page<Post>
 }
 
 interface CommentRepository : JpaRepository<Comment, Long>

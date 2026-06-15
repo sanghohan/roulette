@@ -6,6 +6,7 @@ import java.time.Instant
 
 // ===== 요청 =====
 data class PostCreateRequest(
+    val board: String? = null,
     @field:NotBlank val category: String,
     @field:NotBlank @field:Size(max = 200) val title: String,
     @field:Size(max = 50) val author: String?,
