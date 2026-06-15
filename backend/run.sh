@@ -32,6 +32,7 @@ docker run -d --name "$NAME" --restart unless-stopped \
   -p 8080:8080 \
   -v "$DATA_DIR:/app/data" \
   -e APP_CORS_ALLOWED_ORIGINS="$ORIGINS" \
+  -e ADMIN_SECRET="${ADMIN_SECRET:-}" \
   -e S3_ENABLED="$S3_ENABLED" \
   -e S3_BUCKET="$S3_BUCKET" \
   -e S3_REGION="$S3_REGION" \
