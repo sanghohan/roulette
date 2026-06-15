@@ -8,9 +8,6 @@ cd "$(dirname "$0")"
 
 MSG="${1:-update $(date '+%Y-%m-%d %H:%M')}"
 
-echo "▶ 원격 변경 가져오기 (rebase)..."
-git pull --rebase origin main
-
 echo "▶ 스테이징 & 커밋..."
 git add -A
 if git diff --cached --quiet; then
@@ -18,6 +15,9 @@ if git diff --cached --quiet; then
 else
   git commit -m "$MSG"
 fi
+
+echo "▶ 원격 변경 가져오기 (rebase)..."
+git pull --rebase origin main
 
 echo "▶ 푸시..."
 git push origin main
