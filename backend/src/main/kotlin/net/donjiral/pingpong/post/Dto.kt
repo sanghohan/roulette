@@ -11,7 +11,9 @@ data class PostCreateRequest(
     @field:Size(max = 50) val author: String?,
     @field:NotBlank val content: String,
     @field:Size(max = 500) val media: String?,
-    @field:NotBlank @field:Size(min = 1, max = 100) val password: String
+    @field:NotBlank @field:Size(min = 1, max = 100) val password: String,
+    // 예약된 이름(예: 돈지랄) 사용 시 필요한 관리자 암호
+    val adminPassword: String? = null
 )
 
 data class PostUpdateRequest(

@@ -4,6 +4,10 @@
 set -e
 cd "$(dirname "$0")"
 
+# 비밀값(관리자 암호 등)은 git에 올리지 않고 ~/pingpong.env 에 보관
+#   예) echo "export ADMIN_SECRET='나만아는암호'" > ~/pingpong.env
+[ -f "$HOME/pingpong.env" ] && source "$HOME/pingpong.env"
+
 IMAGE=pingpong-api
 NAME=pingpong-api
 # H2 데이터는 소스 폴더 밖(홈)에 저장해서 재배포해도 안 지워지게 함

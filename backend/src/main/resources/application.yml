@@ -35,6 +35,9 @@ app:
       https://donjiral.net,
       http://localhost:8000,
       http://127.0.0.1:5500
+  admin:
+    secret: ${ADMIN_SECRET:}              # 관리자 암호(예약 이름 사용). 비우면 예약 이름 아무도 못 씀
+    reserved-authors: 돈지랄               # 쉼표로 여러 개 가능. 예: 돈지랄,관리자
   s3:
     enabled: ${S3_ENABLED:false}          # true로 켜면 업로드 활성화
     bucket: ${S3_BUCKET:}                  # 예: donjiral-uploads

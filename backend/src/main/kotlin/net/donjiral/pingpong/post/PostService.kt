@@ -1,5 +1,6 @@
 package net.donjiral.pingpong.post
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageRequest
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.stereotype.Service
@@ -10,9 +11,12 @@ import org.springframework.http.HttpStatus
 @Service
 class PostService(
     private val postRepository: PostRepository,
-    private val commentRepository: CommentRepository
+    private val commentRepository: CommentRepository,
+    @Value("\${app.admin.secret:}") private val adminSecret: String,
+    @Value("\${app.admin.reserved-authors:돈지랄}") reservedRaw: String
 ) {
     private val encoder = BCryptPasswordEncoder()
+    private val reserved = reservedRaw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 
     @Transactional(readOnly = true)
     fun list(category: String?, q: String?, page: Int, size: Int): PageResponse<PostSummaryResponse> {
@@ -39,10 +43,16 @@ class PostService(
 
     @Transactional
     fun create(req: PostCreateRequest): PostDetailResponse {
+        val author = req.author?.trim()?.takeIf { it.isNotEmpty() } ?: "익명"
+        // 예약 이름(돈지랄 등)은 관리자 암호가 맞아야만 사용 가능
+        val isReserved = reserved.any { it.equals(author, ignoreCase = true) }
+        if (isReserved && (adminSecret.isBlank() || req.adminPassword != adminSecret)) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "‘$author’ 은(는) 관리자만 사용할 수 있는 이름이에요")
+        }
         val post = Post(
             category = req.category,
             title = req.title.trim(),
-            author = req.author?.trim()?.takeIf { it.isNotEmpty() } ?: "익명",
+            author = author,
             content = req.content,
             media = req.media?.trim()?.takeIf { it.isNotEmpty() },
             passwordHash = encoder.encode(req.password)

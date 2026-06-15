@@ -100,6 +100,10 @@
     <input id="wTitle" placeholder="제목을 입력하세요">
     <label id="authorLabel">작성자</label>
     <input id="wAuthor" placeholder="닉네임">
+    <div id="adminRow" class="hidden">
+      <label>🔑 관리자 암호 — ‘돈지랄’ 이름은 관리자만 쓸 수 있어요</label>
+      <input id="wAdmin" type="password" placeholder="관리자 암호">
+    </div>
     <label>이미지/영상 — 파일을 올리거나 링크를 붙여넣으세요</label>
     <input type="file" id="wFile" accept="image/*,video/*">
     <div id="uploadState" class="note"></div>
@@ -345,9 +349,10 @@ function showWrite(){
   $('#authorLabel').textContent='작성자';
   $('#wCat').innerHTML=CATS.map(c=>`<option value="${c.k}" ${filter===c.k?'selected':''}>${c.e} ${c.n}</option>`).join('');
   $('#wCat').disabled=false;
-  ['wTitle','wAuthor','wMedia','wContent','wPassword'].forEach(id=>$('#'+id).value='');
+  ['wTitle','wAuthor','wMedia','wContent','wPassword','wAdmin'].forEach(id=>$('#'+id).value='');
   $('#wFile').value='';$('#uploadState').textContent='';
   $('#authorLabel').style.display='';$('#wAuthor').style.display='';
+  $('#adminRow').classList.add('hidden');
   $('#submitBtn').textContent='등록';
   swapToForm();
 }
@@ -387,7 +392,8 @@ async function submitPost(){
       await data.update(editingId,{title,content,media,password});
       const np=await data.get(editingId);openDetail(np.id);
     }else{
-      await data.create({category:$('#wCat').value,title,author:$('#wAuthor').value.trim(),content,media,password});
+      await data.create({category:$('#wCat').value,title,author:$('#wAuthor').value.trim(),content,media,password,
+        adminPassword:$('#wAdmin').value});
       page=0;showList();
     }
   }catch(e){alert((editingId?'수정':'등록')+' 실패: '+e.message);}
@@ -403,6 +409,11 @@ $('#writeBtn').onclick=showWrite;
 $('#submitBtn').onclick=submitPost;
 $('#cancelBtn').onclick=showList;
 $('#wFile').addEventListener('change',()=>{const f=$('#wFile').files[0];$('#uploadState').textContent=f?('선택됨: '+f.name):'';});
+const RESERVED=['돈지랄'];
+$('#wAuthor').addEventListener('input',()=>{
+  const r=RESERVED.includes($('#wAuthor').value.trim());
+  $('#adminRow').classList.toggle('hidden',!r);
+});
 let searchTimer;$('#search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{page=0;renderList();},250);});
 
 /* ---------- 초기 ---------- */
