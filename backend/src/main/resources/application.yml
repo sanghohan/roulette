@@ -7,7 +7,7 @@ spring:
 
   # ===== 기본 프로필: H2 파일 DB (무료, 추가 인프라 불필요) =====
   datasource:
-    url: jdbc:h2:file:./data/pingpong;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE
+    url: jdbc:h2:file:/app/data/pingpong;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password: ""
