@@ -86,12 +86,13 @@
       <div class="verdict" id="verdict"></div>
 
       <div class="gauge">
-        <div class="lab"><span>🎵 오디오/음원 AI 확률</span><b id="audioN">0%</b></div>
-        <div class="bar"><i id="audioBar" style="width:0%"></i></div>
-      </div>
-      <div class="gauge">
         <div class="lab"><span>🎬 영상(화면) AI 확률</span><b id="videoN">0%</b></div>
         <div class="bar"><i id="videoBar" style="width:0%"></i></div>
+      </div>
+      <div class="gauge" style="opacity:.55">
+        <div class="lab"><span>🎵 오디오/음원</span><b style="font-size:13px">지원 예정</b></div>
+        <div class="bar"><i style="width:100%;background:repeating-linear-gradient(45deg,#2e3566,#2e3566 8px,#222647 8px,#222647 16px)"></i></div>
+        <div class="note" style="margin-top:4px">오디오(음성·음악) AI 판별은 현재 지원하지 않아요.</div>
       </div>
 
       <!-- 결과 하단 광고 -->
@@ -125,9 +126,7 @@ async function analyze(){
     $('#vtitle').textContent=d.title||'(제목 없음)';
     $('#vauthor').textContent=d.author?('채널: '+d.author):'';
     $('#verdict').innerHTML=d.verdict+(d.demo?'<span class="demo-badge">데모 추정</span>':'');
-    $('#audioN').textContent=d.audioAiProbability+'%';
     $('#videoN').textContent=d.videoAiProbability+'%';
-    $('#audioBar').style.width=d.audioAiProbability+'%';$('#audioBar').style.background=colorFor(d.audioAiProbability);
     $('#videoBar').style.width=d.videoAiProbability+'%';$('#videoBar').style.background=colorFor(d.videoAiProbability);
     $('#resultNote').textContent=d.note||'';
     $('#result').style.display='block';

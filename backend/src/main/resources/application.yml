@@ -39,15 +39,18 @@ app:
     secret: ${ADMIN_SECRET:}              # 관리자 암호(예약 이름 사용). 비우면 예약 이름 아무도 못 씀
     reserved-authors: 돈지랄               # 쉼표로 여러 개 가능. 예: 돈지랄,관리자
   aicheck:
-    provider: ${AICHECK_PROVIDER:}        # 예: sensity, hive, replicate (비우면 데모 추정)
-    api-url: ${AICHECK_API_URL:}
-    api-key: ${AICHECK_API_KEY:}
+    # 비밀 아님 → 소스에 직접. (API 키만 환경변수)
+    provider: replicate                    # 비우면 데모 추정
+    api-url: https://api.replicate.com/v1
+    api-key: ${AICHECK_API_KEY:}           # 🔑 비밀: 환경변수로만
+    image-model: yorickvp/llava-13b        # 비전 모델(owner/name)
   s3:
-    enabled: ${S3_ENABLED:false}          # true로 켜면 업로드 활성화
-    bucket: ${S3_BUCKET:}                  # 예: donjiral-uploads
-    region: ${S3_REGION:ap-southeast-2}    # 시드니. EC2 리전에 맞추세요
-    key-prefix: uploads/                   # 버킷 내 저장 경로
-    public-base-url: ${S3_PUBLIC_BASE_URL:} # CloudFront 등 별도 도메인 쓸 때만
+    # 비밀 아님 → 소스에 직접. (인증은 EC2 IAM Role)
+    enabled: true
+    bucket: s3-donjiral-uploads
+    region: ap-southeast-2                  # 시드니
+    key-prefix: uploads/
+    public-base-url: ""
 
 ---
 # ===== 운영 프로필: PostgreSQL (예: AWS RDS / EC2 내 설치) =====

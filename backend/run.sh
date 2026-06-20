@@ -12,12 +12,6 @@ IMAGE=pingpong-api
 NAME=pingpong-api
 # H2 데이터는 소스 폴더 밖(홈)에 저장해서 재배포해도 안 지워지게 함
 DATA_DIR="${DATA_DIR:-$HOME/pingpong-data}"
-ORIGINS="${APP_CORS_ALLOWED_ORIGINS:-https://www.donjiral.net,https://donjiral.net}"
-
-# ===== S3 이미지 업로드 설정 =====
-S3_ENABLED="${S3_ENABLED:-true}"
-S3_BUCKET="${S3_BUCKET:-s3-donjiral-uploads}"
-S3_REGION="${S3_REGION:-ap-southeast-2}"
 
 mkdir -p "$DATA_DIR"
 
@@ -27,18 +21,13 @@ docker build -t "$IMAGE" .
 echo "▶ 기존 컨테이너 정리..."
 docker rm -f "$NAME" 2>/dev/null || true
 
+# 비밀값만 환경변수로 전달. 나머지 설정은 application.yml(소스)에 있음.
 echo "▶ 컨테이너 실행..."
 docker run -d --name "$NAME" --restart unless-stopped \
   -p 8080:8080 \
   -v "$DATA_DIR:/app/data" \
-  -e APP_CORS_ALLOWED_ORIGINS="$ORIGINS" \
   -e ADMIN_SECRET="${ADMIN_SECRET:-}" \
-  -e AICHECK_PROVIDER="${AICHECK_PROVIDER:-}" \
-  -e AICHECK_API_URL="${AICHECK_API_URL:-}" \
   -e AICHECK_API_KEY="${AICHECK_API_KEY:-}" \
-  -e S3_ENABLED="$S3_ENABLED" \
-  -e S3_BUCKET="$S3_BUCKET" \
-  -e S3_REGION="$S3_REGION" \
   "$IMAGE"
 
 echo ""
