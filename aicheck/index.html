@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔍 이거 AI로 만든 거야? · donjiral</title>
+<!-- 애드센스 승인 후 아래 주석을 해제하고 본인 클라이언트 ID를 넣으세요
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXX" crossorigin="anonymous"></script>
+-->
+<style>
+  :root{
+    --bg:#0f1226; --card:#171a33; --card2:#222647; --line:#2e3566;
+    --txt:#eef1ff; --sub:#9aa3d4; --accent:#06b6d4; --accent2:#f472b6;
+    --good:#4ade80; --warn:#fbbf24; --bad:#ff6b6b; --blue:#60a5fa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI','Apple SD Gothic Neo',system-ui,sans-serif}
+  body{background:radial-gradient(1200px 600px at 50% -10%,#10324a,#0f1226);color:var(--txt);min-height:100vh;padding:20px}
+  .wrap{max-width:720px;margin:0 auto}
+  header{text-align:center;margin-bottom:14px}
+  header h1{font-size:28px;letter-spacing:-.5px}
+  header p{color:var(--sub);margin-top:6px;font-size:14px}
+  .nav{text-align:center;margin-top:10px;font-size:13px}
+  .nav a{color:var(--blue);text-decoration:none;margin:0 7px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+  .inrow{display:flex;gap:8px;flex-wrap:wrap}
+  .inrow input{flex:1;min-width:180px;background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:13px 14px;font-size:15px}
+  .btn{background:var(--accent);color:#062b33;border:none;border-radius:11px;padding:13px 20px;font-size:15px;font-weight:800;cursor:pointer;transition:.15s;white-space:nowrap}
+  .btn:hover{filter:brightness(1.08)} .btn:active{transform:scale(.97)} .btn:disabled{opacity:.5;cursor:default}
+  .disclaimer{background:#3a2f1a;border:1px solid #6e5a2a;color:#ffe6b0;border-radius:12px;padding:11px 14px;font-size:12.5px;margin-top:14px;line-height:1.6}
+  .result{margin-top:18px;display:none}
+  .vidhead{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+  .vidhead img{width:120px;border-radius:10px;flex-shrink:0}
+  .vidhead .t{font-size:15px;font-weight:600;line-height:1.4}
+  .vidhead .a{font-size:12px;color:var(--sub);margin-top:3px}
+  .verdict{text-align:center;font-size:20px;font-weight:800;margin:10px 0 18px}
+  .gauge{margin:14px 0}
+  .gauge .lab{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}
+  .gauge .lab b{font-size:16px}
+  .bar{height:14px;border-radius:8px;background:#0e1230;overflow:hidden;border:1px solid var(--line)}
+  .bar > i{display:block;height:100%;border-radius:8px;transition:width .8s ease}
+  .demo-badge{display:inline-block;background:#4a3a2a;color:#ffd9a0;border:1px solid #6e5a2a;border-radius:6px;padding:2px 8px;font-size:11px;margin-left:6px}
+  .ad{margin:18px 0;min-height:90px;border:1px dashed var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#5a6296;font-size:12px;background:#11142b}
+  .note{color:var(--sub);font-size:12px;line-height:1.6;margin-top:10px}
+  .err{background:#3a2a2a;border:1px solid #6e4a4a;color:#ffd0d0;border-radius:12px;padding:11px 14px;font-size:13px;margin-top:14px;display:none}
+  .spin{text-align:center;color:var(--sub);padding:24px;display:none}
+  footer{text-align:center;margin-top:18px;font-size:12px}
+  footer a{color:var(--sub);text-decoration:none;margin:0 6px}
+  @media(max-width:600px){
+    body{padding:12px} header h1{font-size:23px}
+    .vidhead img{width:90px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🔍 이거 AI로 만든 거야?</h1>
+    <p>유튜브 링크를 넣으면 영상·음원이 AI로 생성됐을 확률을 추정해요</p>
+    <div class="nav"><a href="/">🍽️ 메뉴</a> · <a href="/outfit/">👕 의상</a> · <a href="/pingpong/">🏓 탁구</a> · <a href="/dev/">🤖 AI개발</a> · <a href="/aicheck/">🔍 AI판별</a></div>
+  </header>
+
+  <!-- 상단 광고 -->
+  <div class="ad" id="adTop">광고 영역 (애드센스 승인 후 표시)</div>
+
+  <div class="card">
+    <div class="inrow">
+      <input id="url" placeholder="https://www.youtube.com/watch?v=..." />
+      <button class="btn" id="go">분석하기</button>
+    </div>
+    <div class="disclaimer">
+      ⚠️ 결과는 <b>참고용 추정치</b>예요. AI 생성 여부를 100% 정확히 가려내는 기술은 아직 없어서,
+      틀릴 수 있습니다. 중요한 판단의 근거로 삼지 마세요.
+    </div>
+
+    <div class="spin" id="spin">🔎 분석 중…</div>
+    <div class="err" id="err"></div>
+
+    <div class="result" id="result">
+      <div class="vidhead">
+        <img id="thumb" src="" alt="">
+        <div>
+          <div class="t" id="vtitle"></div>
+          <div class="a" id="vauthor"></div>
+        </div>
+      </div>
+      <div class="verdict" id="verdict"></div>
+
+      <div class="gauge">
+        <div class="lab"><span>🎵 오디오/음원 AI 확률</span><b id="audioN">0%</b></div>
+        <div class="bar"><i id="audioBar" style="width:0%"></i></div>
+      </div>
+      <div class="gauge">
+        <div class="lab"><span>🎬 영상(화면) AI 확률</span><b id="videoN">0%</b></div>
+        <div class="bar"><i id="videoBar" style="width:0%"></i></div>
+      </div>
+
+      <!-- 결과 하단 광고 -->
+      <div class="ad" id="adResult">광고 영역 (애드센스 승인 후 표시)</div>
+
+      <div class="note" id="resultNote"></div>
+    </div>
+  </div>
+
+  <footer>
+    <a href="/privacy/">개인정보처리방침</a> · <span style="color:#444">© donjiral.net</span>
+  </footer>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+let API_BASE="https://api.donjiral.net";
+API_BASE=localStorage.getItem('pingpong_api')||API_BASE;
+
+function colorFor(p){return p>=70?'var(--bad)':p>=40?'var(--warn)':'var(--good)';}
+
+async function analyze(){
+  const url=$('#url').value.trim();
+  if(!url){alert('유튜브 URL을 입력하세요');return;}
+  $('#go').disabled=true;$('#result').style.display='none';$('#err').style.display='none';$('#spin').style.display='block';
+  try{
+    const r=await fetch(API_BASE+'/api/aicheck',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    if(!r.ok){let m='요청 실패 ('+r.status+')';try{const j=await r.json();if(j.message)m=j.message;}catch(e){}throw new Error(m);}
+    const d=await r.json();
+    $('#thumb').src=d.thumbnail||'';$('#thumb').style.display=d.thumbnail?'':'none';
+    $('#vtitle').textContent=d.title||'(제목 없음)';
+    $('#vauthor').textContent=d.author?('채널: '+d.author):'';
+    $('#verdict').innerHTML=d.verdict+(d.demo?'<span class="demo-badge">데모 추정</span>':'');
+    $('#audioN').textContent=d.audioAiProbability+'%';
+    $('#videoN').textContent=d.videoAiProbability+'%';
+    $('#audioBar').style.width=d.audioAiProbability+'%';$('#audioBar').style.background=colorFor(d.audioAiProbability);
+    $('#videoBar').style.width=d.videoAiProbability+'%';$('#videoBar').style.background=colorFor(d.videoAiProbability);
+    $('#resultNote').textContent=d.note||'';
+    $('#result').style.display='block';
+  }catch(e){$('#err').textContent='⚠️ '+e.message;$('#err').style.display='block';}
+  finally{$('#go').disabled=false;$('#spin').style.display='none';}
+}
+$('#go').onclick=analyze;
+$('#url').addEventListener('keydown',e=>{if(e.key==='Enter')analyze();});
+</script>
+</body>
+</html>

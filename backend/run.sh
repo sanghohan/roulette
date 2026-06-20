@@ -33,6 +33,9 @@ docker run -d --name "$NAME" --restart unless-stopped \
   -v "$DATA_DIR:/app/data" \
   -e APP_CORS_ALLOWED_ORIGINS="$ORIGINS" \
   -e ADMIN_SECRET="${ADMIN_SECRET:-}" \
+  -e AICHECK_PROVIDER="${AICHECK_PROVIDER:-}" \
+  -e AICHECK_API_URL="${AICHECK_API_URL:-}" \
+  -e AICHECK_API_KEY="${AICHECK_API_KEY:-}" \
   -e S3_ENABLED="$S3_ENABLED" \
   -e S3_BUCKET="$S3_BUCKET" \
   -e S3_REGION="$S3_REGION" \
