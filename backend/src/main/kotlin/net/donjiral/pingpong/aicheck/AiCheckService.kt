@@ -1,6 +1,7 @@
 package net.donjiral.pingpong.aicheck
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -22,6 +23,7 @@ class AiCheckService(
     // 비전 모델 (owner/name 형식). 다른 모델로 바꾸려면 환경변수 AICHECK_IMAGE_MODEL 설정
     @Value("\${app.aicheck.image-model:yorickvp/llava-13b}") private val imageModel: String
 ) {
+    private val log = LoggerFactory.getLogger(AiCheckService::class.java)
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
 
     private val cache = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, AiCheckResponse>>()
@@ -72,9 +74,14 @@ class AiCheckService(
         val frames = listOf(1, 2, 3).map { "https://i.ytimg.com/vi/$videoId/$it.jpg" }
         val scores = mutableListOf<Int>()
         for (f in frames) {
-            try { askVisionModel(f)?.let { scores.add(it) } } catch (_: Exception) {}
+            try {
+                askVisionModel(f)?.let { scores.add(it) }
+            } catch (e: Exception) {
+                log.warn("[aicheck] 프레임 분석 실패 url={} : {}", f, e.message)
+            }
         }
         if (scores.isEmpty()) {
+            log.error("[aicheck] 모든 프레임 분석 실패 videoId={} model={}", videoId, imageModel)
             throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "영상 분석에 실패했어요. 잠시 후 다시 시도해주세요.")
         }
         val video = scores.average().toInt().coerceIn(0, 100)
@@ -104,9 +111,16 @@ class AiCheckService(
             .POST(HttpRequest.BodyPublishers.ofString(body))
             .build()
         val res = http.send(req, HttpResponse.BodyHandlers.ofString())
-        if (res.statusCode() !in 200..299) return null
+        if (res.statusCode() !in 200..299) {
+            log.warn("[aicheck] Replicate HTTP {} 응답: {}", res.statusCode(), res.body().take(500))
+            return null
+        }
         val node = mapper.readTree(res.body())
-        if (node.get("status")?.asText() != "succeeded") return null
+        val status = node.get("status")?.asText()
+        if (status != "succeeded") {
+            log.warn("[aicheck] Replicate status={} body={}", status, res.body().take(500))
+            return null
+        }
         // output: 문자열 또는 문자열 배열
         val out = node.get("output")
         val text = when {
