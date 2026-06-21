@@ -70,8 +70,8 @@ class AiCheckService(
 
     // ---- 실제 판별 (영상 프레임 → Replicate 비전 모델) ----
     private fun realCheck(videoId: String, title: String?, author: String?, thumbnail: String?): AiCheckResponse {
-        // 유튜브가 제공하는 실제 영상 프레임 3장 (시작/중간/끝 부근)
-        val frames = listOf(1, 2, 3).map { "https://i.ytimg.com/vi/$videoId/$it.jpg" }
+        // 대표 프레임 1장 (중간). 호출수를 줄여 throttle/비용을 아낌
+        val frames = listOf("https://i.ytimg.com/vi/$videoId/2.jpg")
         val scores = mutableListOf<Int>()
         for (f in frames) {
             try {
@@ -110,7 +110,16 @@ class AiCheckService(
             .header("Prefer", "wait")
             .POST(HttpRequest.BodyPublishers.ofString(body))
             .build()
-        val res = http.send(req, HttpResponse.BodyHandlers.ofString())
+        // 429(throttle) 시 잠깐 쉬었다 재시도
+        var res = http.send(req, HttpResponse.BodyHandlers.ofString())
+        var attempt = 0
+        while (res.statusCode() == 429 && attempt < 3) {
+            val waitSec = (res.headers().firstValue("retry-after").orElse("")).toLongOrNull() ?: (2L + attempt * 2)
+            log.warn("[aicheck] 429 throttle, {}초 후 재시도 ({}회차)", waitSec, attempt + 1)
+            Thread.sleep(waitSec * 1000)
+            res = http.send(req, HttpResponse.BodyHandlers.ofString())
+            attempt++
+        }
         if (res.statusCode() !in 200..299) {
             log.warn("[aicheck] Replicate HTTP {} 응답: {}", res.statusCode(), res.body().take(500))
             return null
