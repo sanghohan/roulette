@@ -93,15 +93,34 @@ class AiCheckService(
         )
     }
 
+    @Volatile private var cachedVersion: String? = null
+
+    /** 모델의 최신 버전 ID를 조회(커뮤니티 모델 호출에 필요). 캐시함. */
+    private fun resolveVersion(): String? {
+        cachedVersion?.let { return it }
+        val parts = imageModel.split("/")
+        if (parts.size != 2) { log.error("[aicheck] AICHECK_IMAGE_MODEL 형식 오류: {}", imageModel); return null }
+        val req = HttpRequest.newBuilder(URI.create("$apiUrl/models/${parts[0]}/${parts[1]}"))
+            .timeout(Duration.ofSeconds(15))
+            .header("Authorization", "Bearer $apiKey")
+            .GET().build()
+        val res = http.send(req, HttpResponse.BodyHandlers.ofString())
+        if (res.statusCode() !in 200..299) {
+            log.warn("[aicheck] 모델 조회 실패 HTTP {} model={} body={}", res.statusCode(), imageModel, res.body().take(300))
+            return null
+        }
+        val v = mapper.readTree(res.body()).get("latest_version")?.get("id")?.asText()
+        if (v.isNullOrBlank()) { log.warn("[aicheck] latest_version 없음 model={}", imageModel); return null }
+        cachedVersion = v
+        return v
+    }
+
     /** Replicate 비전 모델 호출. Prefer:wait 로 동기 응답 받음. 0~100 정수 반환 */
     private fun askVisionModel(imageUrl: String): Int? {
-        val (owner, name) = imageModel.split("/").let {
-            if (it.size != 2) throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "AICHECK_IMAGE_MODEL 형식 오류")
-            it[0] to it[1]
-        }
-        val endpoint = "$apiUrl/models/$owner/$name/predictions"
+        val version = resolveVersion() ?: return null
+        val endpoint = "$apiUrl/predictions"
         val body = mapper.writeValueAsString(
-            mapOf("input" to mapOf("image" to imageUrl, "prompt" to prompt))
+            mapOf("version" to version, "input" to mapOf("image" to imageUrl, "prompt" to prompt))
         )
         val req = HttpRequest.newBuilder(URI.create(endpoint))
             .timeout(Duration.ofSeconds(90))
