@@ -34,6 +34,10 @@
   .inrow input{flex:1;min-width:180px;background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:13px 14px;font-size:15px}
   .btn{background:var(--accent);color:#062b33;border:none;border-radius:11px;padding:13px 20px;font-size:15px;font-weight:800;cursor:pointer;transition:.15s;white-space:nowrap}
   .btn:hover{filter:brightness(1.08)} .btn:active{transform:scale(.97)} .btn:disabled{opacity:.5;cursor:default}
+  .modes{display:flex;gap:8px;margin-bottom:12px}
+  .modebtn{flex:1;padding:11px;border-radius:11px;border:1px solid var(--line);background:var(--card2);color:var(--sub);font-size:14px;font-weight:700;cursor:pointer}
+  .modebtn.on{background:var(--accent);color:#062b33;border-color:var(--accent)}
+  .hidden{display:none}
   .disclaimer{background:#3a2f1a;border:1px solid #6e5a2a;color:#ffe6b0;border-radius:12px;padding:11px 14px;font-size:12.5px;margin-top:14px;line-height:1.6}
   .result{margin-top:18px;display:none}
   .vidhead{display:flex;gap:12px;align-items:center;margin-bottom:16px}
@@ -73,9 +77,20 @@
   <div class="ad" id="adTop">광고 영역 (애드센스 승인 후 표시)</div>
 
   <div class="card">
-    <div class="inrow">
+    <div class="modes">
+      <button class="modebtn on" data-m="yt">🎬 유튜브 영상</button>
+      <button class="modebtn" data-m="img">🖼️ 사진</button>
+    </div>
+    <div id="ytInput" class="inrow">
       <input id="url" placeholder="https://www.youtube.com/watch?v=..." />
-      <button class="btn" id="go">분석하기</button>
+      <button class="btn" id="goYt">분석하기</button>
+    </div>
+    <div id="imgInput" class="hidden">
+      <div class="inrow">
+        <input type="file" id="imgFile" accept="image/*" style="flex:1">
+        <button class="btn" id="goImg">분석하기</button>
+      </div>
+      <input id="imgUrl" placeholder="또는 이미지 URL 붙여넣기 (https://...)" style="margin-top:8px;width:100%;background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:12px 14px;font-size:15px">
     </div>
     <div class="disclaimer">
       ⚠️ 결과는 <b>참고용 추정치</b>예요.
@@ -125,28 +140,64 @@ API_BASE=localStorage.getItem('pingpong_api')||API_BASE;
 
 function colorFor(p){return p>=70?'var(--bad)':p>=40?'var(--warn)':'var(--good)';}
 
-async function analyze(){
+let mode='yt';
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('.modebtn').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  $('#ytInput').classList.toggle('hidden',m!=='yt');
+  $('#imgInput').classList.toggle('hidden',m!=='img');
+  $('#result').style.display='none';$('#err').style.display='none';
+}
+document.querySelectorAll('.modebtn').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+
+function render(d){
+  $('#thumb').src=d.thumbnail||'';$('#thumb').style.display=d.thumbnail?'':'none';
+  $('#vtitle').textContent=d.title||(mode==='img'?'업로드한 사진':'(제목 없음)');
+  $('#vauthor').textContent=d.author?('채널: '+d.author):'';
+  $('#bigNum').textContent=d.videoAiProbability+'%';$('#bigNum').style.color=colorFor(d.videoAiProbability);
+  $('#verdict').innerHTML=d.verdict+(d.demo?'<span class="demo-badge">데모 추정</span>':'');
+  $('#videoN').textContent=d.videoAiProbability+'%';
+  $('#videoBar').style.width=d.videoAiProbability+'%';$('#videoBar').style.background=colorFor(d.videoAiProbability);
+  $('#resultNote').textContent=d.note||'';
+  $('#result').style.display='block';
+}
+async function postJson(path,bodyObj){
+  const r=await fetch(API_BASE+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(bodyObj)});
+  if(!r.ok){let m='요청 실패 ('+r.status+')';try{const j=await r.json();if(j.message)m=j.message;}catch(e){}throw new Error(m);}
+  return r.json();
+}
+function busy(on){['goYt','goImg'].forEach(id=>{const b=$('#'+id);if(b)b.disabled=on;});
+  $('#spin').style.display=on?'block':'none';if(on){$('#result').style.display='none';$('#err').style.display='none';}}
+function showErr(msg){$('#err').textContent='⚠️ '+msg;$('#err').style.display='block';}
+
+async function analyzeYt(){
   const url=$('#url').value.trim();
   if(!url){alert('유튜브 URL을 입력하세요');return;}
-  $('#go').disabled=true;$('#result').style.display='none';$('#err').style.display='none';$('#spin').style.display='block';
-  try{
-    const r=await fetch(API_BASE+'/api/aicheck',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
-    if(!r.ok){let m='요청 실패 ('+r.status+')';try{const j=await r.json();if(j.message)m=j.message;}catch(e){}throw new Error(m);}
-    const d=await r.json();
-    $('#thumb').src=d.thumbnail||'';$('#thumb').style.display=d.thumbnail?'':'none';
-    $('#vtitle').textContent=d.title||'(제목 없음)';
-    $('#vauthor').textContent=d.author?('채널: '+d.author):'';
-    $('#bigNum').textContent=d.videoAiProbability+'%';$('#bigNum').style.color=colorFor(d.videoAiProbability);
-    $('#verdict').innerHTML=d.verdict+(d.demo?'<span class="demo-badge">데모 추정</span>':'');
-    $('#videoN').textContent=d.videoAiProbability+'%';
-    $('#videoBar').style.width=d.videoAiProbability+'%';$('#videoBar').style.background=colorFor(d.videoAiProbability);
-    $('#resultNote').textContent=d.note||'';
-    $('#result').style.display='block';
-  }catch(e){$('#err').textContent='⚠️ '+e.message;$('#err').style.display='block';}
-  finally{$('#go').disabled=false;$('#spin').style.display='none';}
+  busy(true);
+  try{ render(await postJson('/api/aicheck',{url})); }
+  catch(e){ showErr(e.message); }
+  finally{ busy(false); }
 }
-$('#go').onclick=analyze;
-$('#url').addEventListener('keydown',e=>{if(e.key==='Enter')analyze();});
+async function analyzeImg(){
+  const file=$('#imgFile').files[0];
+  let imageUrl=$('#imgUrl').value.trim();
+  if(!file&&!imageUrl){alert('사진 파일을 올리거나 이미지 URL을 입력하세요');return;}
+  busy(true);
+  try{
+    if(file){
+      const fd=new FormData();fd.append('file',file);
+      const r=await fetch(API_BASE+'/api/uploads',{method:'POST',body:fd});
+      if(!r.ok){let m='업로드 실패 ('+r.status+')';try{const j=await r.json();if(j.message)m=j.message;}catch(e){}throw new Error(m);}
+      imageUrl=(await r.json()).url;
+    }
+    render(await postJson('/api/aicheck/image',{imageUrl}));
+  }catch(e){ showErr(e.message); }
+  finally{ busy(false); }
+}
+$('#goYt').onclick=analyzeYt;
+$('#goImg').onclick=analyzeImg;
+$('#url').addEventListener('keydown',e=>{if(e.key==='Enter')analyzeYt();});
+$('#imgUrl').addEventListener('keydown',e=>{if(e.key==='Enter')analyzeImg();});
 </script>
 </body>
 </html>

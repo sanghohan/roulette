@@ -50,6 +50,40 @@ class AiCheckService(
         return result
     }
 
+    // ---- 사진(이미지) 판별 ----
+    fun analyzeImage(imageUrl: String): AiCheckResponse {
+        if (!imageUrl.startsWith("http")) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "유효한 이미지 URL이 아니에요")
+        }
+        val cacheKey = "img:$imageUrl"
+        cache[cacheKey]?.let { (ts, resp) -> if (System.currentTimeMillis() - ts < cacheTtlMs) return resp }
+        if (cache.size > 5000) cache.clear()
+
+        val configured = provider.isNotBlank() && apiKey.isNotBlank()
+        val result = if (configured) {
+            val score = askVisionModel(imageUrl)
+                ?: throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "이미지 분석에 실패했어요. 잠시 후 다시 시도해주세요.")
+            log.info("[aicheck] 이미지 분석 완료 확률={}% 판정='{}'", score, verdictText(score))
+            AiCheckResponse(
+                videoId = "", title = null, author = null, thumbnail = imageUrl,
+                videoAiProbability = score, audioSupported = false,
+                verdict = verdictText(score), demo = false,
+                note = "이미지를 AI 모델이 분석한 추정치예요. 참고용이며 100% 정확하지 않습니다."
+            )
+        } else {
+            val h = abs(imageUrl.hashCode())
+            val score = 10 + (h % 80)
+            AiCheckResponse(
+                videoId = "", title = null, author = null, thumbnail = imageUrl,
+                videoAiProbability = score, audioSupported = false,
+                verdict = verdictText(score), demo = true,
+                note = "⚠️ 데모 추정 결과입니다. 실제 AI 탐지가 아니며, 탐지 API를 연결하면 실제 분석으로 바뀝니다."
+            )
+        }
+        cache[cacheKey] = System.currentTimeMillis() to result
+        return result
+    }
+
     // ---- 유튜브 공개 메타데이터 ----
     private fun fetchMeta(videoId: String): Triple<String?, String?, String?> {
         var title: String? = null; var author: String? = null

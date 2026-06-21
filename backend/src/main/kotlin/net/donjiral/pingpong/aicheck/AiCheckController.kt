@@ -7,6 +7,10 @@ data class AiCheckRequest(
     @field:NotBlank val url: String
 )
 
+data class ImageCheckRequest(
+    @field:NotBlank val imageUrl: String
+)
+
 data class AiCheckResponse(
     val videoId: String,
     val title: String?,
@@ -26,4 +30,7 @@ class AiCheckController(
 ) {
     @PostMapping
     fun check(@RequestBody req: AiCheckRequest): AiCheckResponse = service.analyze(req.url)
+
+    @PostMapping("/image")
+    fun checkImage(@RequestBody req: ImageCheckRequest): AiCheckResponse = service.analyzeImage(req.imageUrl)
 }
