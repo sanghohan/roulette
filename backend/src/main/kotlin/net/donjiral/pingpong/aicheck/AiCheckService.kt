@@ -70,8 +70,8 @@ class AiCheckService(
 
     // ---- 실제 판별 (영상 프레임 → Replicate 비전 모델) ----
     private fun realCheck(videoId: String, title: String?, author: String?, thumbnail: String?): AiCheckResponse {
-        // 대표 프레임 1장 (중간). 호출수를 줄여 throttle/비용을 아낌
-        val frames = listOf("https://i.ytimg.com/vi/$videoId/2.jpg")
+        // 대표 프레임 2장 (앞부분/뒷부분)으로 평균
+        val frames = listOf(1, 3).map { "https://i.ytimg.com/vi/$videoId/$it.jpg" }
         val scores = mutableListOf<Int>()
         for (f in frames) {
             try {
@@ -85,6 +85,7 @@ class AiCheckService(
             throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "영상 분석에 실패했어요. 잠시 후 다시 시도해주세요.")
         }
         val video = scores.average().toInt().coerceIn(0, 100)
+        log.info("[aicheck] 분석 완료 videoId={} 확률={}% 판정='{}' (프레임 {}장)", videoId, video, verdictText(video), scores.size)
         return AiCheckResponse(
             videoId = videoId, title = title, author = author, thumbnail = thumbnail,
             videoAiProbability = video, audioSupported = false,
