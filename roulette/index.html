@@ -331,5 +331,14 @@ $('#resetBtn').onclick=()=>{if(confirm('기본 메뉴 20종으로 초기화할�
 /* ---- 초기 ---- */
 renderChips();drawWheel();renderMenu();renderBoard();showFortune();
 </script>
+<div id="visitCounter" style="text-align:center;color:#5a6296;font-size:12px;margin:16px 0 4px">·</div>
+<script>
+(function(){var b=(localStorage.getItem('pingpong_api')||'https://api.donjiral.net');
+var done=sessionStorage.getItem('dj_visited');if(!done)sessionStorage.setItem('dj_visited','1');
+fetch(b+'/api/visits',{method:done?'GET':'POST'}).then(function(r){return r.json();}).then(function(d){
+var el=document.getElementById('visitCounter');
+if(el)el.textContent='👀 총 방문 '+Number(d.total).toLocaleString()+' · 오늘 '+Number(d.today).toLocaleString();
+}).catch(function(){});})();
+</script>
 </body>
 </html>
