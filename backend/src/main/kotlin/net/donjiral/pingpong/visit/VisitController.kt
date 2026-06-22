@@ -17,8 +17,9 @@ class VisitCounter(
 @Entity
 @Table(name = "visit_day")
 class VisitDay(
-    @Id var day: String = "",
-    var count: Long = 0
+    // day, count 는 SQL 예약어라 컬럼명을 따로 지정
+    @Id @Column(name = "ymd") var day: String = "",
+    @Column(name = "cnt") var count: Long = 0
 )
 
 interface VisitCounterRepository : JpaRepository<VisitCounter, Int>
