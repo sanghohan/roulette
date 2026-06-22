@@ -281,9 +281,9 @@ if(state.gender){$$('.gbtn').forEach(x=>x.classList.toggle('on',x.dataset.g===st
 (function(){var b=(localStorage.getItem('pingpong_api')||'https://api.donjiral.net');
 var today=new Date().toISOString().slice(0,10);var isNew=(localStorage.getItem('dj_visit_date')!==today);
 if(isNew)localStorage.setItem('dj_visit_date',today);
-fetch(b+'/api/visits',{method:isNew?'POST':'GET'}).then(function(r){return r.json();}).then(function(d){
+fetch(b+'/api/visits',{method:isNew?'POST':'GET'}).then(function(r){return r.ok?r.json():null;}).then(function(d){
 var el=document.getElementById('visitCounter');
-if(el)el.textContent='👀 총 방문 '+Number(d.total).toLocaleString()+' · 오늘 '+Number(d.today).toLocaleString();
+if(el&&d&&typeof d.total==='number')el.textContent='👀 총 방문 '+d.total.toLocaleString()+' · 오늘 '+(Number(d.today)||0).toLocaleString();
 }).catch(function(){});})();
 </script>
 </body>
