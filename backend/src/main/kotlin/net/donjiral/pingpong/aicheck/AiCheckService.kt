@@ -17,6 +17,7 @@ import kotlin.math.abs
 @Service
 class AiCheckService(
     private val mapper: ObjectMapper,
+    private val alert: EmailAlertService,
     @Value("\${app.aicheck.provider:}") private val provider: String,
     @Value("\${app.aicheck.api-url:https://api.replicate.com/v1}") private val apiUrl: String,
     @Value("\${app.aicheck.api-key:}") private val apiKey: String,
@@ -176,6 +177,10 @@ class AiCheckService(
         }
         if (res.statusCode() !in 200..299) {
             log.warn("[aicheck] Replicate HTTP {} 응답: {}", res.statusCode(), res.body().take(500))
+            val body = res.body().lowercase()
+            if (res.statusCode() == 402 || body.contains("credit") || body.contains("insufficient") || body.contains("billing")) {
+                alert.creditExhausted("HTTP ${res.statusCode()}: ${res.body().take(200)}")
+            }
             return null
         }
         val node = mapper.readTree(res.body())

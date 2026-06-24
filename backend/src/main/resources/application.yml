@@ -27,6 +27,16 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+  # 메일 알림 (Gmail SMTP 권장). 비밀번호=앱 비밀번호는 환경변수로만
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
 # 프론트엔드 허용 출처 (CORS)
 app:
   cors:
@@ -38,6 +48,9 @@ app:
   admin:
     secret: ${ADMIN_SECRET:}              # 관리자 암호(예약 이름 사용). 비우면 예약 이름 아무도 못 씀
     reserved-authors: 돈지랄               # 쉼표로 여러 개 가능. 예: 돈지랄,관리자
+  alert:
+    to: sanghohan@gmail.com        # 크레딧 부족 알림 받을 주소
+    cooldown-minutes: 60           # 같은 알림 재발송 최소 간격
   aicheck:
     # 비밀 아님 → 소스에 직접. (API 키만 환경변수)
     provider: replicate                    # 비우면 데모 추정
