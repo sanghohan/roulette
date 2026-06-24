@@ -37,10 +37,12 @@ class EmailAlertService(
             msg.text = """
                 Replicate 크레딧 부족으로 AI 판별 요청이 실패했습니다.
 
+                ▶ 지금 충전하기: https://replicate.com/account/billing
+
                 시각: ${LocalDateTime.now()}
                 상세: $detail
 
-                → Replicate(https://replicate.com/account/billing)에서 크레딧을 충전하세요.
+                위 링크에서 크레딧을 충전하면 AI 판별이 다시 동작합니다.
                 (이 알림은 ${cooldownMinutes}분에 한 번만 발송됩니다.)
             """.trimIndent()
             sender.send(msg)
