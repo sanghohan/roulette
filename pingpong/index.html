@@ -245,8 +245,8 @@ let page=0;
 /* ---------- 배너 ---------- */
 function showBanner(){
   const b=$('#banner');
-  if(USE_API){b.className='banner local';b.innerHTML='✅ 모두가 함께 보는 게시판입니다.';}
-  else{b.className='banner local';b.innerHTML='ℹ️ 미리보기 모드 — 글이 <b>이 브라우저에만</b> 저장돼요. 서버를 연결하면 모두가 함께 보는 게시판이 됩니다.';}
+  if(USE_API){b.className='';b.innerHTML='';b.style.display='none';}
+  else{b.style.display='';b.className='banner local';b.innerHTML='ℹ️ 미리보기 모드 — 글이 <b>이 브라우저에만</b> 저장돼요.';}
 }
 function bannerError(msg){const b=$('#banner');b.className='banner err';b.innerHTML='⚠️ '+esc(msg);}
 
