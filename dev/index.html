@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9188770497371754" crossorigin="anonymous"></script>
-<title>AI 프로그래밍 커뮤니티 - donjiral</title>
-<meta name="description" content="프롬프트·모델·코드·트러블슈팅을 나누는 AI 개발자 커뮤니티. 코드 강조와 마크다운 지원.">
+<title>참교육 앱 게시판 - donjiral</title>
+<meta name="description" content="참교육 앱 이용자들이 질문하고 자유롭게 이야기하는 커뮤니티 게시판. 마크다운 지원.">
 <link rel="canonical" href="https://www.donjiral.net/dev/">
-<meta property="og:title" content="AI 프로그래밍 커뮤니티 - donjiral">
-<meta property="og:description" content="프롬프트·모델·코드·삽질을 함께 나누는 개발자 공간.">
+<meta property="og:title" content="참교육 앱 게시판 - donjiral">
+<meta property="og:description" content="참교육 앱 이용자들이 궁금한 걸 묻고 자유롭게 이야기하는 공간.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.donjiral.net/dev/">
 <meta name="robots" content="index,follow">
@@ -93,9 +93,9 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>🤖 AI 프로그래밍</h1>
-    <p>프롬프트·모델·코드·삽질을 함께 나누는 개발자 공간</p>
-    <div class="nav"><a href="/aicheck/">🔍 AI판별</a> · <a href="/dev/">🤖 AI개발</a> · <a href="/roulette/">🍽️ 메뉴</a> · <a href="/outfit/">👕 의상</a> · <a href="/pingpong/">🏓 탁구</a></div>
+    <h1>📱 참교육 앱 게시판</h1>
+    <p>참교육 앱 이용자들이 궁금한 걸 묻고 자유롭게 이야기하는 공간</p>
+    <div class="nav"><a href="/aicheck/">🔍 AI판별</a> · <a href="/dev/">📱 참교육앱</a> · <a href="/roulette/">🍽️ 메뉴</a> · <a href="/outfit/">👕 의상</a> · <a href="/pingpong/">🏓 탁구</a></div>
   </header>
   <div class="ad-slot" style="max-width:880px;margin:0 auto 16px;min-height:90px;border:1px dashed #2e376a;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#5a6296;font-size:12px;background:#11142b">광고 영역 (애드센스 승인 후 표시)</div>
 
@@ -149,22 +149,19 @@ API_BASE = localStorage.getItem('pingpong_api') || API_BASE;
 const USE_API = !!API_BASE;
 
 const CATS=[
+  {k:'notice', n:'공지사항', e:'📢'},
   {k:'qna', n:'질문답변', e:'💬'},
-  {k:'free', n:'자유게시판', e:'☕'},
-  {k:'prompt', n:'프롬프트·팁', e:'✨'},
-  {k:'model', n:'모델·툴 정보', e:'🧰'},
-  {k:'showcase', n:'프로젝트 자랑', e:'🚀'},
-  {k:'trouble', n:'트러블슈팅', e:'🐞'}
+  {k:'free', n:'자유게시판', e:'☕'}
 ];
-const catName=k=>(CATS.find(c=>c.k===k)||{n:'기타',e:'🤖'});
+const catName=k=>(CATS.find(c=>c.k===k)||{n:'기타',e:'📱'});
 let filter='전체';
 
 /* ---------- 데이터 계층 ---------- */
 const LS='dev_v1';
 const SEED=[
-  {id:1,board:'dev',category:'prompt',title:'코드 리뷰 받을 때 잘 먹히는 프롬프트',author:'프롬프트요정',content:'아래처럼 역할과 기준을 주면 품질이 확 올라가요.\n\n```\n너는 시니어 개발자야. 아래 코드를 보안/성능/가독성 관점에서 리뷰하고, 우선순위를 매겨줘.\n```\n\n핵심은 **관점을 명시**하는 거예요.',media:'',likes:9,views:62,comments:[],createdAt:Date.now()-7200e3},
-  {id:2,board:'dev',category:'trouble',title:'CORS 에러 해결 기록',author:'삽질러',content:'프론트(다른 도메인)에서 API 호출 시 CORS가 막힐 때:\n\n```kotlin\nregistry.addMapping("/api/**").allowedOrigins("https://example.com")\n```\n\n서버에서 허용 출처를 명시하면 됩니다.',media:'',likes:5,views:40,comments:[],createdAt:Date.now()-86400e3},
-  {id:3,board:'dev',category:'showcase',title:'주말에 만든 메뉴 룰렛 + 커뮤니티',author:'돈지랄',content:'정적 프론트(GitHub Pages) + Kotlin/Spring 백엔드(EC2/Docker)로 만들었어요. AI랑 페어로 개발했습니다 🤝',media:'',likes:14,views:120,comments:[],createdAt:Date.now()-2*86400e3}
+  {id:0,board:'dev',category:'notice',title:'참교육 앱 게시판을 오픈했습니다',author:'돈지랄',content:'참교육 앱 이용자들을 위한 게시판이 열렸어요. 공지사항 확인, 궁금한 점 질문, 자유로운 이야기 모두 환영합니다.',media:'',likes:3,views:52,comments:[],createdAt:Date.now()-3600e3},
+  {id:1,board:'dev',category:'qna',title:'참교육 앱 알림이 안 와요',author:'궁금맘',content:'알림 설정을 켰는데도 공지 알림이 안 옵니다. 혹시 확인해볼 설정이 있을까요?',media:'',likes:2,views:34,comments:[],createdAt:Date.now()-7200e3},
+  {id:2,board:'dev',category:'free',title:'참교육 앱 잘 쓰고 있어요',author:'열공생',content:'알림장이랑 일정 확인이 편해서 만족합니다. 다들 어떤 기능 자주 쓰시나요?',media:'',likes:5,views:48,comments:[],createdAt:Date.now()-86400e3}
 ];
 function lsLoad(){try{const o=JSON.parse(localStorage.getItem(LS));if(o&&o.posts)return o;}catch(e){}return {posts:SEED.slice(),nextId:100,nextCid:1000};}
 function lsSave(d){localStorage.setItem(LS,JSON.stringify(d));}
