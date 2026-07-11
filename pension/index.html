@@ -38,11 +38,14 @@
   .btn{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
   .btn:hover{filter:brightness(1.1)} .btn:active{transform:scale(.97)}
   .btn.sec{background:var(--card2);color:var(--sub);border:1px solid var(--line)}
-  select{background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;font-size:14px}
+  select,input{background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;font-size:14px}
+  .line .rank{font-size:12px;font-weight:700;color:var(--accent2)}
   .result{margin-top:16px}
   .line{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;flex-wrap:wrap}
   .line .tag{font-size:11px;font-weight:700;color:var(--sub);border:1px solid var(--line);border-radius:6px;padding:3px 7px;margin-right:2px}
   .line .del{margin-left:auto;background:none;border:none;color:var(--sub);cursor:pointer;font-size:16px}
+  .saveBtn{margin-left:auto;background:none;border:1px solid var(--line);border-radius:8px;color:var(--accent2);cursor:pointer;font-size:12px;padding:4px 10px}
+  .saveBtn:disabled{color:var(--sub);cursor:default}
   .jo{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:34px;padding:0 8px;border-radius:8px;background:var(--accent2);color:#4a3800;font-weight:800;font-size:14px}
   .digit{width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#1a1030;box-shadow:inset -2px -3px 5px rgba(0,0,0,.2),0 2px 4px rgba(0,0,0,.3)}
   .p1{background:var(--d1)} .p2{background:var(--d2)} .p3{background:var(--d3)} .p4{background:var(--d4)} .p5{background:var(--d5)} .p6{background:var(--d6)}
@@ -74,6 +77,7 @@
     <div class="tab on" data-tab="auto">🎲 자동</div>
     <div class="tab" data-tab="semi">✏️ 반자동</div>
     <div class="tab" data-tab="manual">🖐️ 수동</div>
+    <div class="tab" data-tab="saved">📌 보관함</div>
   </div>
 
   <div class="card">
@@ -120,6 +124,20 @@
         <button class="btn" onclick="saveManual()">이 번호 저장</button>
       </div>
       <div class="result" id="manualResult"></div>
+    </section>
+
+    <!-- 보관함 -->
+    <section id="tab-saved">
+      <h2>📌 보관함</h2>
+      <p class="desc">저장한 번호 목록입니다. 추첨 후 당첨번호를 입력하면 각 번호의 등수를 판정해줘요.<br>(1등: 조+6자리 · 2등: 6자리 · 3~7등: 뒤 5~1자리 일치 · 보너스: 6자리 일치)</p>
+      <div class="btnrow" style="margin-top:0">
+        <select id="winJo"><option value="">당첨 조</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+        <input id="winNum" maxlength="6" inputmode="numeric" placeholder="당첨 6자리" style="width:110px">
+        <input id="winBonus" maxlength="6" inputmode="numeric" placeholder="보너스 6자리 (선택)" style="width:150px">
+        <button class="btn" onclick="renderSavedLines()">당첨 확인</button>
+        <button class="btn sec" onclick="clearAllLines()">전체 삭제</button>
+      </div>
+      <div class="result" id="savedList"></div>
     </section>
 
     <p class="note">
@@ -182,13 +200,35 @@ function slotValues(containerId){
 }
 
 /* ---- 표시/저장 ---- */
-function lineHTML(l, idx, showDel){
+function checkRank(l){
+  const w = (document.getElementById("winNum")?.value||"").trim();
+  if(!/^\d{6}$/.test(w)) return null;
+  const wj = +(document.getElementById("winJo")?.value||0);
+  const b = (document.getElementById("winBonus")?.value||"").trim();
+  const d = l.digits.join("");
+  if(wj && l.jo===wj && d===w) return "🏆 1등!";
+  if(d===w) return "🥈 2등!";
+  if(/^\d{6}$/.test(b) && d===b) return "🎁 보너스 당첨!";
+  for(let k=5;k>=1;k--){ if(d.slice(6-k)===w.slice(6-k)) return (8-k)+"등"; }
+  return null;
+}
+function lineHTML(l, idx, showDel, showSave){
+  const r = showDel ? checkRank(l) : null;
   return `<div class="line">
     ${l.type?`<span class="tag">${l.type}</span>`:""}
     <span class="jo">${l.jo}조</span>
     ${l.digits.map((d,i)=>`<span class="digit p${i+1}">${d}</span>`).join("")}
+    ${r?`<span class="rank">${r}</span>`:""}
+    ${showSave?`<button class="saveBtn" onclick="saveGen(this,${l.jo},'${l.digits.join("")}','${l.type}')">☆ 저장</button>`:""}
     ${showDel?`<button class="del" onclick="delLine(${idx})" title="삭제">✕</button>`:""}
   </div>`;
+}
+function saveGen(btn, jo, digitsStr, type){
+  addLine(jo, digitsStr.split("").map(Number), type);
+  btn.textContent = "✓ 저장됨"; btn.disabled = true;
+}
+function clearAllLines(){
+  if(confirm("보관함의 번호를 모두 삭제할까요?")){ saveLines([]); renderSavedLines(); }
 }
 function loadLines(){ try{ return JSON.parse(localStorage.getItem(LS_LINES)||"[]"); }catch(e){ return []; } }
 function saveLines(ls){ try{ localStorage.setItem(LS_LINES, JSON.stringify(ls)); }catch(e){} }
@@ -202,9 +242,9 @@ function addLine(jo, digits, type){
 function delLine(i){ const ls=loadLines(); ls.splice(i,1); saveLines(ls); renderSavedLines(); }
 function renderSavedLines(){
   const ls = loadLines();
-  document.getElementById("manualResult").innerHTML = ls.length
-    ? `<p class="desc" style="margin:14px 0 8px;">저장된 번호 (${ls.length})</p>` + ls.map((l,i)=>lineHTML(l,i,true)).join("")
-    : "";
+  document.getElementById("savedList").innerHTML = ls.length
+    ? `<p class="desc" style="margin:0 0 8px;">저장된 번호 (${ls.length})</p>` + ls.map((l,i)=>lineHTML(l,i,true)).join("")
+    : `<p class="desc">아직 저장된 번호가 없습니다. 생성 결과 옆의 <b>☆ 저장</b>을 누르면 여기에 모여요.</p>`;
 }
 
 /* ---- 탭 ---- */
@@ -223,8 +263,7 @@ function genAuto(){
   let html = "";
   for(let i=0;i<cnt;i++){
     const jo = randJo(), ds = randDigits();
-    html += lineHTML({jo, digits:ds, type:"자동"},-1,false);
-    addLine(jo, ds, "자동");
+    html += lineHTML({jo, digits:ds, type:"자동"},-1,false,true);
   }
   document.getElementById("autoResult").innerHTML = html;
 }
@@ -239,8 +278,7 @@ function genSemi(){
   for(let i=0;i<cnt;i++){
     const jo = joSel==="" ? randJo() : +joSel;
     const ds = randDigits(fixed);
-    html += lineHTML({jo, digits:ds, type:"반자동"},-1,false);
-    addLine(jo, ds, "반자동");
+    html += lineHTML({jo, digits:ds, type:"반자동"},-1,false,true);
   }
   document.getElementById("semiResult").innerHTML = html;
 }
@@ -255,6 +293,8 @@ function saveManual(){
   const jo = +document.getElementById("manJo").value;
   const ds = slotValues("manualPick");
   addLine(jo, ds, "수동");
+  document.getElementById("manualResult").innerHTML =
+    `<p class="desc" style="margin-top:12px;">📌 보관함에 저장했어요.</p>`;
 }
 
 renderSavedLines();

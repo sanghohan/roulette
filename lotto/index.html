@@ -61,6 +61,8 @@
   .line .tag{font-size:11px;font-weight:700;color:var(--sub);border:1px solid var(--line);border-radius:6px;padding:3px 7px;margin-right:2px}
   .line .del{margin-left:auto;background:none;border:none;color:var(--sub);cursor:pointer;font-size:16px}
   .line .rank{font-size:12px;font-weight:700;color:var(--accent2)}
+  .saveBtn{margin-left:auto;background:none;border:1px solid var(--line);border-radius:8px;color:var(--accent2);cursor:pointer;font-size:12px;padding:4px 10px}
+  .saveBtn:disabled{color:var(--sub);border-color:var(--line);cursor:default}
   select,input[type=number]{background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;font-size:14px}
   .statbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
   .freq{display:grid;grid-template-columns:34px 1fr 44px;gap:8px;align-items:center;margin-bottom:5px}
@@ -104,6 +106,7 @@
     <div class="tab" data-tab="manual">🖐️ 수동</div>
     <div class="tab" data-tab="reco">💡 추천</div>
     <div class="tab" data-tab="stats">📊 통계</div>
+    <div class="tab" data-tab="saved">📌 보관함</div>
   </div>
 
   <div class="card">
@@ -205,6 +208,19 @@
         <h3>🕘 최근 10회 당첨번호</h3>
         <div id="recentTable"></div>
       </div>
+    </section>
+
+    <!-- 보관함 -->
+    <section id="tab-saved">
+      <h2>📌 보관함</h2>
+      <p class="desc">저장한 번호 목록입니다. 회차를 선택해 당첨 여부를 확인하세요. (비워두면 최신 회차 기준)</p>
+      <div class="btnrow" style="margin-top:0">
+        <label style="color:var(--sub);font-size:13px;">확인 회차</label>
+        <input type="number" id="checkDrawNo" min="1" placeholder="최신" style="width:100px;">
+        <button class="btn" onclick="renderSavedLines()">당첨 확인</button>
+        <button class="btn sec" onclick="clearAllLines()">전체 삭제</button>
+      </div>
+      <div class="result" id="savedList"></div>
     </section>
 
     <p class="note">
@@ -310,23 +326,36 @@ function rankOf(nums, draw){
   if(hit===3) return "5등";
   return null;
 }
-function lineHTML(l, idx, showDel){
-  const last = DRAWS[DRAWS.length-1];
+function getCheckDraw(){
+  if(!DRAWS.length) return null;
+  const v = +(document.getElementById("checkDrawNo")?.value || 0);
+  return DRAWS.find(x=>x.no===v) || DRAWS[DRAWS.length-1];
+}
+function lineHTML(l, idx, showDel, showSave){
+  const last = getCheckDraw();
   const r = last ? rankOf(l.nums, last) : null;
   return `<div class="line">
     ${l.type?`<span class="tag">${l.type}</span>`:""}
     ${l.nums.map(n=>ballHTML(n,true)).join("")}
     ${r?`<span class="rank">${last.no}회 기준 ${r}</span>`:""}
+    ${showSave?`<button class="saveBtn" onclick="saveGen(this,'${l.nums.join(",")}','${l.type}')">☆ 저장</button>`:""}
     ${showDel?`<button class="del" onclick="delLine(${idx})" title="삭제">✕</button>`:""}
   </div>`;
+}
+function saveGen(btn, numsStr, type){
+  addLine(numsStr.split(",").map(Number), type);
+  btn.textContent = "✓ 저장됨"; btn.disabled = true;
+}
+function clearAllLines(){
+  if(confirm("보관함의 번호를 모두 삭제할까요?")){ saveLines([]); renderSavedLines(); }
 }
 function delLine(i){ const ls=loadLines(); ls.splice(i,1); saveLines(ls); renderSavedLines(); }
 function renderSavedLines(){
   const ls = loadLines();
-  const el = document.getElementById("manualResult");
+  const el = document.getElementById("savedList");
   el.innerHTML = ls.length
-    ? `<p class="desc" style="margin:14px 0 8px;">저장된 조합 (${ls.length})</p>` + ls.map((l,i)=>lineHTML(l,i,true)).join("")
-    : "";
+    ? `<p class="desc" style="margin:0 0 8px;">저장된 번호 (${ls.length})</p>` + ls.map((l,i)=>lineHTML(l,i,true)).join("")
+    : `<p class="desc">아직 저장된 번호가 없습니다. 생성 결과 옆의 <b>☆ 저장</b>을 누르면 여기에 모여요.</p>`;
 }
 
 /* ============ 탭 ============ */
@@ -345,8 +374,7 @@ function genAuto(){
   const out = [];
   for(let i=0;i<cnt;i++){ out.push(drawRandom()); }
   document.getElementById("autoResult").innerHTML =
-    out.map(ns=>lineHTML({nums:ns,type:"자동"},-1,false)).join("");
-  out.forEach(ns=>addLine(ns,"자동"));
+    out.map(ns=>lineHTML({nums:ns,type:"자동"},-1,false,true)).join("");
 }
 
 /* ============ 번호 그리드 (반자동/수동) ============ */
@@ -386,8 +414,7 @@ function genSemi(){
   for(let i=0;i<cnt;i++){ out.push(drawRandom(fixed)); }
   document.getElementById("semiResult").innerHTML =
     `<p class="desc" style="margin:10px 0 8px;">고정 번호: ${fixed.join(", ")}</p>` +
-    out.map(ns=>lineHTML({nums:ns,type:"반자동"},-1,false)).join("");
-  out.forEach(ns=>addLine(ns,"반자동"));
+    out.map(ns=>lineHTML({nums:ns,type:"반자동"},-1,false,true)).join("");
 }
 
 /* ============ 수동 ============ */
@@ -396,7 +423,8 @@ function saveManual(){
   if(sel.length!==6){ alert("정확히 6개 번호를 선택하세요. (현재 "+sel.length+"개)"); return; }
   addLine(sel.sort((a,b)=>a-b), "수동");
   clearGrid("manual");
-  renderSavedLines();
+  document.getElementById("manualResult").innerHTML =
+    `<p class="desc" style="margin-top:12px;">📌 보관함에 저장했어요.</p>`;
 }
 
 /* ============ 통계 계산 ============ */
@@ -542,8 +570,7 @@ function genReco(){
   }
   document.getElementById("recoResult").innerHTML =
     `<p class="desc" style="margin:10px 0 8px;">${labels[mode]} · ${range?`최근 ${range}회`:"전체 회차"} 통계 기준</p>`+
-    out.map(ns=>lineHTML({nums:ns,type:"추천"},-1,false)).join("");
-  out.forEach(ns=>addLine(ns,"추천"));
+    out.map(ns=>lineHTML({nums:ns,type:"추천"},-1,false,true)).join("");
 }
 
 loadData();
