@@ -57,6 +57,12 @@ app:
     api-url: https://api.replicate.com/v1
     api-key: ${AICHECK_API_KEY:}           # 🔑 비밀: 환경변수로만
     image-model: yorickvp/llava-13b        # 비전 모델(owner/name)
+  ytsummary:
+    # 유튜브 영상 요약 (Claude API). 키가 비어 있으면 503 안내 응답
+    api-url: https://api.anthropic.com
+    api-key: ${YTSUMMARY_API_KEY:}         # 🔑 비밀: 환경변수로만 (console.anthropic.com에서 발급)
+    model: claude-haiku-4-5-20251001       # 저렴한 요약용 모델
+    max-transcript-chars: 30000            # 자막이 길면 앞부분만 사용 (비용 상한)
   s3:
     # 비밀 아님 → 소스에 직접. (인증은 EC2 IAM Role)
     enabled: true

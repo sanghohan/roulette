@@ -9,6 +9,7 @@
 index.html            # 루트 → /aicheck/ 리다이렉트
 aicheck/index.html    # 🔍 AI 영상 판별
 dev/index.html        # 📱 참교육앱
+ytsummary/index.html  # 📺 유튜브 영상 요약 (AI, 백엔드 필요)
 lotto/index.html      # 🍀 로또 6/45 번호 생성기 (자동·반자동·수동·통계·추천)
 pension/index.html    # 💰 연금복권720+ 번호 생성기 (자동·반자동·수동)
 pingpong/index.html   # 🏓 탁구 커뮤니티
@@ -25,6 +26,12 @@ docs/                 # 설정/배포 문서
 
 ## 연금복권720+ 생성기 (/pension/)
 - 조(1~5)+6자리 자동·반자동(조/자릿수 고정)·수동 생성, localStorage 저장
+
+## 유튜브 영상 요약 (/ytsummary/)
+- 유튜브 URL → 자막(자동생성 포함) 추출 → Claude API로 한국어 요약
+- 백엔드 `/api/ytsummary` 사용. 서버 환경변수 `YTSUMMARY_API_KEY`(Anthropic API 키) 필요
+- videoId 캐시 7일, IP당 분당 3회·일 20회, 전체 일 300회 제한 (application.yml에서 조정)
+- 자막 없는 영상은 미지원 (STT 없음)
 
 ## 로컬 실행
 파일을 브라우저로 열기만 하면 됩니다.
