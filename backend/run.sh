@@ -28,7 +28,6 @@ docker run -d --name "$NAME" --restart unless-stopped \
   -v "$DATA_DIR:/app/data" \
   -e ADMIN_SECRET="${ADMIN_SECRET:-}" \
   -e AICHECK_API_KEY="${AICHECK_API_KEY:-}" \
-  -e YTSUMMARY_API_KEY="${YTSUMMARY_API_KEY:-}" \
   -e MAIL_USERNAME="${MAIL_USERNAME:-}" \
   -e MAIL_PASSWORD="${MAIL_PASSWORD:-}" \
   "$IMAGE"

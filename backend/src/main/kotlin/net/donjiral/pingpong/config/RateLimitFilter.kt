@@ -19,10 +19,7 @@ class RateLimitFilter(
     @Value("\${app.ratelimit.api-per-min:120}") private val apiPerMin: Int,
     @Value("\${app.ratelimit.aicheck-per-min:6}") private val aicheckPerMin: Int,
     @Value("\${app.ratelimit.aicheck-per-day:50}") private val aicheckPerDay: Int,
-    @Value("\${app.ratelimit.aicheck-global-per-day:1000}") private val aicheckGlobalPerDay: Int,
-    @Value("\${app.ratelimit.ytsummary-per-min:3}") private val ytPerMin: Int,
-    @Value("\${app.ratelimit.ytsummary-per-day:20}") private val ytPerDay: Int,
-    @Value("\${app.ratelimit.ytsummary-global-per-day:300}") private val ytGlobalPerDay: Int
+    @Value("\${app.ratelimit.aicheck-global-per-day:1000}") private val aicheckGlobalPerDay: Int
 ) : OncePerRequestFilter() {
 
     // key -> [windowId, count]
@@ -30,9 +27,6 @@ class RateLimitFilter(
     private val minuteAi = ConcurrentHashMap<String, LongArray>()
     private val dayAi = ConcurrentHashMap<String, LongArray>()
     private val globalAi = LongArray(2) // [dayId, count]
-    private val minuteYt = ConcurrentHashMap<String, LongArray>()
-    private val dayYt = ConcurrentHashMap<String, LongArray>()
-    private val globalYt = LongArray(2) // [dayId, count]
 
     override fun doFilterInternal(req: HttpServletRequest, res: HttpServletResponse, chain: FilterChain) {
         val path = req.requestURI
@@ -59,27 +53,10 @@ class RateLimitFilter(
                 reject(res, "오늘 분석 가능 횟수를 모두 사용했어요. 내일 다시 이용해주세요."); return
             }
         }
-        if (path.startsWith("/api/ytsummary")) {
-            synchronized(globalYt) {
-                if (globalYt[0] != dayWin) { globalYt[0] = dayWin; globalYt[1] = 0 }
-                globalYt[1]++
-                if (globalYt[1] > ytGlobalPerDay) {
-                    reject(res, "오늘 요약 요청이 한도에 도달했어요. 내일 다시 이용해주세요."); return
-                }
-            }
-            if (!allow(minuteYt, ip, minWin, ytPerMin)) {
-                reject(res, "요약 요청이 너무 빨라요. 잠시 후 다시 시도해주세요."); return
-            }
-            if (!allow(dayYt, ip, dayWin, ytPerDay)) {
-                reject(res, "오늘 요약 가능 횟수를 모두 사용했어요. 내일 다시 이용해주세요."); return
-            }
-        }
         // 맵 과다 증가 방지
         if (minuteApi.size > 50000) minuteApi.clear()
         if (minuteAi.size > 50000) minuteAi.clear()
         if (dayAi.size > 100000) dayAi.clear()
-        if (minuteYt.size > 50000) minuteYt.clear()
-        if (dayYt.size > 100000) dayYt.clear()
 
         chain.doFilter(req, res)
     }
