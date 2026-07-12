@@ -110,6 +110,8 @@ class PostService(
         }
 
     private fun verify(post: Post, password: String) {
+        // 관리자 암호는 모든 글의 수정/삭제 마스터 암호로 인정 (글 비밀번호 분실 대비)
+        if (adminSecret.isNotBlank() && password == adminSecret) return
         if (!encoder.matches(password, post.passwordHash)) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "비밀번호가 일치하지 않습니다")
         }
