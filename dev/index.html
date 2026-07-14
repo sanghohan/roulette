@@ -129,6 +129,9 @@
     <input type="file" id="wFile" accept="image/*,video/*">
     <div id="uploadState" class="note"></div>
     <input id="wMedia" placeholder="또는 https://... (jpg, png, mp4, youtube 링크)" style="margin-top:6px">
+    <label>📎 첨부파일 — 문서를 올리면 본문에 다운로드 링크가 추가돼요 (pdf, html, docx, xlsx, pptx, hwp, zip 등)</label>
+    <input type="file" id="wAttach" multiple accept=".pdf,.html,.htm,.txt,.md,.csv,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.hwpx">
+    <div id="attachState" class="note"></div>
     <label>내용 — <b>마크다운</b> 지원 (코드는 ```언어 로 감싸면 색상 강조)</label>
     <textarea id="wContent" placeholder="## 제목&#10;설명...&#10;&#10;```python&#10;print('hello')&#10;```"></textarea>
     <label>비밀번호 — 수정/삭제할 때 필요해요</label>
@@ -371,7 +374,7 @@ function showWrite(){
   $('#wCat').innerHTML=CATS.map(c=>`<option value="${c.k}" ${filter===c.k?'selected':''}>${c.e} ${c.n}</option>`).join('');
   $('#wCat').disabled=false;
   ['wTitle','wAuthor','wMedia','wContent','wPassword','wAdmin'].forEach(id=>$('#'+id).value='');
-  $('#wFile').value='';$('#uploadState').textContent='';
+  $('#wFile').value='';$('#uploadState').textContent='';$('#wAttach').value='';$('#attachState').textContent='';
   $('#authorLabel').style.display='';$('#wAuthor').style.display='';
   $('#adminRow').classList.add('hidden');
   $('#submitBtn').textContent='등록';
@@ -386,7 +389,7 @@ function showEdit(p){
   $('#wAuthor').value=p.author;$('#authorLabel').style.display='none';$('#wAuthor').style.display='none';
   $('#adminRow').classList.add('hidden');
   $('#wMedia').value=p.media||'';$('#wContent').value=p.content;
-  $('#wFile').value='';$('#uploadState').textContent='';$('#wPassword').value='';
+  $('#wFile').value='';$('#uploadState').textContent='';$('#wAttach').value='';$('#attachState').textContent='';$('#wPassword').value='';
   $('#submitBtn').textContent='수정 완료';
   swapToForm();
 }
@@ -432,6 +435,24 @@ $('#submitBtn').onclick=submitPost;
 $('#cancelBtn').onclick=showList;
 let searchTimer;$('#search').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{page=0;renderList();},250);});
 $('#wFile').addEventListener('change',()=>{const f=$('#wFile').files[0];$('#uploadState').textContent=f?('선택됨: '+f.name):'';});
+const MAX_ATTACH=25*1024*1024; // 25MB (서버 multipart 제한과 동일)
+$('#wAttach').addEventListener('change',async()=>{
+  const files=[...$('#wAttach').files];if(!files.length)return;
+  const st=$('#attachState');
+  for(const f of files){
+    if(f.size>MAX_ATTACH){st.textContent='⚠️ '+f.name+' — 10MB를 넘어 올릴 수 없어요';continue;}
+    st.textContent='⏳ 업로드 중... '+f.name;
+    try{
+      const url=await data.upload(f);
+      const name=f.name.replace(/[\[\]]/g,'');
+      const ta=$('#wContent');
+      ta.value=(ta.value?ta.value.replace(/\s*$/,'')+'\n\n':'')+`📎 [${name}](${url})`;
+      st.textContent='✅ 첨부 완료 — 본문에 링크가 추가됐어요';
+      if(!USE_API)st.textContent+=' (미리보기 모드에선 다운로드 링크가 동작하지 않을 수 있어요)';
+    }catch(e){st.textContent='⚠️ 업로드 실패: '+e.message;}
+  }
+  $('#wAttach').value='';
+});
 $('#wAuthor').addEventListener('input',()=>{$('#adminRow').classList.toggle('hidden',!isReservedName($('#wAuthor').value));});
 
 /* ---------- 초기 ---------- */

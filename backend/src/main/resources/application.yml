@@ -24,8 +24,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 25MB
+      max-request-size: 25MB
 
   # 메일 알림 (Gmail SMTP 권장). 비밀번호=앱 비밀번호는 환경변수로만
   mail:
