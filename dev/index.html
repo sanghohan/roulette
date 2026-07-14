@@ -245,7 +245,12 @@ let page=0;
 
 /* 마크다운 렌더 (XSS 방지: DOMPurify) */
 marked.setOptions({gfm:true,breaks:true});
-function renderMarkdown(md){return DOMPurify.sanitize(marked.parse(md||''));}
+function renderMarkdown(md){
+  const s=(md||'').trim();
+  // 완전한 HTML 문서/조각이면 marked를 거치지 않고 바로 sanitize (들여쓰기가 코드블록으로 오인되는 문제 방지)
+  if(/^(<!DOCTYPE\s+html|<html[\s>]|<head[\s>]|<body[\s>])/i.test(s)) return DOMPurify.sanitize(s);
+  return DOMPurify.sanitize(marked.parse(s));
+}
 
 const RESERVED=['돈지랄'];
 const normalizeName=s=>(s||'').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
