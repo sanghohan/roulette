@@ -31,8 +31,10 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 25MB
-      max-request-size: 25MB
+      # 인증 전에 요청 본문을 파싱하는 단계의 상한이라 낮게 유지합니다.
+      # 형식별 세부 제한(이미지 5MB/영상 10MB)은 app.upload 에서 겁니다.
+      max-file-size: 10MB
+      max-request-size: 10MB
 
   # 메일 알림 (Gmail SMTP 권장). 비밀번호=앱 비밀번호는 환경변수로만
   mail:

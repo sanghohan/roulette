@@ -5,3 +5,6 @@ node_modules/
 .fuse_hidden*
 backend/build/
 backend/.gradle/
+
+# 공개 사이트로 나가면 안 되는 개인 파일 보관용
+local/
