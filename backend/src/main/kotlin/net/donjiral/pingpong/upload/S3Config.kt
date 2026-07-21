@@ -13,6 +13,8 @@ data class S3Properties(
     var bucket: String = "",
     var region: String = "ap-southeast-2",
     var keyPrefix: String = "uploads/",
+    // aicheck 임시 업로드 경로. 라이프사이클 규칙으로 1일 뒤 자동 삭제됩니다.
+    var tempKeyPrefix: String = "tmp/",
     var publicBaseUrl: String = ""
 )
 

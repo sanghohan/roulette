@@ -17,7 +17,10 @@ class PostController(
         @RequestParam(required = false) q: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int
-    ): PageResponse<PostSummaryResponse> = postService.list(board, category, q, page, size)
+    ): PageResponse<PostSummaryResponse> =
+        // size 를 그대로 넘기면 ?size=1000000 같은 요청 하나로
+        // DB 전체를 긁어와 메모리·디스크 I/O 를 태울 수 있습니다.
+        postService.list(board, category, q, page.coerceAtLeast(0), size.coerceIn(1, 50))
 
     // 상세 (조회수 +1)
     @GetMapping("/{id}")
