@@ -1484,7 +1484,10 @@ const EBASE={
  carrier:{hp:26,r:11,xp:2,gold:2},
  heli:{hp:20,r:12,xp:1.8,gold:2},
  part:{hp:0,r:10,xp:4,gold:3},
+ mid:{hp:620,r:30,xp:16,gold:10,hw:50,hh:22},
 };
+const MIDNAME={human:'중형 폭격기',grey:'대형 비행접시',reptile:'초승달 포함',demon:'마계 전령'};
+const stageLen=si=>136+si*5;
 const equipped=id=>S.equip.includes(id);
 const passLv=id=>equipped(id)?(S.skills[id]||0):0;
 const syn=id=>G&&G.syn.has(id);
@@ -1497,7 +1500,7 @@ function endlessStage(src){return Object.assign({},STAGES[src],{code:'∞',name:
 function newRun(si,tier,endless){
   tier=endless?0:(tier||0);
   const st=endless?endlessStage(si):STAGES[si],mh=maxHp(),T=TIERS[tier];
-  G={si,st,t:0,bgY:0,bg:getBg(st.theme),theme:THEMES[st.theme],spr:stageSprites(si,endless?ALL_FAC:null),T,tier,endless:endless?{wave:1,waveEnd:24,waveStart:0,src:si,bosses:0}:null,spawnT:1.5,deco:makeDeco(st.theme),
+  G={si,st,t:0,bgY:0,bg:getBg(st.theme),theme:THEMES[st.theme],spr:stageSprites(si,endless?ALL_FAC:null),T,tier,endless:endless?{wave:1,waveEnd:24,waveStart:0,src:si,bosses:0}:null,spawnT:1.5,tt:0,stageLen:stageLen(si),mid:null,ramp:1,deco:makeDeco(st.theme),
     timeline:endless?[]:buildTimeline(si,tier),tl:0,boss:null,phase:'wave',endT:0,intro:1.1,
     p:{x:W/2,y:H+40,hp:mh,maxHp:mh,inv:2.2,fire:0,mfire:0,trail:[],speedLv:0,missileLv:0,weapon:'normal',wLv:1,opts:S.spare,force:0,dead:false,tilt:0,power:1},
     bullets:[],eb:[],enemies:[],items:[],parts:[],texts:[],rings:[],decals:[],allies:[],
@@ -1515,17 +1518,18 @@ function applyDiff(L){
   const sup=E?{gap:0,ehp:1,edmg:1,pdmg:1}:suppression(L,S.lv);
   const si=E?Math.min(8,Math.floor(L/3)):G.si;
   G.lvEff=L;G.sup=sup;G.dsi=si;
-  G.hpMul=(1+L*.35)*sup.ehp*(1+G.tier*.15)*(E?1+w*.04:1);
-  G.dmgMul=(7+L*2.4)*sup.edmg;
-  G.fireMul=(1+si*.12)*T.fire*(E?1+Math.min(.8,w*.03):1);
-  G.bsp=(140+si*10)*T.bspd*(E?1+Math.min(.35,w*.012):1);
+  const R=G.ramp||1;
+  G.hpMul=1.3*(1+L*.35)*sup.ehp*(1+G.tier*.15)*(E?1+w*.04:1);
+  G.dmgMul=(9+L*2.8)*sup.edmg;
+  G.fireMul=(1.15+si*.14)*T.fire*(E?1+Math.min(.8,w*.03):1)*R;
+  G.bsp=(155+si*11)*T.bspd*(E?1+Math.min(.35,w*.012):1)*(R>1?1.06:1);
   G.goldVal=(2+L*.8)*(1+passLv('magnet')*.08)*T.bonus;
   G.xpMul=T.bonus;
-  G.eliteP=E?Math.min(.6,.08+w*.03):T.elite;
+  G.eliteP=E?Math.min(.6,.08+w*.03):Math.min(.6,T.elite+.04+si*.01+(R>1?.04:0));
   G.extra=E?Math.min(3,Math.floor(w/5)):T.extra;
 }
 function nextWave(){
-  const E=G.endless;E.wave++;E.waveStart=G.t;E.waveEnd=G.t+22;
+  const E=G.endless;E.wave++;E.waveStart=G.t;E.waveEnd=G.t+22;E.midDone=false;
   applyDiff(ENDLESS_LV()+(E.wave-1)*1.5);
   G.xp+=(20+G.lvEff*8);
   G.banner={t:2.4,title:'WAVE '+E.wave,sub:E.wave%4===0?'이번 웨이브 끝에 모선 출현':'무한 공역 · 적 전력 상승'};
@@ -1541,10 +1545,24 @@ function switchMap(){
   G.banner={t:3,title:'WAVE '+E.wave,sub:'공역 이동 · '+STAGES[src].name};
 }
 function buildTimeline(si,tier){
-  const st=STAGES[si],ev=[];let t=3;const k=1-.12*(tier||0);
-  while(t<70){ev.push({t,f:pick(st.pool)});t+=(Math.max(1.5,2.7-si*.14)+Math.random()*1.3)*k;}
-  [15,37,58].forEach(tt=>ev.push({t:tt,f:'carrier'}));
+  const st=STAGES[si],ev=[],len=stageLen(si),mid=Math.round(len*.45);let t=2.5;const k=1-.12*(tier||0);
+  while(t<len-4){
+    if(Math.abs(t-mid)>3){
+      const late=t>mid?.82:1;
+      ev.push({t,f:pick(st.pool)});
+      if(t>20&&Math.random()<.18+si*.02)ev.push({t:t+.6,f:pick(st.pool)});
+      t+=(Math.max(1.3,2.35-si*.12)+Math.random()*1.1)*k*late;
+    }else t+=1;
+  }
+  ev.push({t:mid,f:'midboss'});
+  for(let c=16;c<len-6;c+=22)ev.push({t:c,f:'carrier'});
   ev.sort((a,b)=>a.t-b.t);return ev;
+}
+function spawnMid(){
+  const fac=pick(G.st.fac);
+  const e=addEnemy('mid',W/2,-50,{path:'mid',fac,fire:1.4,pat:0});
+  e.hp*=1+.35*G.tier;e.maxHp=e.hp;
+  G.mid=e;G.banner={t:2,title:'중간 보스',sub:MIDNAME[fac]||'대형기'};sfx.warn();
 }
 function addEnemy(kind,x,y,o){
   const b=EBASE[kind],hp=b.hp*G.hpMul;
@@ -1570,7 +1588,7 @@ function spawnFormation(f){
   G.forms[fid]=F;
 }
 function spawnBoss(){
-  const kind=G.st.boss,hp=(kind==='ark'?1700:1300)*G.hpMul*(1+.45*G.tier)*(G.endless?1+G.endless.bosses*.25:1),box=BOSS_BOX[kind];
+  const kind=G.st.boss,hp=(kind==='ark'?2200:1700)*G.hpMul*(1+.45*G.tier)*(G.endless?1+G.endless.bosses*.25:1),box=BOSS_BOX[kind];
   const b={kind:'boss',bk:kind,boss:true,x:W/2,y:-90,t:0,hp,maxHp:hp,r:30,hw:box[0],hh:box[1],flash:0,path:'boss',cur:null,patT:1.6,ang:0,fid:0,ground:kind==='crawler',form:1,parts:[],fac:G.st.bossFac==='ark'?'grey':G.st.bossFac,minT:6};
   for(const [dx,dy] of BOSS_PARTS[kind]){
     const php=hp*.1;
@@ -1639,10 +1657,16 @@ function killEnemy(e){
     G.banner={t:2.8,title:st.boss==='impostor'?'정체는 렙틸리언!':st.boss==='ark'?'모선 격추!':'격파',sub:st.bossName};
     return;
   }
+  if(e.kind==='mid'){
+    G.mid=null;if(!G.endless){G.ramp=1.15;applyDiff(G.lvEff);}
+    for(let i=0;i<5;i++)setTimeout(()=>{if(G)explode(e.x+rand(-40,40),e.y+rand(-18,18),18);},i*120);
+    dropCap(e.x-20,e.y,'P');dropCap(e.x+20,e.y);
+    G.banner={t:1.8,title:'중간 보스 격파',sub:G.endless?'':'후반부 · 적 공세 강화'};G.shake=12;
+  }
   const b=EBASE[e.kind];
   G.kills++;G.xp+=b.xp*(3+G.lvEff*2)*G.xpMul*(e.elite?2.5:1);
   if(b.gold)dropGold(e.x,e.y,b.gold*(e.elite?2:1));
-  const big=e.kind==='bomber'||e.kind==='ship'||e.part;
+  const big=e.kind==='bomber'||e.kind==='ship'||e.kind==='mid'||e.part;
   explode(e.x,e.y,big?26:12);
   if(e.ground)G.decals.push({x:e.x,y:e.y,big:big});
   if(big){G.shake=Math.max(G.shake,6);}
@@ -1785,12 +1809,14 @@ function update(dt){
     G.spawnT-=dt;
     if(G.spawnT<=0){spawnFormation(pick(G.st.pool));G.spawnT=Math.max(1.05,2.4-E.wave*.05)+Math.random();}
     if(Math.random()<dt/20)spawnFormation('carrier');
+    if(E.wave%4===2&&!E.midDone&&G.t-E.waveStart>8&&!G.mid){E.midDone=true;spawnMid();}
     if(G.t>=E.waveEnd){if(E.wave%4===0){G.phase='warn';G.warnT=2.8;sfx.warn();}else nextWave();}
   }else if(G.phase==='interlude'){
     G.endT-=dt;if(G.endT<=0){G.collectAll=false;switchMap();}
   }else if(G.phase==='wave'){
-    while(G.tl<G.timeline.length&&G.timeline[G.tl].t<=G.t){spawnFormation(G.timeline[G.tl].f);G.tl++;}
-    if(G.t>73){G.phase='warn';G.warnT=2.8;sfx.warn();}
+    if(!G.mid)G.tt+=dt;
+    while(G.tl<G.timeline.length&&G.timeline[G.tl].t<=G.tt){const f=G.timeline[G.tl].f;if(f==='midboss')spawnMid();else spawnFormation(f);G.tl++;}
+    if(G.tt>G.stageLen){G.phase='warn';G.warnT=2.8;sfx.warn();}
   }else if(G.phase==='warn'){
     G.warnT-=dt;if(G.warnT<=0){G.phase='boss';spawnBoss();}
   }else if(G.phase==='clear'||G.phase==='dead'){
@@ -1919,6 +1945,11 @@ function update(dt){
       case 'ship':e.y+=(BG_SPEED*.8)*dt;e.x+=e.vx*d;if(Math.random()<.4)G.parts.push({ty:'foam',x:e.x+rand(-4,4),y:e.y+34,vx:rand(-14,14),vy:0,t:0,life:1.1,s:rand(.3,.5)});break;
       case 'heli':if(e.t<7){e.y+=(e.ty-e.y)*Math.min(1,d*1.4);e.cx+=clamp(G.p.x-e.cx,-30,30)*d*.5;e.x=e.cx+Math.sin(e.t*1.3)*18;}else{e.y+=80*d;e.x+=Math.sin(e.t)*30*d;}break;
       case 'carrier':e.y+=58*d;e.x=e.cx+Math.sin(e.t*2.6)*60;break;
+      case 'mid':
+        if(e.t<2.2)e.y+=(150-e.y)*Math.min(1,d*1.6);
+        else if(e.t<26){e.x=W/2+Math.sin((e.t-2.2)*.55)*95;e.y=150+Math.sin(e.t*1.1)*18;}
+        else{e.y-=90*d;if(e.y<-80){e.dead=true;if(G.mid===e)G.mid=null;}}
+        break;
       case 'part':e.x=e.parent.x+e.dx;e.y=e.parent.y+e.dy;e.entered=e.parent.entered;break;
       case 'boss':G.curFac=e.fac;updateBoss(e,d);break;
     }
@@ -1931,8 +1962,14 @@ function update(dt){
       if(e.fire<=0){
         const onScr=e.y>20&&e.y<H*.72&&e.x>0&&e.x<W;const sp=G.bsp;
         if(onScr||(e.part&&e.entered)){
-          if(e.kind==='fighter'&&(e.elite||Math.random()<.5+G.dsi*.05)){if(e.elite)fan(e.x,e.y+8,3,.35,sp);else eshot(e.x,e.y+8,aimAt(e.x,e.y),sp,false,'n');}
+          if(e.kind==='fighter'&&(e.elite||Math.random()<.62+G.dsi*.04)){if(e.elite)fan(e.x,e.y+8,3,.35,sp);else eshot(e.x,e.y+8,aimAt(e.x,e.y),sp,false,'n');}
           if(e.kind==='heli'){for(let i=0;i<(e.elite?5:3);i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y+6,aimAt(e.x,e.y),sp*1.05,false,'n');},i*120);}
+          if(e.kind==='mid'){
+            e.pat=(e.pat+1)%3;const X=G.extra||0;
+            if(e.pat===0)fan(e.x,e.y+18,5+X,.9,sp);
+            else if(e.pat===1)ring(e.x,e.y,14+G.dsi+X*2,sp*.8,e.t);
+            else for(let i=0;i<6+X;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y+16,aimAt(e.x,e.y)+rand(-.06,.06),sp*1.2,false,'n');},i*90);
+          }
           if(e.kind==='bomber')fan(e.x,e.y+16,3+Math.min(4,G.dsi),.9,sp*.85);
           if(e.kind==='turret'||e.kind==='tank'){const n=1+Math.min(2,G.dsi>>1)+(e.elite?1:0);for(let i=0;i<n;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),sp*1.05,false,'n');},i*110);}
           if(e.kind==='ship'){fan(e.x,e.y-16,3,.35,sp*.95);fan(e.x,e.y+16,3,.35,sp*.95);}
@@ -1942,7 +1979,7 @@ function update(dt){
             else for(let i=0;i<2+(e.parent.form===2?1:0);i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),sp*1.1,false,'n');},i*120);
           }
         }
-        e.fire=({fighter:2.2,bomber:1.5,turret:2.1,tank:2.3,ship:1.7,orb:2.8,part:1.9,heli:1.9}[e.kind]||99)/G.fireMul*rand(.8,1.25)*(e.elite?.7:1);
+        e.fire=({fighter:2.2,bomber:1.5,turret:2.1,tank:2.3,ship:1.7,orb:2.8,part:1.9,heli:1.9,mid:1.35}[e.kind]||99)/G.fireMul*rand(.8,1.25)*(e.elite?.7:1);
       }
     }
     // body collision
@@ -1950,7 +1987,7 @@ function update(dt){
       const hit=e.hw?Math.abs(e.x-p.x)<e.hw*.8&&Math.abs(e.y-p.y)<e.hh*.8:(e.x-p.x)**2+(e.y-p.y)**2<(e.r*.75+5)**2;
       if(hit){hitPlayer(G.dmgMul*1.4);if(!e.boss)hurtEnemy(e,6);}
     }
-    if(!e.boss&&!e.part&&(e.y>H+60||(e.entered&&(e.y<-80||e.x<-80||e.x>W+80)))){e.dead=true;onEnemyGone(e,false);}
+    if(!e.boss&&!e.part&&e.kind!=='mid'&&(e.y>H+60||(e.entered&&(e.y<-80||e.x<-80||e.x>W+80)))){e.dead=true;onEnemyGone(e,false);}
   }
   // bullet vs enemy
   for(const b of G.bullets){
@@ -2119,7 +2156,7 @@ function render(dt){
   ctx.globalAlpha=1;
   if(G.theme.shadow){
     ctx.globalAlpha=.3;
-    for(const e of G.enemies)if(!e.ground&&!e.part){const s=e.boss?G.spr[(e.form===2?'boss2':'boss')+'Sh']:G.spr.fac[e.fac][e.kind+'Sh'];if(s)drawShadow(s,e.x,e.y,e.boss?30:e.kind==='heli'?10:16,e.kind==='rush'&&(e.vx||e.vy)&&e.fac!=='demon'&&e.fac!=='grey'?Math.atan2(e.vy,e.vx)-Math.PI/2:0);}
+    for(const e of G.enemies)if(!e.ground&&!e.part){const s=e.boss?G.spr[(e.form===2?'boss2':'boss')+'Sh']:G.spr.fac[e.fac][(e.kind==='mid'?'bomber':e.kind)+'Sh'];if(s)drawShadow(s,e.x,e.y,e.boss?30:e.kind==='heli'?10:16,e.kind==='rush'&&(e.vx||e.vy)&&e.fac!=='demon'&&e.fac!=='grey'?Math.atan2(e.vy,e.vx)-Math.PI/2:0);}
     if(!G.p.dead)drawShadow(SPR.planes[S.plane].sh,G.p.x,G.p.y,22,0,.62);
     for(const a of G.allies)drawShadow(SPR.allySh,a.x,a.y,40);
     for(const w of G.wing)drawShadow(SPR.allyJetSh,w.x,w.y,18);
@@ -2303,6 +2340,16 @@ function drawEnemy(e){
     if(fac==='human')drawFlames(ENEMY_FLAMES.rush,e.x,e.y,(e.vx||e.vy)?r:Math.PI,1,G.t,e.x);
     drawS(s,e.x,e.y,r);flash(r);return;
   }
+  if(k==='mid'){
+    const B=F.bomber,sc=1.65;
+    if(fac==='human')drawFlames(ENEMY_FLAMES.bomber,e.x,e.y,Math.PI,sc,G.t,1);
+    drawS(B,e.x,e.y,0,sc);
+    if(fac==='grey')rimLights(e.x,e.y,B.w/2*.78*sc,16,G.t*2.5,false,true);
+    else if(fac==='reptile')glowAt(e.x,e.y+6,2.2+Math.sin(G.t*6)*.3);
+    else if(fac==='demon')for(const d of[-1,1])glowAt(e.x+d*6.6,e.y+6.6,1.3+Math.random()*.3,SPR.fx.fire);
+    if(e.flash>0){ctx.globalAlpha=.5;drawS(F.bomberW,e.x,e.y,0,sc);ctx.globalAlpha=1;}
+    return;
+  }
   // fighter / bomber / carrier
   if(fac==='human'){
     const fl=ENEMY_FLAMES[k];if(fl)drawFlames(fl,e.x,e.y,Math.PI,1,G.t,e.x);
@@ -2379,12 +2426,18 @@ function drawHud(){
   ctx.fillStyle=hr>.5?'#5FD68E':hr>.25?'#FFB627':'#FF6A4B';ctx.fillRect(10,19,hw*hr,6);
   txt(Math.ceil(p.hp)+'/'+Math.round(p.maxHp),50,14,'500 9px "Chakra Petch", sans-serif','#93A7C2');
   txt(G.endless?'WAVE '+G.endless.wave:st.code+' '+'★'.repeat(G.T.stars),W/2-6,14,'700 10px "Chakra Petch", sans-serif',G.endless?'#FF8AD8':G.T.col,'center');
-  const prog=G.endless?(G.phase==='wave'?Math.min(1,(G.t-G.endless.waveStart)/(G.endless.waveEnd-G.endless.waveStart)):1):(G.phase==='wave'?Math.min(1,G.t/73):1);
+  const prog=G.endless?(G.phase==='wave'?Math.min(1,(G.t-G.endless.waveStart)/(G.endless.waveEnd-G.endless.waveStart)):1):(G.phase==='wave'?Math.min(1,G.tt/G.stageLen):1);
   ctx.fillStyle='rgba(27,46,77,.9)';ctx.fillRect(W/2-46,20,80,3);ctx.fillStyle='#F2E8CF';ctx.fillRect(W/2-46,20,80*prog,3);
+  if(!G.endless){ctx.fillStyle='#FFB627';ctx.fillRect(W/2-46+80*.45-1,19,2,5);}
   if(G.phase!=='wave'){ctx.fillStyle='#E4572E';ctx.fillRect(W/2+31,18,5,7);}
   txt('XP '+Math.floor(G.xp),W-44,14,'700 10px "Chakra Petch", sans-serif','#5CE1E6','right');
   txt('G '+Math.floor(G.gold),W-44,27,'700 10px "Chakra Petch", sans-serif','#FFB627','right');
   if(G.sup.gap>0)txt(`레벨 억제 −${Math.round((1-G.sup.pdmg)*100)}% 화력`,W/2,46,'600 10px "IBM Plex Sans KR", sans-serif','#FF8A6B','center');
+  if(G.mid&&!G.mid.dead&&G.mid.y>0){
+    const m=G.mid,y=G.sup.gap>0?56:44;
+    txt('중간 보스 · '+(MIDNAME[m.fac]||''),10,y,'600 10px "IBM Plex Sans KR", sans-serif','#F2E8CF');
+    ctx.fillStyle='rgba(27,46,77,.9)';ctx.fillRect(10,y+4,W-20,4);ctx.fillStyle='#FFB627';ctx.fillRect(10,y+4,(W-20)*m.hp/m.maxHp,4);
+  }
   if(G.boss&&!G.boss.dead&&G.boss.y>0){
     const b=G.boss,y=G.sup.gap>0?56:44;
     txt(st.bossName+(b.parts.some(q=>!q.dead)?' · 장갑':''),10,y,'600 10px "IBM Plex Sans KR", sans-serif','#F2E8CF');
