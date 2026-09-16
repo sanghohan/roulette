@@ -10,6 +10,7 @@ index.html            # 루트 → /aicheck/ 리다이렉트
 aicheck/index.html    # 🔍 AI 영상 판별
 dev/index.html        # 📱 참교육앱
 lotto/index.html      # 🍀 로또 6/45 번호 생성기 (자동·반자동·수동·통계·추천)
+quantumfighter/index.html # 🛸 퀀텀 파이터 (종스크롤 슈팅 게임)
 pension/index.html    # 💰 연금복권720+ 번호 생성기 (자동·반자동·수동)
 pingpong/index.html   # 🏓 탁구 커뮤니티
 privacy/index.html    # 개인정보처리방침
@@ -25,6 +26,12 @@ docs/                 # 설정/배포 문서
 
 ## 연금복권720+ 생성기 (/pension/)
 - 조(1~5)+6자리 자동·반자동(조/자릿수 고정)·수동 생성, localStorage 저장
+
+## 퀀텀 파이터 (/quantumfighter/)
+- 한 파일짜리 HTML5 Canvas 종스크롤 슈팅 게임 (PC 키보드 · 모바일 터치)
+- 2부 구성 9스테이지: 1부 독재자 전쟁 → 2부 외계 침공(그레이·렙틸리언·마계) → 거대 UFO 모선 → 엔딩
+- 기체 3종, 차지 샷, 폭탄, 사라만다식 캡슐, 레벨·스탯·스킬 조합, 칩튠 록 BGM
+- 진행 상황은 브라우저 localStorage에 저장 — 서버 연동은 추후
 
 ## 로컬 실행
 파일을 브라우저로 열기만 하면 됩니다.
