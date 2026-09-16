@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="description" content="퀀텀 파이터 - 독재자 전쟁에서 외계 침공까지, 브라우저에서 바로 하는 무료 종스크롤 슈팅 게임. 기체 3종, 차지 샷, 폭탄, 레벨업·스킬 조합, 난이도 등급과 무한 모드. PC·모바일 지원 - donjiral.net">
+<meta name="description" content="퀀텀 파이터 - 국가별 가상 SF 전선에서 외계 침공까지, 브라우저에서 바로 하는 무료 종스크롤 슈팅 게임. 기체 3종, 차지 샷, 폭탄, 레벨업·스킬 조합, 난이도 등급과 무한 모드. PC·모바일 지원 - donjiral.net">
 <meta name="theme-color" content="#060E1C">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2886,6 +2886,351 @@ function loop(now){
   }catch(err){console.error(err);}
   requestAnimationFrame(loop);
 }
+/* =========================================================
+   퀀텀 파이터 · 국가별 SF 보스 / 비주얼 / 오디오 개편
+   기존 성장, 저장, 무기, 피해량, 보상 계산은 유지
+   (보스 이름·스토리는 실존 인물 대신 가상의 지휘 요새명 사용)
+   ========================================================= */
+(() => {
+  const EDITION = '국가별 SF 전선';
+  /* ---------- 작전 구성 ---------- */
+  const fronts = [
+    {
+      nation: '미국', name: '황금 해상 봉쇄선',
+      bossName: '해상 봉쇄 사령부 · 골든 시타델',
+      story: '가상의 SF 전선. 황금 공중 요새 골든 시타델이 해협을 봉쇄했다. 호위 함대를 돌파하고 지휘 중추를 격파하라.',
+      desc: '미국 테마의 스텔스 전투기, 전익 폭격기, 공격 헬기와 해상 전투단.',
+      metal: '#788998', dark: '#242F40', light: '#CDDAE6', accent: '#F6C96B'
+    },
+    {
+      nation: '북한', name: '흑철 미사일 군도',
+      bossName: '잠수 공중전함 · 심해의 왕관',
+      story: '가상의 SF 전선. 잠수함형 공중 전함 심해의 왕관이 폭풍 위로 부상했다. 미사일 발사 장갑을 파괴하라.',
+      desc: '북한 테마의 구형 요격기, 미사일 드론, 해안 포대와 잠수함 전투단.',
+      metal: '#657566', dark: '#25352F', light: '#B1BCA5', accent: '#ED665B'
+    },
+    {
+      nation: '러시아', name: '극철 기동 전선',
+      bossName: '중장갑 기동 요새 · 아이언 베헤모스',
+      story: '가상의 SF 전선. 중장갑 기동 요새 아이언 베헤모스가 사막의 수송로를 장악했다. 궤도 장갑과 중앙 원자로를 무너뜨려라.',
+      desc: '러시아 테마의 쌍발 전투기, 공격 헬기, 중전차와 장갑 포대.',
+      metal: '#708078', dark: '#283632', light: '#C5CEC3', accent: '#EEA75C'
+    },
+    {
+      nation: '역사적 독일군', name: '흑색 제국의 수도',
+      bossName: '강철 제국 요새 · 나흐트 크로네',
+      story: '역사와 무관한 가상 SF 전선. 강철 제국의 요새 나흐트 크로네를 격파하라. 그 뒤편에서 정체불명의 외계 신호가 감지된다.',
+      desc: '역사적 독일군을 재해석한 SF 제트기, 중폭격기와 강철 기갑 부대. 실제 나치 상징은 사용하지 않습니다.',
+      metal: '#65717E', dark: '#202936', light: '#BFCAD4', accent: '#B09BFF'
+    }
+  ];
+  fronts.forEach((f, i) => {
+    Object.assign(STAGES[i], { name: f.name, bossName: f.bossName, story: f.story, desc: f.desc });
+    Object.assign(EPAL[i], { r: f.metal, k: f.dark, g: f.dark, h: f.light, y: f.accent, w: '#E8EEF3', frontIndex: i });
+  });
+  STAGES[4].story = '네 지휘 요새를 격파한 직후 외계 함대가 침공한다. 살아남은 지구군과 임시 동맹을 맺고 렙틸리언의 점령 함대를 돌파하라.';
+
+  /* ---------- 화면 스타일 ---------- */
+  const style = document.createElement('style');
+  style.textContent = `
+    :root{--ground:#070B14;--ink:#101827;--panel:rgba(10,17,29,.97);--line:#33475E;--cream:#E9EEF5;--mute:#A0AEC0;--amber:#F3C572;--cyan:#80DFEA}
+    body{background:radial-gradient(ellipse at 50% 15%,#1A2B43 0%,#080D17 65%)}
+    #frame{border-radius:12px;box-shadow:0 0 0 1px rgba(171,201,235,.22),0 26px 90px rgba(0,0,0,.75)}
+    #cv{image-rendering:auto}
+    #vignette{background:radial-gradient(ellipse at 50% 48%,transparent 58%,rgba(0,4,12,.28) 100%)}
+    .btn{background:linear-gradient(135deg,#FADEA0,#DCA957);text-shadow:none}
+    .btn:disabled{background:#2A3A55}
+    .btn.ghost{background:linear-gradient(135deg,rgba(164,193,228,.13),rgba(91,117,148,.06));box-shadow:inset 0 0 0 1px rgba(166,194,224,.36)}
+    .brief{background:linear-gradient(145deg,#20344A,#101C2B);border-radius:8px;overflow:hidden}
+    .brief.endless{background:linear-gradient(135deg,#3A1450,#12203F)}
+    .brief::before{border-color:rgba(156,193,224,.25);border-radius:8px}
+    .shop,.plinfo,.pts,.res-grid div,.derived div{background:linear-gradient(135deg,#152233,#101B29)}
+    .shop,.plinfo,.pts{border-radius:7px}
+    .pl,.slot,.dseg{border-radius:6px;background:linear-gradient(145deg,#17283B,#101B29)}
+    .stage{background:linear-gradient(100deg,#172536,#101B29);border-radius:4px}
+    .stage[aria-pressed="true"],.pl.on,.slot.on{background:linear-gradient(110deg,#294257,#172B40)}
+    .bar{border-radius:10px}
+    .bar i{background:linear-gradient(90deg,#3998B5,#9CF1ED);box-shadow:0 0 8px rgba(92,225,230,.25)}
+    .sb{background:linear-gradient(145deg,rgba(32,52,73,.95),rgba(12,23,38,.95))}
+    .sb.chg{background:linear-gradient(145deg,rgba(58,40,10,.95),rgba(30,20,4,.95))}
+    .sb.bmb{background:linear-gradient(145deg,rgba(26,56,36,.95),rgba(12,30,18,.95))}
+    .t-logo{text-shadow:0 8px 30px rgba(0,0,0,.3)}
+    .t-logo span:last-child{-webkit-text-stroke:calc(var(--u)*1.25) #F3C572}
+    #scr-pause,#scr-result{background:rgba(7,13,23,.93)}
+    @media(max-width:480px){#frame{border-radius:4px}}
+  `;
+  document.head.appendChild(style);
+
+  /* ---------- 국가별 일반 전투기 ---------- */
+  const originalHumanBuild = FAC_BUILD.human;
+  function nationalJet(p, carrier = false) {
+    const i = p.frontIndex ?? 0;
+    const J = ENEMY_JET_UNUSED(p);
+    if (i === 0) {
+      return {
+        len: 30, span: 30, c: p.r, glass: '#A6EAF2', glowLine: rgba(p.y, .75),
+        shape: [[0, -15], [3, -8], [14, 7], [10, 9], [5, 6], [3, 12], [0, 10]],
+        canopy: [-6, 1.5, 3.3], noz: [[-2.4, 10, 1.2], [2.4, 10, 1.2]]
+      };
+    }
+    if (i === 1) {
+      J.wing = { x0: 2.4, y0: -1, rc: 10, x1: 14, sw: 7, tc: 2.5 };
+      J.tail = { x0: 2.2, y0: 9, rc: 4, x1: 7, sw: 2, tc: 2 };
+      J.canopy = [-5.5, 1.4, 3];
+      J.stripe = rgba(p.y, .6);
+    } else if (i === 2) {
+      J.span = 30;
+      J.wing = { x0: 3, y0: -4, rc: 15, x1: 15, sw: 11, tc: 3 };
+      J.canard = { x0: 2.3, y0: -9, rc: 3, x1: 6, sw: 2, tc: 1.5 };
+      J.noz = [[-2, 14, 1.4], [2, 14, 1.4]];
+      J.glass = '#BCEBE8';
+    } else {
+      J.wing = { x0: 2.5, y0: -1, rc: 9, x1: 14, sw: 3, tc: 3 };
+      J.tail = { x0: 2, y0: 10, rc: 4, x1: 6, sw: 1, tc: 2 };
+      J.noz = [[-8, 7, 1.5], [8, 7, 1.5]];
+      J.stripe = rgba(p.y, .5);
+    }
+    if (carrier) J.stripe = '#FFE2A0';
+    return J;
+  }
+  function submarine(p) {
+    return hd(28, 80, g => {
+      g.beginPath(); g.ellipse(0, 0, 9, 36, 0, 0, TAU);
+      g.fillStyle = lin(g, -10, 0, 10, 0, [[0, shade(p.r, .3)], [.4, p.r], [1, p.k]]);
+      g.fill(); g.strokeStyle = EDGE; g.lineWidth = .8; g.stroke();
+      for (const d of [-1, 1]) {
+        poly(g, [[d * 5, -24], [d * 13, -15], [d * 13, -10], [d * 5, -14]]);
+        g.fillStyle = p.k; g.fill();
+      }
+      for (let y = -22; y < 25; y += 8) {
+        g.fillStyle = '#111C25'; g.fillRect(-5, y, 10, 4.5);
+        g.fillStyle = p.y; g.fillRect(-4, y + .8, 1, 2);
+      }
+      g.fillStyle = shade(p.r, .35); g.fillRect(-3, -7, 6, 13);
+      g.fillStyle = '#17232B'; g.fillRect(-.6, -12, 1.2, 10);
+      sheen(g, 28, 80);
+    });
+  }
+  FAC_BUILD.human = p => {
+    const b = originalHumanBuild(p);
+    b.fighter = hd(34, 36, g => { g.rotate(Math.PI); drawJet(g, nationalJet(p)); });
+    const cp = Object.assign({}, p, { r: '#AD493C' });
+    b.carrier = hd(34, 36, g => { g.rotate(Math.PI); drawJet(g, nationalJet(cp, true)); });
+    if (p.frontIndex === 1) b.ship = submarine(p);
+    if (p.frontIndex === 3) {
+      b.bomber = hd(80, 44, g => {
+        drawJet(g, {
+          len: 38, span: 78, fw: 9, c: p.r, a: p.y,
+          body: [[0, 0], [.15, .5], [.6, .65], [1, .4]],
+          wing: { x0: 4, y0: -4, rc: 13, x1: 38, sw: 5, tc: 6 },
+          tail: { x0: 3, y0: 12, rc: 6, x1: 13, sw: 2, tc: 3 },
+          canopy: [-10, 2, 4],
+          noz: [[-23, 7, 2], [-12, 7, 2], [12, 7, 2], [23, 7, 2]]
+        });
+      });
+    }
+    return b;
+  };
+
+  /* ---------- 보스 공통 소재 ---------- */
+  function armor(g, points, p) {
+    poly(g, points);
+    g.fillStyle = lin(g, -70, -55, 70, 60, [[0, shade(p.r, .38)], [.32, p.r], [.7, shade(p.r, -.22)], [1, p.k]]);
+    g.fill(); g.strokeStyle = '#0A1019'; g.lineWidth = 1; g.stroke();
+    g.save(); poly(g, points); g.clip();
+    g.strokeStyle = 'rgba(225,241,255,.13)'; g.lineWidth = .5;
+    for (let y = -70; y < 80; y += 13) { g.beginPath(); g.moveTo(-100, y); g.lineTo(100, y + 20); g.stroke(); }
+    g.restore();
+  }
+  function reactor(g, x, y, r, c) {
+    g.fillStyle = '#08111C'; g.beginPath(); g.arc(x, y, r + 3, 0, TAU); g.fill();
+    g.strokeStyle = '#718290'; g.lineWidth = 1; g.stroke();
+    g.fillStyle = rad(g, x - r * .2, y - r * .2, 0, r, [[0, '#FFFFFF'], [.2, shade(c, .6)], [.55, c], [1, shade(c, -.7)]]);
+    g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+  }
+  function vents(g, x, y, n, c) {
+    for (let k = 0; k < n; k++) {
+      g.fillStyle = '#09121B'; g.fillRect(x, y + k * 6, 12, 4);
+      g.fillStyle = rgba(c, .85); g.fillRect(x + 1, y + k * 6 + 1, 8, 1);
+    }
+  }
+  function nationalBoss(i, p, form) {
+    const open = form === 2;
+    const glow = open ? '#FF815D' : fronts[i].accent;
+    const size = i === 2 ? [124, 140] : i === 3 ? [176, 156] : [170, 100];
+    return hd(...size, g => {
+      if (i === 0) {
+        const gold = Object.assign({}, p, { r: '#B48B45', k: '#322B27' });
+        armor(g, [[0, -44], [19, -29], [80, 2], [81, 20], [51, 16], [32, 34], [0, 27], [-32, 34], [-51, 16], [-81, 20], [-80, 2], [-19, -29]], gold);
+        for (const d of [-1, 1]) {
+          armor(g, [[d * 18, -23], [d * 48, -12], [d * 57, 13], [d * 23, 20]], gold);
+          vents(g, d > 0 ? 28 : -40, -10, 4, glow);
+          if (open) armor(g, [[d * 47, -15], [d * 78, -32], [d * 71, -5], [d * 49, 6]], gold);
+        }
+        armor(g, [[-10, -30], [10, -30], [14, 22], [-14, 22]], gold);
+        reactor(g, 0, 4, open ? 13 : 8, glow);
+      } else if (i === 1) {
+        armor(g, [[0, -46], [16, -35], [22, -15], [72, -8], [80, 14], [25, 10], [16, 40], [-16, 40], [-25, 10], [-80, 14], [-72, -8], [-22, -15], [-16, -35]], p);
+        for (const d of [-1, 1]) {
+          armor(g, [[d * 24, -16], [d * 57, -17], [d * 63, 18], [d * 25, 22]], p);
+          vents(g, d > 0 ? 31 : -43, -11, 5, glow);
+          if (open) {
+            for (let k = 0; k < 3; k++) {
+              g.fillStyle = '#CED8D6'; g.fillRect(d * (30 + k * 9) - 2, -31, 4, 18);
+              g.fillStyle = '#DB6052'; g.fillRect(d * (30 + k * 9) - 2, -33, 4, 4);
+            }
+          }
+        }
+        armor(g, [[-8, -32], [8, -32], [12, 28], [-12, 28]], p);
+        reactor(g, 0, 3, open ? 11 : 7, glow);
+      } else if (i === 2) {
+        const base = humanBoss('tank', p, form);
+        g.drawImage(base.img, -62, -70, 124, 140);
+        for (const d of [-1, 1]) {
+          armor(g, [[d * 16, -42], [d * 33, -35], [d * 34, 37], [d * 17, 45]], p);
+          vents(g, d > 0 ? 19 : -31, -22, 7, glow);
+          if (open) {
+            g.fillStyle = '#101C23'; g.fillRect(d * 40 - 4, 8, 8, 45);
+            g.fillStyle = '#A8B7B7'; g.fillRect(d * 40 - 2, 10, 2, 39);
+          }
+        }
+        reactor(g, 0, 0, open ? 17 : 12, glow);
+      } else {
+        armor(g, [[0, -69], [21, -45], [53, -35], [70, -53], [84, -38], [75, 20], [53, 29], [40, 66], [17, 53], [0, 63], [-17, 53], [-40, 66], [-53, 29], [-75, 20], [-84, -38], [-70, -53], [-53, -35], [-21, -45]], p);
+        for (const d of [-1, 1]) {
+          armor(g, [[d * 24, -34], [d * 50, -25], [d * 47, 43], [d * 20, 33]], p);
+          vents(g, d > 0 ? 29 : -41, -22, 8, glow);
+          if (open) {
+            armor(g, [[d * 50, -17], [d * 83, -8], [d * 76, 47], [d * 51, 25]], p);
+            g.fillStyle = '#CBD4DF'; g.fillRect(d * 66 - 1, 3, 2, 30);
+          }
+        }
+        armor(g, [[-13, -49], [13, -49], [17, 44], [-17, 44]], p);
+        reactor(g, 0, -5, open ? 18 : 11, glow);
+      }
+      sheen(g, ...size);
+    }, 2);
+  }
+
+  /* 스프라이트 캐시 생성 시 보스 그림만 교체 */
+  const originalStageSprites = stageSprites;
+  const patched = new WeakSet();
+  stageSprites = function (si, facs) {
+    const o = originalStageSprites(si, facs);
+    if (si < 4 && !patched.has(o)) {
+      const p = EPAL[si];
+      o.boss = nationalBoss(si, p, 1);
+      o.boss2 = nationalBoss(si, p, 2);
+      for (const k of ['boss', 'boss2']) {
+        o[k + 'W'] = tint(o[k], '#FFFFFF');
+        o[k + 'Sh'] = tint(o[k], '#000000');
+      }
+      o.part = partSprite('human', p);
+      o.partW = tint(o.part, '#FFFFFF');
+      patched.add(o);
+    }
+    return o;
+  };
+
+  /* 4스테이지: 얼굴 홀로그램 대신 기계 요새 렌더링 */
+  const originalDrawBoss = drawBoss;
+  drawBoss = function (e) {
+    const source = G.endless ? G.endless.src : G.si;
+    if (source !== 3) return originalDrawBoss(e);
+    const key = e.form === 2 ? 'boss2' : 'boss';
+    drawS(G.spr[key], e.x, e.y);
+    glowAt(e.x, e.y - 5, 1.2 + Math.sin(G.t * 6) * .25, e.form === 2 ? SPR.fx.fire : SPR.fx.blue);
+    if (e.flash > 0) { ctx.save(); ctx.globalAlpha = .4; drawS(G.spr[key + 'W'], e.x, e.y); ctx.restore(); }
+    for (const q of e.parts) if (q.dead) drawS(SPR.wreckL, e.x + q.dx, e.y + q.dy, 0, .8);
+  };
+  const originalTransform = transformBoss;
+  transformBoss = function (b) {
+    originalTransform(b);
+    const source = G.endless ? G.endless.src : G.si;
+    if (source < 4) {
+      G.banner = { t: 2, title: ['황금 장갑 전개', '발사관 개방', '중장갑 해방', '코어 과부하'][source], sub: G.st.bossName };
+    }
+  };
+  const originalKill = killEnemy;
+  killEnemy = function (e) {
+    originalKill(e);
+    if (G && e.boss && e.bk === 'impostor') {
+      G.banner = { t: 2.8, title: '지휘 요새 격파', sub: G.st.bossName };
+    }
+  };
+  const originalFinish = finishRun;
+  finishRun = function (win) {
+    const fourth = G && !G.endless && G.si === 3 && win;
+    originalFinish(win);
+    if (fourth) {
+      const story = scr.result.querySelector('p.story');
+      if (story) story.textContent = '마지막 지휘 요새가 무너진 순간, 하늘에 외계 함대가 나타났다. 남은 지구군과 임시 동맹을 맺고 침공에 맞선다. 2부 외계 침공 개방.';
+    }
+  };
+
+  /* ---------- 사운드: 기존 곡/리듬/음량 설정 유지 ---------- */
+  const originalAudioInit = AU.init;
+  AU.init = function () {
+    originalAudioInit.call(this);
+    if (!this.ctx || this.refinedBus) return;
+    try {
+      const c = this.ctx;
+      const filter = c.createBiquadFilter();
+      filter.type = 'lowpass'; filter.frequency.value = 5400; filter.Q.value = .55;
+      /* 효과음에만 저역통과 필터 적용 */
+      this.sfxG.disconnect();
+      this.sfxG.connect(filter);
+      filter.connect(this.master);
+      this.refinedBus = filter;
+      this.bgmF.Q.setValueAtTime(.65, c.currentTime);
+      if (this.bass && this.bass.Q) this.bass.Q.setValueAtTime(.85, c.currentTime);
+    } catch (_) {
+      /* 지원하지 않는 환경에서는 기존 오디오 유지 */
+      this.refinedBus = true;
+      try { this.sfxG.connect(this.master); } catch (__) {}
+    }
+  };
+  /* 멜로디·템포를 바꾸지 않고 반복 효과음만 부드럽게 */
+  sfx.shot = function () {
+    if (!AU.ok() || AU.throttle('shot', .1)) return;
+    AU.tone(620, .055, 'triangle', .065, 220);
+    AU.noise(.025, .025, 1800);
+  };
+  sfx.gold = function () {
+    if (!AU.ok() || AU.throttle('gold', .065)) return;
+    AU.tone(1320, .07, 'sine', .045, 1760);
+  };
+  sfx.cap = function () {
+    if (!AU.ok()) return;
+    const t = AU.ctx.currentTime;
+    [659, 880, 1175].forEach((f, i) => AU.tone(f, .16, 'triangle', .075, null, t + i * .06));
+  };
+  sfx.ready = function () {
+    if (!AU.ok() || AU.throttle('ready', .5)) return;
+    AU.tone(1100, .13, 'sine', .065, 1500);
+  };
+  sfx.click = function () {
+    if (AU.ok()) AU.tone(760, .045, 'sine', .045, 520);
+  };
+
+  /* 엔딩 화면이 다른 화면 위에 남는 문제 방지 */
+  const originalShow = show;
+  show = function (name) {
+    const ending = document.getElementById('scr-ending');
+    if (ending) ending.hidden = true;
+    originalShow(name);
+  };
+  /* 서치라이트 장식에 불필요한 y 이동 계산 방지 */
+  const originalTickDeco = tickDeco;
+  tickDeco = function (deco, dt, t) {
+    if (deco.type === 'searchlight') return;
+    originalTickDeco(deco, dt, t);
+  };
+  const tag = document.querySelector('.t-tag');
+  if (tag) tag.textContent = '가상 SF 전쟁. 네 지휘 요새를 격파하고, 침공한 외계 함대에 맞서 지구의 하늘을 지켜라.';
+  const mini = document.querySelector('.t-head > .mini');
+  if (mini) mini.textContent = EDITION + ' · 종스크롤 비행 작전';
+})();
 resize();
 SR=clamp(Math.ceil(SCALE*1.1),2,3);
 buildSprites();
