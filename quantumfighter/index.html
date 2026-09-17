@@ -85,6 +85,10 @@ button:disabled{cursor:not-allowed}
 .tab .dot{display:inline-block;width:.45em;height:.45em;border-radius:50%;background:var(--red);vertical-align:.5em;margin-left:.2em}
 .tab:focus-visible{outline:2px solid var(--cyan);outline-offset:-4px}
 .hg-body{flex:1;overflow-y:auto;padding:calc(var(--u)*14) calc(var(--u)*16) calc(var(--u)*22);display:flex;flex-direction:column;gap:calc(var(--u)*14);touch-action:pan-y}
+.hg-body>*{flex-shrink:0}
+.hg-foot{flex-shrink:0;display:flex;padding:calc(var(--u)*10) calc(var(--u)*16) calc(var(--u)*14);border-top:1px solid var(--line);background:rgba(6,14,28,.96)}
+.hg-foot .btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:.1em;line-height:1.15}
+.hg-foot .btn small{font-family:var(--body);font-size:.58em;font-weight:600;letter-spacing:0;opacity:.8}
 .hg-body::-webkit-scrollbar{width:4px}.hg-body::-webkit-scrollbar-thumb{background:var(--line)}
 h3{font-family:var(--disp);font-weight:400;font-size:1.15em;margin:0;letter-spacing:.02em}
 .sec{display:flex;flex-direction:column;gap:calc(var(--u)*8)}
@@ -271,7 +275,7 @@ h3{font-family:var(--disp);font-weight:400;font-size:1.15em;margin:0;letter-spac
       </div>
       <div class="t-foot">
         <div class="t-pilot"><span class="mini">Pilot</span><span class="num" id="t-pilot"></span></div>
-        <button class="btn" id="btn-start" data-act="go-hangar">격납고로</button>
+        <button class="btn" id="btn-start" data-act="go-hangar">출격 준비</button>
         <div class="t-site"><a href="/" data-site>← donjiral.net 다른 도구 보기</a></div>
         <div class="t-keys">
           <div>PC · 이동 <b>←↑↓→</b>/<b>WASD</b> · 정밀 <b>Shift</b> · 차지 <b>C</b> · 폭탄 <b>B</b> · 스킬 <b>1</b>–<b>4</b> · 정지 <b>P</b></div>
@@ -296,6 +300,7 @@ h3{font-family:var(--disp);font-weight:400;font-size:1.15em;margin:0;letter-spac
         <button class="tab" role="tab" data-tab="shop" id="tab-shop">정비</button>
       </nav>
       <div class="hg-body" id="hg-body"></div>
+      <footer class="hg-foot"><button class="btn" id="hg-sortie" data-act="sortie-go">출격</button></footer>
     </section>
 
     <section id="scr-result" class="screen" hidden></section>
@@ -2515,8 +2520,20 @@ function renderHeader(){
     t.innerHTML=label+(dot?'<span class="dot" aria-label="사용 가능한 포인트"></span>':'');
   });
 }
+function renderSortie(){
+  const b=$('#hg-sortie');if(!b)return;
+  if(S.sel==='E'){
+    const ok=allCleared();b.disabled=!ok;
+    b.innerHTML=ok?`∞ 무한 공역 출격<small>최고 기록 WAVE ${(S.endless||{}).best||0}</small>`:'전 스테이지 클리어 필요';
+    return;
+  }
+  const i=S.sel||0,st=STAGES[i];let t=S.dsel[i]||0;if(!tierState(i,t).ok)t=0;
+  const T=TIERS[t],ok=unlocked(i);b.disabled=!ok;
+  b.innerHTML=ok?`${'★'.repeat(T.stars)} ${T.name} 출격<small>${st.code} · ${st.name} · 권장 LV ${tierLv(i,t)}</small>`:`출격 불가<small>이전 작전을 먼저 클리어하세요</small>`;
+}
 function renderHangar(){
   renderHeader();
+  renderSortie();
   const t=S.tab;
   if(t==='ops')body.innerHTML=opsHTML();
   if(t==='pilot')body.innerHTML=pilotHTML();
@@ -2545,7 +2562,6 @@ function opsHTML(){
       <p class="story">끝없이 몰려오는 적. 몇 웨이브까지 버틸 수 있을까?</p>
       <p>네 세력이 한꺼번에 몰려옵니다. 웨이브마다 적의 체력·탄속·정예 비율이 오르고, 4웨이브마다 모선이 나타나며, 모선을 격파하면 다른 공역으로 이동합니다. 격추되어도 획득 보상을 모두 받습니다.</p>
       <div class="suppr"><div><b class="num">${E.best||0}</b><span>최고 웨이브</span></div><div><b class="num">${E.runs||0}</b><span>도전 횟수</span></div><div><b class="num">×1.5</b><span>웨이브당 적 LV</span></div></div>
-      <button class="btn" data-act="endless">무한 공역 출격</button>
     </div>`;
   }else{
     const i=S.sel||0,st=STAGES[i];
@@ -2566,7 +2582,6 @@ function opsHTML(){
         <div><b class="${sup.gap>0?'up':''}">−${pct(1-sup.pdmg)}%</b><span>내 화력</span></div>
       </div>
       <p class="mini" style="letter-spacing:.06em;text-transform:none">${sup.gap>0?`권장 레벨보다 ${sup.gap} 낮아 레벨 억제가 걸립니다.`:(S.lv-L>2?`레벨이 충분히 높아 획득 경험치가 줄어듭니다.`:'레벨 억제 없음')}${best?` · 최고 기록 격추 ${best.kills}`:''}</p>
-      <button class="btn" data-act="sortie" ${unlocked(i)?'':'disabled'}>${unlocked(i)?`${'★'.repeat(T.stars)} ${T.name} 출격`:'이전 작전을 먼저 클리어'}</button>
     </div>`;
   }
   h+=`<div class="sec"><div class="sec-h"><h3>작전 지도</h3><span class="mini">${S.cleared.filter(Boolean).length} / ${STAGES.length} 클리어</span></div><div class="stage-list">`;
@@ -2792,7 +2807,7 @@ frame.addEventListener('click',e=>{
   else if(a==='title'){show('title');}
   else if(a==='ending'){S.endingSeen=true;save();showEnding();}
   else if(a==='sel'){S.sel=t.dataset.i==='E'?'E':+t.dataset.i;save();const st=body.scrollTop;renderHangar();body.scrollTop=st;}
-  else if(a==='sortie'){const i=S.sel||0;startRun(i,S.dsel[i]||0);}
+  else if(a==='sortie'||a==='sortie-go'){if(S.sel==='E')startRun(0,0,true);else{const i=S.sel||0;startRun(i,S.dsel[i]||0);}}
   else if(a==='endless'){startRun(0,0,true);}
   else if(a==='diff'){const i=S.sel||0;S.dsel[i]=+t.dataset.t;save();keepScroll();sfx.click();}
   else if(a==='again'){if(t.dataset.i==='E')startRun(0,0,true);else startRun(+t.dataset.i,+t.dataset.t||0);}
@@ -2941,7 +2956,8 @@ function loop(now){
     .btn{background:linear-gradient(135deg,#FADEA0,#DCA957);text-shadow:none}
     .btn:disabled{background:#2A3A55}
     .btn.ghost{background:linear-gradient(135deg,rgba(164,193,228,.13),rgba(91,117,148,.06));box-shadow:inset 0 0 0 1px rgba(166,194,224,.36)}
-    .brief{background:linear-gradient(145deg,#20344A,#101C2B);border-radius:8px;overflow:hidden}
+    .brief{background:linear-gradient(145deg,#20344A,#101C2B);border-radius:8px;flex-shrink:0}
+    .hg-foot .btn{border-radius:0}
     .brief.endless{background:linear-gradient(135deg,#3A1450,#12203F)}
     .brief::before{border-color:rgba(156,193,224,.25);border-radius:8px}
     .shop,.plinfo,.pts,.res-grid div,.derived div{background:linear-gradient(135deg,#152233,#101B29)}
