@@ -354,13 +354,13 @@ const STAGES=[
  {act:2,code:'QF-09',name:'에테르 핵',lv:23,theme:'core',fac:['grey','reptile','demon'],boss:'ark',bossFac:'ark',bossName:'거대 UFO 모선 · 에테르 아크',story:'모든 침공을 지휘하는 거대 UFO 모선. 지구의 운명이 걸린 최종 작전.',desc:'세 세력의 정예가 모선을 호위합니다. 최종 작전입니다.',pool:['orbs','bomber','rush','sine','swoop','turret','vee','helis']},
 ];
 const STAT_DEF=[
- {id:'atk',name:'화력',ds:'주포·스킬 피해 +8%'},
- {id:'arm',name:'장갑',ds:'최대 내구도 +12'},
- {id:'rate',name:'연사',ds:'주포 연사 속도 +4%'},
+ {id:'atk',name:'화력',ds:'주포·스킬 피해 +7%'},
+ {id:'arm',name:'장갑',ds:'최대 내구도 +10'},
+ {id:'rate',name:'연사',ds:'주포 연사 속도 +3.5%'},
  {id:'foc',name:'집중',ds:'치명타 +0.6% · 재사용 대기 −1.2%'},
 ];
 const SKILLS={
- homing:{name:'유도 미사일',type:'active',req:1,cd:9,d:l=>`유도 미사일 ${4+l*2}발 · 발당 ${160+l*20}% 피해`},
+ homing:{name:'유도 미사일',type:'active',req:1,cd:9,d:l=>`유도 미사일 ${4+l*2}발 · 발당 ${140+l*20}% 피해`},
  magnet:{name:'인양 자석',type:'passive',req:2,d:l=>`캡슐 흡수 범위 +${l*14} · 골드 +${l*8}%`},
  barrier:{name:'에너지 방벽',type:'active',req:2,cd:18,d:l=>`${(1.5+l*.5).toFixed(1)}초 무적 · 닿는 탄 소거`},
  pierce:{name:'관통탄',type:'passive',req:3,d:l=>`주포 탄환이 적을 ${l}회 관통`},
@@ -398,7 +398,7 @@ const CAPS={
  S:{c:'#5CE1E6',n:'SPEED UP'}, M:{c:'#A6E36B',n:'MISSILE'}, R:{c:'#B18CFF',n:'RIPPLE'},
  L:{c:'#FF5AA5',n:'LASER'}, O:{c:'#FFB627',n:'OPTION'}, F:{c:'#F2E8CF',n:'FORCE FIELD'},
 };
-const CAP_BAG=['P','P','P','P','B','B','S','S','M','M','R','L','O','O','F','F'];
+const CAP_BAG=['P','P','P','B','S','S','M','M','R','L','O','O','F','F'];
 
 /* ================= SAVE ================= */
 const SAVE_KEY='aetherwing.save.v1';
@@ -409,7 +409,7 @@ let S=loadSave();
 function save(){S.updatedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
 const xpNeed=lv=>Math.round(40*Math.pow(lv,1.45)+20);
 const slotsOpen=lv=>lv>=10?4:lv>=5?3:2;
-const maxHp=()=>Math.round((100+S.stats.arm*12+(S.lv-1)*5)*PLANES[S.plane||'falcon'].hp);
+const maxHp=()=>Math.round((90+S.stats.arm*10+(S.lv-1)*4)*PLANES[S.plane||'falcon'].hp);
 const MAX_LV=60;
 const TIERS=[
  {name:'일반',stars:1,add:0,bonus:1,elite:0,bspd:1,fire:1,extra:0,col:'#7BD389'},
@@ -450,7 +450,10 @@ const AU={ctx:null,master:null,sfxG:null,bgmG:null,bgmF:null,nbuf:null,last:{},
         gpre.connect(ws);ws.connect(glp);glp.connect(gpost);gpost.connect(this.bgmF);this.gtr=gpre;
         const blp=c.createBiquadFilter();blp.type='lowpass';blp.frequency.value=520;blp.Q.value=3;blp.connect(this.bgmF);this.bass=blp;
         const llp=c.createBiquadFilter();llp.type='lowpass';llp.frequency.value=3600;llp.connect(this.bgmF);this.leadBus=llp;
-        const n=c.sampleRate,b=c.createBuffer(1,n,n),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;this.nbuf=b;
+        const sr=c.sampleRate,n=sr*2,b=c.createBuffer(1,n,sr),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;this.nbuf=b;
+        const plp=c.createBiquadFilter();plp.type='lowpass';plp.frequency.value=1700;plp.Q.value=.5;plp.connect(this.bgmF);this.padBus=plp;
+        const dl=c.createDelay(1);dl.delayTime.value=.3;const fb=c.createGain();fb.gain.value=.3;const wet=c.createGain();wet.gain.value=.26;
+        llp.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(wet);wet.connect(this.bgmF);this.delay=dl;
         this.applyVol(true);
       }catch(e){this.ctx=null;return;}
     }
@@ -486,6 +489,9 @@ const AU={ctx:null,master:null,sfxG:null,bgmG:null,bgmF:null,nbuf:null,last:{},
     s.connect(f).connect(g).connect(dest||this.sfxG);s.start(t,Math.random()*.5,d+.02);
   },
   kick(t,dest,v=.5){if(!this.ok())return;const c=this.ctx,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(170,t);o.frequency.exponentialRampToValueAtTime(38,t+.14);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.28);o.connect(g).connect(dest);o.start(t);o.stop(t+.3);this.noise(.012,v*.5,0,t,dest,3000);},
+  pad(f,t,d,v){if(!this.ok())return;const c=this.ctx,g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+Math.min(.35,d*.3));g.gain.setTargetAtTime(0,t+d*.9,.12);g.connect(this.padBus);for(const det of[-7,7]){const o=c.createOscillator();o.type='sawtooth';o.frequency.value=f;o.detune.value=det;o.connect(g);o.start(t);o.stop(t+d+.6);}},
+  tom(t,dest,f,v){if(!this.ok())return;const c=this.ctx,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.5,t+.22);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.3);o.connect(g).connect(dest);o.start(t);o.stop(t+.32);},
+  riser(t,d,dest){if(!this.ok())return;const c=this.ctx,s=c.createBufferSource();s.buffer=this.nbuf;s.loop=true;const f=c.createBiquadFilter();f.type='bandpass';f.Q.value=2.5;f.frequency.setValueAtTime(300,t);f.frequency.exponentialRampToValueAtTime(6000,t+d);const g=c.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.16,t+d*.95);g.gain.linearRampToValueAtTime(0,t+d);s.connect(f).connect(g).connect(dest);s.start(t);s.stop(t+d+.05);},
   snare(t,dest,v=.3){if(!this.ok())return;this.noise(.18,v,0,t,dest,1200);const c=this.ctx,o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(210,t);o.frequency.exponentialRampToValueAtTime(140,t+.08);g.gain.setValueAtTime(v*.9,t);g.gain.exponentialRampToValueAtTime(.0001,t+.12);o.connect(g).connect(dest);o.start(t);o.stop(t+.14);},
 };
 const sfx={
@@ -524,75 +530,199 @@ const TRACKS={
  core:{bpm:158,root:48,scale:'hmin',prog:[0,5,6,4,0,5,3,4],style:'drive',seed:77},
  boss:{bpm:168,root:45,scale:'hmin',prog:[0,0,5,5,3,3,4,4],style:'boss',seed:88},
 };
-const RHY={
- calm:[[0,6,8,12],[0,4,8],[0,8,10,12],[0,3,6,12]],
- march:[[0,4,6,8,12],[0,2,4,8,10,12],[0,3,6,8,12,14],[0,4,8,10,12,14]],
- drive:[[0,2,4,6,8,10,12,14],[0,3,6,8,10,12],[0,2,3,6,8,11,12,14],[0,3,6,10,12]],
- eerie:[[0,6,12],[0,8],[0,4,10],[0,12]],
- boss:[[0,2,4,6,8,10,12,14],[0,1,2,4,6,8,9,10,12,14],[0,3,6,8,11,12,14]],
+/* ---- song-form composer: intro / verse / pre-chorus / chorus / breakdown / solo / key change ---- */
+const MINOR_SC=new Set(['min','dor','phr','hmin']);
+const PROG_BANK={
+ major:{B:[[3,4,2,5],[5,3,0,4],[3,3,4,4]],C:[[0,4,5,3],[3,4,0,0],[5,3,0,4]],D:[[5,5,3,3],[5,4,3,4]],E:[[0,6,3,4],[5,4,0,4]]},
+ minor:{B:[[3,4,5,5],[5,6,3,4],[3,2,4,4]],C:[[5,6,0,0],[0,5,3,6],[5,3,6,4]],D:[[5,5,6,6],[3,3,4,4]],E:[[0,6,5,4],[0,3,4,4]]},
 };
+const FORMS={
+ march:[['I',4],['A',8],['A2',8],['B',8],['C',8],['D',8],['A',8],['B',8],['C',8,2],['C2',8,2]],
+ drive:[['I',4],['A',8],['A2',8],['B',8],['C',8],['D',8],['E',8],['B',8,2],['C',8,2],['C2',8,2]],
+ boss:[['I',2],['C',8],['A',8],['B',8],['C2',8],['E',8],['C',8,1],['C2',8,1]],
+ calm:[['A',8],['A2',8],['B',8],['D',8],['A',8],['C',8]],
+ eerie:[['I',4],['A',8],['D',8],['B',8],['A2',8],['C',8],['D',8]],
+};
+const DK=1,DS=2,DH=4,DO=8,DC=16,DTH=32,DTL=64;
 function compose(T){
-  const r=mulberry32(T.seed*97+13),sc=SCALES[T.scale],bars=T.prog.length,steps=bars*16;
-  const midi=(d,base)=>{const o=Math.floor(d/7),i=((d%7)+7)%7;return base+sc[i]+12*o;};
-  const lead=new Array(steps).fill(null),bass=new Array(steps).fill(null),arp=new Array(steps).fill(null),drum=new Array(steps).fill(0),gtr=new Array(steps).fill(null);
+  const r=mulberry32(T.seed*97+13),sc=SCALES[T.scale];
   const rp=a=>a[Math.floor(r()*a.length)];
-  const fast=T.style==='drive'||T.style==='boss';
-  let cur=7+T.prog[0];
-  for(let b=0;b<bars;b++){
-    const ch=T.prog[b];
-    if(b>=4&&b<7){ // answer phrase: repeat the first half, shifted to the new chord
-      for(let s=0;s<16;s++){const e=lead[(b-4)*16+s];if(e)lead[b*16+s]={d:e.d+(ch-T.prog[b-4]),len:e.len};}
-    }else{
-      const rh=rp(RHY[T.style]);
+  const bank=PROG_BANK[MINOR_SC.has(T.scale)?'minor':'major'];
+  const P={I:[T.prog[0],T.prog[0],T.prog[6],T.prog[7]],A:T.prog.slice(0,4).concat(T.prog.slice(4,8)),B:rp(bank.B),C:rp(bank.C),D:rp(bank.D),E:rp(bank.E)};
+  P.A2=T.prog.slice(4,8).concat(T.prog.slice(0,4));P.C2=P.C;
+  const form=FORMS[T.style]||FORMS.drive;
+  const bars=form.reduce((a,f)=>a+f[1],0),steps=bars*16;
+  const midi=(d,base)=>{const o=Math.floor(d/7),i=((d%7)+7)%7;return base+sc[i]+12*o;};
+  const arr=()=>new Array(steps).fill(null);
+  const lead=arr(),harm=arr(),bass=arr(),gtr=arr(),arp=arr(),pad=arr(),fx=arr(),drum=new Array(steps).fill(0);
+  const fast=T.style==='drive'||T.style==='boss',calm=T.style==='calm'||T.style==='eerie';
+  const RB={
+    verse:fast?[[0,2,4,6,8,10,12,14],[0,3,6,8,10,12],[0,2,3,6,8,11,12,14],[0,3,6,10,12]]:[[0,4,6,8,12],[0,2,4,8,10,12],[0,3,6,8,12,14],[0,6,8,12]],
+    pre:[[0,4,8,12],[0,2,4,6,8,12],[0,6,8,10,12,14]],
+    chorus:[[0,6,8,12],[0,4,6,8,14],[0,3,6,8,12],[0,2,8,12]],
+    sparse:[[0,8],[0,6,12],[0,12],[0,4,12]],
+    solo:[[0,1,2,3,4,5,6,7,8,10,12,14],[0,2,3,4,6,7,8,10,11,12,14,15],[0,1,2,3,4,6,8,9,10,11,12,14]],
+  };
+  const motifs={};
+  const motif=kind=>{
+    if(motifs[kind])return motifs[kind];
+    const out=[];let cur=rp([0,2,4]);
+    for(let b=0;b<2;b++){
+      const rh=rp(RB[kind]),notes=[];
       rh.forEach((s,k)=>{
         const nx=k+1<rh.length?rh[k+1]:16;
-        if(s%8===0||b===7){const tones=[ch+7,ch+9,ch+11,ch+14];tones.sort((x,y)=>Math.abs(x-cur)-Math.abs(y-cur));cur=r()<.7?tones[0]:tones[1];}
-        else cur+=rp([-1,1,-2,2,1,-1,3]);
-        cur=clamp(cur,4,17);
-        lead[b*16+s]={d:cur,len:b===7&&k===rh.length-1?16-s:Math.min(nx-s,fast?2:6)};
+        if(k>0)cur+=kind==='solo'?rp([1,1,2,-1,1,-2]):rp([-1,1,-2,2,0,1,-1,3,-3]);
+        cur=clamp(cur,-3,9);
+        const cap=kind==='chorus'?8:kind==='sparse'?10:kind==='solo'?1:fast?2:4;
+        notes.push({s,rel:cur,len:Math.max(1,Math.min(nx-s,cap))});
       });
+      out.push(notes);
     }
-    for(let s=0;s<16;s++){
-      const i=b*16+s,cm=midi(ch,T.root);
-      if(T.style==='drive'||T.style==='boss'){if(s%2===0)gtr[i]={m:cm,len:s%8===0?1.9:1.1,acc:s%8===0};}
-      else if(T.style==='march'){if(s%2===0&&s!==6&&s!==14)gtr[i]={m:cm,len:s===0||s===8?1.9:1.1,acc:s===0};}
-      else if(T.style==='calm'){if(s===0||s===8)gtr[i]={m:cm,len:7.6,soft:true};}
-      else if(s===0)gtr[i]={m:cm,len:15.5,soft:true};
-      if(T.style==='calm'){if(s===0||s===8)bass[i]={m:midi(ch,T.root-12),len:8};if(s===0)drum[i]=1;if(s===8)drum[i]=2;if(s%2===0)arp[i]=midi([ch,ch+2,ch+4,ch+7][(s/2)%4],T.root+12);if(s%4===2)drum[i]=3;}
-      else if(T.style==='eerie'){if(s%4===0)bass[i]={m:midi(ch,T.root-12),len:3};if(s%3===0)arp[i]=midi([ch,ch+2,ch+4,ch+6,ch+7][s%5],T.root+12);if(s===0)drum[i]=1;if(s===8||s===14)drum[i]=3;if(s===12)drum[i]=2;}
-      else if(T.style==='march'){if(s%2===0)bass[i]={m:midi(ch,T.root-12)+(s%4===2?12:0),len:2};if(s%2===1)arp[i]=midi([ch,ch+2,ch+4][((s-1)/2)%3],T.root+12);drum[i]=s===0||s===8||s===10?1:s===4||s===12?2:s%2===0?3:0;}
-      else if(T.style==='drive'){bass[i]={m:midi(ch,T.root-12)+(s%2?12:0),len:1};if(s%2===0)arp[i]=midi([ch,ch+2,ch+4,ch+7][(s/2)%4],T.root+12);drum[i]=s===0||s===6||s===8||s===11?1:s===4||s===12?2:s%2===0?3:0;}
-      else{bass[i]={m:midi(ch,T.root-12)+(s%2?12:0),len:1};arp[i]=midi([ch,ch+2,ch+4,ch+7][s%4],T.root+12);drum[i]=s%4===0?1:s===4||s===12?2:(s===14||s===15)?2:3;}
+    return motifs[kind]=out;
+  };
+  const snap=rel=>{const t=[0,2,4,7,9];let best=t[0];for(const x of t)if(Math.abs(x-rel)<Math.abs(best-rel))best=x;return best;};
+  let barAt=0;
+  form.forEach(([type,nb,key=0],fi)=>{
+    const prog=P[type]||P.A;
+    const kind=type==='I'?null:type==='A'||type==='A2'?'verse':type==='B'?'pre':type[0]==='C'?'chorus':type==='D'?'sparse':'solo';
+    const M=kind?motif(kind):null;
+    const lastSec=fi===form.length-1;
+    for(let b=0;b<nb;b++){
+      const ch=prog[b%prog.length],nextCh=prog[(b+1)%prog.length],o=(barAt+b)*16;
+      const lastBar=b===nb-1;
+      const R=T.root+key;
+      // ---- lead ----
+      if(M&&!(type==='B'&&b<2&&!fast)){
+        const mb=b%2,vari=b%4>=2;
+        let notes=M[mb];
+        if(type==='A2')notes=notes.map(n=>({s:n.s,rel:4-n.rel,len:n.len}));
+        notes.forEach((n,k)=>{
+          let rel=n.rel+(vari?(type==='E'?-2:2):0);
+          if(n.s%8===0)rel=snap(rel);
+          let len=n.len;
+          if(lastBar&&k===notes.length-1){rel=snap(rel)===rel?0:snap(rel);len=16-n.s;}
+          const up=type==='C2'||type==='E'?2:0;
+          let lm=midi(ch+rel+7+up,R+12),sh=0;
+          while(lm+sh>88)sh-=12;while(lm+sh<60)sh+=12;
+          lead[o+n.s]={m:lm+sh,len,echo:type==='D'};
+          if(type==='C2'||(type==='C'&&b>=4))harm[o+n.s]={m:midi(ch+rel+5+up,R+12)+sh,len};
+        });
+      }
+      // ---- bass ----
+      const bm=midi(ch,R-12),bn=midi(nextCh,R-12);
+      for(let s=0;s<16;s++){
+        const i=o+s;
+        if(type==='I'){if(b===nb-1&&s===0)bass[i]={m:bm,len:16};continue;}
+        if(calm){if(s===0||s===8)bass[i]={m:bm,len:type==='D'?16:8};if(type==='D'&&s===8)bass[i]=null;continue;}
+        if(type==='D'){if(s===0)bass[i]={m:bm,len:14};continue;}
+        if(type==='E'||(T.style==='boss'&&type[0]==='C')){bass[i]={m:bm+(s%4===2?12:s%4===3?7:0),len:1};continue;}
+        if(s%2===0){
+          let m=bm+(T.style==='march'&&s%8===4?7:0)+(fast&&s%4===2?12:0);
+          if(type==='B'&&s===14)m=bn-1;
+          bass[i]={m,len:type[0]==='C'?1.6:2};
+        }
+      }
+      // ---- guitar power chords ----
+      const cm=midi(ch,R);
+      for(let s=0;s<16;s++){
+        const i=o+s;
+        if(type==='I'){if(lastBar&&s===8)gtr[i]={m:cm,len:8,acc:true};continue;}
+        if(type==='D')continue;
+        if(calm){if((s===0||s===8)&&type!=='D')gtr[i]={m:cm,len:7.6,soft:true};continue;}
+        if(type==='A'||type==='A2'){if(s%2===0)gtr[i]={m:cm,len:s===0||s===10?1.8:.7,acc:s===0||s===10,mute:!(s===0||s===10)};}
+        else if(type==='B'){if(s===0||s===8)gtr[i]={m:cm,len:7.8,acc:true};if(b%2===1&&(s===12||s===14))gtr[i]={m:cm,len:1.5,acc:true};}
+        else if(type==='E'){if([0,2,3,4,6,7,8,10,11,12,14,15].includes(s))gtr[i]={m:cm,len:.6,mute:true};}
+        else if(s%2===0)gtr[i]={m:cm,len:s%8===0?1.9:1.2,acc:s%8===0};
+      }
+      // ---- arpeggio ----
+      const tones=[ch,ch+2,ch+4,ch+7];
+      for(let s=0;s<16;s++){
+        const i=o+s;
+        if(type==='I'&&b>=1)arp[i]=midi(tones[s%4],R+12);
+        else if(type==='D')arp[i]=midi([ch,ch+2,ch+4,ch+7,ch+9,ch+7,ch+4,ch+2][s%8],R+12);
+        else if(type==='C2'&&s%2===1)arp[i]=midi(tones[(s>>1)%4],R+24);
+        else if((type==='A'||type==='A2'||calm)&&s%2===1)arp[i]=midi(tones[((s-1)/2)%4],R+12);
+      }
+      // ---- pads ----
+      if(type==='I'||type==='B'||type==='D'||calm||type==='C2')pad[o]={ms:[midi(ch,R),midi(ch+2,R),midi(ch+4,R)],len:16};
+      // ---- drums ----
+      for(let s=0;s<16;s++){
+        const i=o+s;let d=0;
+        if(type==='I'){
+          if(b>=1&&s%2===0)d|=DH;
+          if(b>=2&&s%4===0)d|=DK;
+          if(lastBar&&!calm){d=s%4===0?DK:0;if(s>=4)d|=DS;}
+        }else if(type==='D'){
+          if(s===0)d|=DK;if(s===8)d|=DS;if(s%4===0)d|=DH;
+        }else if(calm){
+          if(s===0)d|=DK;if(s===8)d|=DS;if(s%4===2)d|=DH;if(T.style==='eerie'&&s===14)d|=DH;
+        }else{
+          const chorus=type[0]==='C',solo=type==='E';
+          if(T.style==='boss'||solo||(chorus&&fast)){if(s%2===0)d|=DK;}
+          else if(T.style==='march'){if(s===0||s===8||s===10||(chorus&&s===3))d|=DK;}
+          else if([0,6,8,11].includes(s)||(type==='B'&&s===14))d|=DK;
+          if(s===4||s===12)d|=DS;
+          if(chorus){if(s%4===2)d|=DO;else if(s%2===0)d|=DH;}
+          else d|=T.style==='boss'?DH:(s%2===0?DH:0);
+          if(type==='B'&&b%4===3&&s>=12)d=(s%2?DTL:DTH)|(s===12?DK:0);
+        }
+        if(s===0&&b%4===0&&type!=='I'&&!(type==='A'&&b>0))d|=DC;
+        if(lastBar&&type!=='I'&&!calm&&s>=8){d&=~(DH|DO);d|=[DS,0,DTH,DS,DTH,DTL,DS,DTL][s-8]||0;if(s===8)d|=DK;}
+        drum[i]=d;
+      }
+      if(type==='B'&&b===nb-2)fx[o]={type:'riser',bars:2};
+      if(type==='I'&&b===Math.max(0,nb-2)&&!calm)fx[o]={type:'riser',bars:Math.min(2,nb)};
     }
-  }
-  for(let i=0;i<steps;i++)if(lead[i])lead[i].m=midi(lead[i].d,T.root+12);
-  return{T,steps,lead,bass,arp,drum,gtr,d16:60/T.bpm/4};
+    barAt+=nb;
+  });
+  const loopStart=form[0][0]==='I'?form[0][1]*16:0;
+  return{T,steps,lead,harm,bass,arp,drum,gtr,pad,fx,loopStart,d16:60/T.bpm/4};
 }
-const MUS={id:undefined,song:null,step:0,nextT:0,timer:null,paused:false,cache:{},
+const MUS={id:undefined,song:null,step:0,nextT:0,timer:null,paused:false,cache:{},loop:0,
   play(id){
     if(this.id===id)return;
     this.id=id;clearInterval(this.timer);this.timer=null;
     if(!id||!AU.ctx){this.song=null;return;}
     this.song=this.cache[id]||(this.cache[id]=compose(TRACKS[id]));
-    this.step=0;this.nextT=AU.ctx.currentTime+.1;
+    this.step=0;this.loop=0;this.nextT=AU.ctx.currentTime+.1;
+    if(AU.delay)AU.delay.delayTime.setValueAtTime(Math.min(.9,this.song.d16*3),AU.ctx.currentTime);
     this.timer=setInterval(()=>this.tick(),25);
   },
   tick(){
     const c=AU.ctx;if(!this.song||!c||c.state!=='running'||this.paused)return;
     if(this.nextT<c.currentTime-.1)this.nextT=c.currentTime+.05;
-    while(this.nextT<c.currentTime+.15){this.playStep(this.step,this.nextT);this.nextT+=this.song.d16;this.step=(this.step+1)%this.song.steps;}
+    while(this.nextT<c.currentTime+.15){
+      this.playStep(this.step,this.nextT);this.nextT+=this.song.d16;this.step++;
+      if(this.step>=this.song.steps){this.step=this.song.loopStart;this.loop++;}
+    }
   },
   playStep(i,t){
-    const s=this.song,d=s.d16,o=AU.bgmF,L=s.lead[i],B=s.bass[i],A=s.arp[i],D=s.drum[i],C=s.gtr[i];
-    const boss=s.T.style==='boss';
-    if(C){const v=C.soft?.28:C.acc?.5:.38;for(const iv of[0,7,12]){AU.note(NOTE(C.m+iv),t,C.len*d,'sawtooth',v,AU.gtr);}AU.note(NOTE(C.m)*1.004,t,C.len*d,'sawtooth',v*.7,AU.gtr);}
-    if(L){AU.note(NOTE(L.m),t,L.len*d,'sawtooth',.05,AU.leadBus,true);AU.note(NOTE(L.m)*1.006,t,L.len*d,'square',.035,AU.leadBus,true);if(boss)AU.note(NOTE(L.m)/2,t,L.len*d,'square',.03,AU.leadBus);}
+    const s=this.song,d=s.d16,o=AU.bgmF,L=s.lead[i],Hm=s.harm[i],B=s.bass[i],A=s.arp[i],D=s.drum[i],C=s.gtr[i],Pd=s.pad[i],F=s.fx[i];
+    const boss=s.T.style==='boss',alt=this.loop%2===1;
+    if(C){
+      if(C.mute){AU.note(NOTE(C.m),t,C.len*d,'sawtooth',.34,AU.gtr);AU.note(NOTE(C.m+7),t,C.len*d,'sawtooth',.22,AU.gtr);}
+      else{const v=C.soft?.26:C.acc?.5:.38;for(const iv of[0,7,12])AU.note(NOTE(C.m+iv),t,C.len*d,'sawtooth',v,AU.gtr);AU.note(NOTE(C.m)*1.004,t,C.len*d,'sawtooth',v*.7,AU.gtr);}
+    }
+    if(L){
+      const w1=alt?'square':'sawtooth',w2=alt?'sawtooth':'square',dur=L.len*d;
+      AU.note(NOTE(L.m),t,dur,w1,.05,AU.leadBus,true);AU.note(NOTE(L.m)*1.006,t,dur,w2,.032,AU.leadBus,true);
+      if(boss)AU.note(NOTE(L.m)/2,t,dur,'square',.028,AU.leadBus);
+      if(L.echo){AU.note(NOTE(L.m),t+d*3,dur,'triangle',.03,o);AU.note(NOTE(L.m)*2,t+d*6,dur,'triangle',.014,o);}
+    }
+    if(Hm)AU.note(NOTE(Hm.m),t,Hm.len*d,'square',.026,AU.leadBus,true);
     if(B){AU.note(NOTE(B.m),t,B.len*d*.92,'sawtooth',.2,AU.bass);AU.note(NOTE(B.m)/2,t,B.len*d*.92,'sine',.26,o);}
-    if(A)AU.tone(NOTE(A),d*.8,'square',.012,null,t,o);
-    if(D===1)AU.kick(t,o,.7);
-    else if(D===2)AU.snare(t,o,.34);
-    else if(D===3)AU.noise(.03,.05,0,t,o,7500);
-    if(i%64===0)AU.noise(1.4,.12,0,t,o,4500);
+    if(A)AU.tone(NOTE(A)*(alt?2:1),d*.8,alt?'triangle':'square',alt?.03:.014,null,t,o);
+    if(Pd&&AU.padBus)for(const m of Pd.ms)AU.pad(NOTE(m),t,Pd.len*d,.045);
+    if(D){
+      if(D&DK)AU.kick(t,o,.7);
+      if(D&DS)AU.snare(t,o,.34);
+      if(D&DH)AU.noise(.03,.05,0,t,o,7500);
+      if(D&DO)AU.noise(.16,.07,0,t,o,6500);
+      if(D&DC)AU.noise(1.4,.14,0,t,o,4200);
+      if(D&DTH)AU.tom(t,o,210,.4);
+      if(D&DTL)AU.tom(t,o,120,.45);
+    }
+    if(F&&F.type==='riser')AU.riser(t,F.bars*16*d,o);
   },
   sync(){
     let id='hangar';
@@ -1512,7 +1642,7 @@ function newRun(si,tier,endless){
     forms:{},fid:0,kills:0,xp:0,gold:0,shake:0,flash:0,banner:endless?{t:3.6,title:'무한 공역',sub:'ENDLESS · WAVE 1',story:st.story}:{t:3.6,title:st.name,sub:(st.act===1?'1부 · 독재자 전쟁':'2부 · 외계 침공')+' · '+st.code+' · '+T.name,story:st.story},wing:[],wingT:6,curFac:null,
     sk:S.equip.map((id,i)=>id&&i<slotsOpen(S.lv)&&S.skills[id]?{id,lv:S.skills[id],cd:0}:null),
     laser:0,laserTick:0,chrono:0,barrier:0,drones:0,droneFire:0,swarmT:0,droneAng:0,
-    charge:0,chargeReady:false,bombs:2+S.bombUp,bombT:0,bombTick:0,collectAll:false,
+    charge:0,chargeReady:false,bombs:1+S.bombUp,bombT:0,bombTick:0,collectAll:false,
     syn:activeSynergies(),
   };
   applyDiff(endless?ENDLESS_LV():tierLv(si,tier));
@@ -1525,9 +1655,9 @@ function applyDiff(L){
   G.lvEff=L;G.sup=sup;G.dsi=si;
   const R=G.ramp||1;
   G.hpMul=1.3*(1+L*.35)*sup.ehp*(1+G.tier*.15)*(E?1+w*.04:1);
-  G.dmgMul=(9+L*2.8)*sup.edmg;
-  G.fireMul=(1.15+si*.14)*T.fire*(E?1+Math.min(.8,w*.03):1)*R;
-  G.bsp=(155+si*11)*T.bspd*(E?1+Math.min(.35,w*.012):1)*(R>1?1.06:1);
+  G.dmgMul=(10+L*3.0)*sup.edmg;
+  G.fireMul=(1.22+si*.15)*T.fire*(E?1+Math.min(.8,w*.03):1)*R;
+  G.bsp=(162+si*11.5)*T.bspd*(E?1+Math.min(.35,w*.012):1)*(R>1?1.06:1);
   G.goldVal=(2+L*.8)*(1+passLv('magnet')*.08)*T.bonus;
   G.xpMul=T.bonus;
   G.eliteP=E?Math.min(.6,.08+w*.03):Math.min(.6,T.elite+.04+si*.01+(R>1?.04:0));
@@ -1555,8 +1685,8 @@ function buildTimeline(si,tier){
     if(Math.abs(t-mid)>3){
       const late=t>mid?.82:1;
       ev.push({t,f:pick(st.pool)});
-      if(t>20&&Math.random()<.18+si*.02)ev.push({t:t+.6,f:pick(st.pool)});
-      t+=(Math.max(1.3,2.35-si*.12)+Math.random()*1.1)*k*late;
+      if(t>16&&Math.random()<.3+si*.03)ev.push({t:t+.6,f:pick(st.pool)});
+      t+=(Math.max(1.05,1.95-si*.11)+Math.random()*.95)*k*late;
     }else t+=1;
   }
   ev.push({t:mid,f:'midboss'});
@@ -1579,16 +1709,16 @@ function spawnFormation(f){
   const fac=pick(G.st.fac);
   const X=G.extra||0;
   const add=(k,x,y,o)=>{const e=addEnemy(k,x,y,o);e.fid=fid;e.fac=fac;F.total++;F.alive++;if(k!=='carrier'&&Math.random()<G.eliteP){e.elite=true;e.hp*=2.2;e.maxHp=e.hp;}return e;};
-  if(f==='vee'){const cx=rand(70,W-70);[0,-1,1,-2,2,-3,3,-4,4].slice(0,5+X*2).forEach(k=>add('fighter',cx+k*28,-20-Math.abs(k)*24,{path:'down',sp:110+si*6}));}
-  else if(f==='sine'){const cx=rand(100,W-100);for(let i=0;i<6+X*2;i++)add('fighter',cx,-20-i*32,{path:'sine',cx,amp:rand(55,85),ph:-i*.45,sp:95+si*5,fire:rand(1.5,4)});}
-  else if(f==='swoop'){const L=Math.random()<.5;for(let i=0;i<4+X;i++)add('fighter',L?50+i*22:W-50-i*22,-20-i*32,{path:'swoop',sp:155+si*6,turnAt:1.5+i*.2,dir:L?1:-1});}
-  else if(f==='rush'){for(let i=0;i<3+X;i++)add('rush',rand(30,W-30),-20-i*34,{path:'rush'});F.drop=false;}
-  else if(f==='bomber'){add('bomber',rand(80,W-80),-40,{path:'bomber',fire:1.2});if(X>=2)add('bomber',rand(80,W-80),-110,{path:'bomber',fire:1.6});F.drop=Math.random()<.5;}
-  else if(f==='turret'){const n=(si>=3?3:2)+X;for(let i=0;i<n;i++)add('turret',rand(30,W-30),-20-rand(0,140),{path:'turret',fire:rand(1,2.5)});F.drop=false;}
-  else if(f==='tanks'){const L=Math.random()<.5,y0=-20;for(let i=0;i<3+X;i++)add('tank',L?-20-i*26:W+20+i*26,rand(60,200),{path:'tank',vx:L?38:-38,fire:rand(1,2.4)});F.drop=false;}
-  else if(f==='ships'){add('ship',rand(60,W-60),-50,{path:'ship',vx:rand(-8,8),fire:1.2,fire2:2});F.drop=Math.random()<.6;}
-  else if(f==='orbs'){const cx=rand(100,W-100);const no=6+X*2;for(let i=0;i<no;i++)add('orb',cx,-60,{path:'orb',cx,cy:-60,ang:i*TAU/no,av:2.2,rad:46,fire:rand(2,5)});}
-  else if(f==='helis'){const n=Math.min(4,2+(si>=3?1:0)+X);for(let i=0;i<n;i++){const x=W*(i+1)/(n+1)+rand(-20,20);add('heli',x,-30-i*20,{path:'heli',ty:rand(90,210),cx:x,fire:rand(1.2,2.2)});}}
+  if(f==='vee'){const cx=rand(70,W-70);[0,-1,1,-2,2,-3,3,-4,4].slice(0,6+X*2).forEach(k=>add('fighter',cx+k*28,-20-Math.abs(k)*24,{path:'down',sp:110+si*6}));}
+  else if(f==='sine'){const cx=rand(100,W-100);for(let i=0;i<7+X*2;i++)add('fighter',cx,-20-i*30,{path:'sine',cx,amp:rand(55,85),ph:-i*.45,sp:95+si*5,fire:rand(1.5,4)});}
+  else if(f==='swoop'){const L=Math.random()<.5;for(let i=0;i<5+X;i++)add('fighter',L?50+i*22:W-50-i*22,-20-i*32,{path:'swoop',sp:155+si*6,turnAt:1.5+i*.2,dir:L?1:-1});}
+  else if(f==='rush'){for(let i=0;i<4+X;i++)add('rush',rand(30,W-30),-20-i*34,{path:'rush'});F.drop=false;}
+  else if(f==='bomber'){add('bomber',rand(80,W-80),-40,{path:'bomber',fire:1.2});if(X>=2)add('bomber',rand(80,W-80),-110,{path:'bomber',fire:1.6});F.drop=Math.random()<.3;}
+  else if(f==='turret'){const n=(si>=3?4:3)+X;for(let i=0;i<n;i++)add('turret',rand(30,W-30),-20-rand(0,140),{path:'turret',fire:rand(1,2.5)});F.drop=false;}
+  else if(f==='tanks'){const L=Math.random()<.5,y0=-20;for(let i=0;i<4+X;i++)add('tank',L?-20-i*26:W+20+i*26,rand(60,200),{path:'tank',vx:L?38:-38,fire:rand(1,2.4)});F.drop=false;}
+  else if(f==='ships'){add('ship',rand(60,W-60),-50,{path:'ship',vx:rand(-8,8),fire:1.2,fire2:2});F.drop=Math.random()<.4;}
+  else if(f==='orbs'){const cx=rand(100,W-100);const no=7+X*2;for(let i=0;i<no;i++)add('orb',cx,-60,{path:'orb',cx,cy:-60,ang:i*TAU/no,av:2.2,rad:46,fire:rand(2,5)});}
+  else if(f==='helis'){const n=Math.min(5,3+(si>=3?1:0)+X);for(let i=0;i<n;i++){const x=W*(i+1)/(n+1)+rand(-20,20);add('heli',x,-30-i*20,{path:'heli',ty:rand(90,210),cx:x,fire:rand(1.2,2.2)});}}
   else if(f==='carrier'){const x=rand(90,W-90);add('carrier',x,-20,{path:'carrier',cx:x});}
   G.forms[fid]=F;
 }
@@ -1605,7 +1735,7 @@ function spawnBoss(){
 function onEnemyGone(e,killed){
   const F=G.forms[e.fid];if(!F)return;
   F.alive--;if(killed){F.killed++;F.x=e.x;F.y=e.y;}
-  if(F.alive<=0){if(F.drop&&F.killed===F.total)dropCap(F.x,F.y);delete G.forms[e.fid];}
+  if(F.alive<=0){if(F.drop&&F.killed===F.total&&Math.random()<.7)dropCap(F.x,F.y);delete G.forms[e.fid];}
 }
 function dropCap(x,y,type){
   if(G)G.parts.push({ty:'flash',x,y,vx:0,vy:0,t:0,life:.25,s:.6});
@@ -1624,7 +1754,7 @@ function eshot(x,y,a,sp,big,k){
 function fan(x,y,n,spread,sp,base){const a0=base??aimAt(x,y);for(let i=0;i<n;i++)eshot(x,y,a0+(n>1?(i/(n-1)-.5)*spread:0),sp);}
 function ring(x,y,n,sp,off,big){for(let i=0;i<n;i++)eshot(x,y,off+i*TAU/n,sp,big);}
 function dmgRoll(m,kind){
-  let d=10*(1+S.stats.atk*.08)*(1+(S.lv-1)*.03)*(1+S.tier*.12)*plane().dmg*G.sup.pdmg*m;
+  let d=9*(1+S.stats.atk*.07)*(1+(S.lv-1)*.025)*(1+S.tier*.1)*plane().dmg*G.sup.pdmg*m;
   let c=.05+S.stats.foc*.006+passLv('crit')*.06;
   if(G.chrono>0&&syn('deadeye'))c+=.35;
   if(kind==='homing'&&syn('hunter')){c+=.4;d*=1.25;}
@@ -1678,7 +1808,7 @@ function killEnemy(e){
   sfx.boom();
   if(e.part){G.texts.push({x:e.x,y:e.y-12,s:'BREAK',c:'#FFB627',t:0,life:.8,big:true});return;}
   if(e.kind==='carrier')dropCap(e.x,e.y);
-  else if(Math.random()<(e.elite?.15:.035))dropCap(e.x,e.y);
+  else if(Math.random()<(e.elite?.09:.02))dropCap(e.x,e.y);
   onEnemyGone(e,true);
 }
 function explode(x,y,n){
@@ -1727,7 +1857,7 @@ function useSkill(i){
   if(mode!=='play'||!G)return;
   const s=G.sk[i];if(!s||SKILLS[s.id].type!=='active'||s.cd>0||G.p.dead||G.intro>0||(G.phase!=='wave'&&G.phase!=='boss'&&G.phase!=='warn'))return;
   s.cd=cdOf(s.id);const p=G.p,l=s.lv;sfx.skill();
-  if(s.id==='homing')fireHoming(p.x,p.y,4+l*2,1.6+l*.2);
+  if(s.id==='homing')fireHoming(p.x,p.y,4+l*2,1.4+l*.2);
   if(s.id==='barrier'){G.barrier=1.5+l*.5;if(syn('reactive'))nova(p.x,p.y,2.5,220);}
   if(s.id==='laser'){G.laser=1.6+l*.3;G.laserLv=l;}
   if(s.id==='drones'){G.drones=6+l*2;G.droneLv=l;}
@@ -1812,7 +1942,7 @@ function update(dt){
   if(G.phase==='wave'&&G.endless){
     const E=G.endless;
     G.spawnT-=dt;
-    if(G.spawnT<=0){spawnFormation(pick(G.st.pool));G.spawnT=Math.max(1.05,2.4-E.wave*.05)+Math.random();}
+    if(G.spawnT<=0){spawnFormation(pick(G.st.pool));G.spawnT=Math.max(.85,2-E.wave*.05)+Math.random()*.9;}
     if(Math.random()<dt/20)spawnFormation('carrier');
     if(E.wave%4===2&&!E.midDone&&G.t-E.waveStart>8&&!G.mid){E.midDone=true;spawnMid();}
     if(G.t>=E.waveEnd){if(E.wave%4===0){G.phase='warn';G.warnT=2.8;sfx.warn();}else nextWave();}
@@ -1854,7 +1984,7 @@ function update(dt){
         fireMain(p.x,p.y-14,1);
         for(let i=0;i<p.opts;i++){const o=optionPos(i);fireMain(o.x,o.y-4,.6,true);}
         const iv=p.weapon==='ripple'?.21:p.weapon==='laser'?.085:FIRE_IV[S.plane]||.11;
-        p.fire=iv/(1+S.stats.rate*.04);
+        p.fire=iv/(1+S.stats.rate*.035);
         sfx.shot();
       }
       if(p.missileLv>0){
@@ -1866,7 +1996,7 @@ function update(dt){
           for(const s of srcs){[-1,1].forEach(d=>G.bullets.push({kind:'missile',x:s.x+d*6,y:s.y,vx:d*70,vy:-230,r:4,m:1.4,pierce:0,t:0,seek:p.missileLv>=2}));}
         }
       }
-      if(G.charge<1){G.charge=Math.min(1,G.charge+dt/(3.3*pl.chg)*(1+S.stats.foc*.01));}
+      if(G.charge<1){G.charge=Math.min(1,G.charge+dt/(3.7*pl.chg)*(1+S.stats.foc*.01));}
       else if(!G.chargeReady){G.chargeReady=true;sfx.ready();}
     }
     const nl=passLv('nano');if(nl)p.hp=Math.min(p.maxHp,p.hp+p.maxHp*(.003+nl*.0025)*dt);
@@ -1878,7 +2008,7 @@ function update(dt){
     G.bombT-=dt;G.bombTick-=dt;G.eb.length=0;
     if(G.bombTick<=0){
       G.bombTick=.11;G.shake=Math.max(G.shake,5);
-      for(const e of G.enemies)if(!e.dead&&e.y>-20&&e.y<H+10&&(!(e.boss||e.part)||e.entered))hurtEnemy(e,1.3);
+      for(const e of G.enemies)if(!e.dead&&e.y>-20&&e.y<H+10&&(!(e.boss||e.part)||e.entered))hurtEnemy(e,1.1);
       for(let k=0;k<2;k++)explode(rand(20,W-20),rand(40,H-120),14);
       if(Math.random()<.5)sfx.boom();
     }
@@ -1967,7 +2097,7 @@ function update(dt){
       if(e.fire<=0){
         const onScr=e.y>20&&e.y<H*.72&&e.x>0&&e.x<W;const sp=G.bsp;
         if(onScr||(e.part&&e.entered)){
-          if(e.kind==='fighter'&&(e.elite||Math.random()<.62+G.dsi*.04)){if(e.elite)fan(e.x,e.y+8,3,.35,sp);else eshot(e.x,e.y+8,aimAt(e.x,e.y),sp,false,'n');}
+          if(e.kind==='fighter'&&(e.elite||Math.random()<.68+G.dsi*.04)){if(e.elite)fan(e.x,e.y+8,3,.35,sp);else eshot(e.x,e.y+8,aimAt(e.x,e.y),sp,false,'n');}
           if(e.kind==='heli'){for(let i=0;i<(e.elite?5:3);i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y+6,aimAt(e.x,e.y),sp*1.05,false,'n');},i*120);}
           if(e.kind==='mid'){
             e.pat=(e.pat+1)%3;const X=G.extra||0;
@@ -1975,10 +2105,10 @@ function update(dt){
             else if(e.pat===1)ring(e.x,e.y,14+G.dsi+X*2,sp*.8,e.t);
             else for(let i=0;i<6+X;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y+16,aimAt(e.x,e.y)+rand(-.06,.06),sp*1.2,false,'n');},i*90);
           }
-          if(e.kind==='bomber')fan(e.x,e.y+16,3+Math.min(4,G.dsi),.9,sp*.85);
-          if(e.kind==='turret'||e.kind==='tank'){const n=1+Math.min(2,G.dsi>>1)+(e.elite?1:0);for(let i=0;i<n;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),sp*1.05,false,'n');},i*110);}
-          if(e.kind==='ship'){fan(e.x,e.y-16,3,.35,sp*.95);fan(e.x,e.y+16,3,.35,sp*.95);}
-          if(e.kind==='orb'&&(G.dsi>=4||e.elite)&&Math.random()<.5)eshot(e.x,e.y,aimAt(e.x,e.y),sp*.9);
+          if(e.kind==='bomber')fan(e.x,e.y+16,4+Math.min(4,G.dsi),.95,sp*.85);
+          if(e.kind==='turret'||e.kind==='tank'){const n=2+Math.min(2,G.dsi>>1)+(e.elite?1:0);for(let i=0;i<n;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),sp*1.05,false,'n');},i*110);}
+          if(e.kind==='ship'){fan(e.x,e.y-16,4,.4,sp*.95);fan(e.x,e.y+16,4,.4,sp*.95);}
+          if(e.kind==='orb'&&(G.dsi>=3||e.elite)&&Math.random()<.65)eshot(e.x,e.y,aimAt(e.x,e.y),sp*.9);
           if(e.part&&G.phase==='boss'){
             if(e.fac!=='human'&&e.fac!=='reptile')fan(e.x,e.y,3+(e.parent.form===2?2:0),.7,sp*.9);
             else for(let i=0;i<2+(e.parent.form===2?1:0);i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),sp*1.1,false,'n');},i*120);
@@ -2063,7 +2193,7 @@ function updateBoss(b,d){
     if(b.patT<=0){
       const sets=[['fan','ring','stream'],['spiral','fan','ring','minion','stream'],['spiral','ring','stream','fan','spiral']];
       const nm=pick(sets[ph]);
-      const P={fan:{n:3+ph+X,every:.55},ring:{n:3+X,every:.7},stream:{n:14+si+X*4,every:.1},spiral:{n:34+si*3+X*8,every:.075},minion:{n:1,every:.1}}[nm];
+      const P={fan:{n:4+ph+X,every:.5},ring:{n:3+X,every:.62},stream:{n:16+si+X*4,every:.095},spiral:{n:38+si*3+X*8,every:.07},minion:{n:1,every:.1}}[nm];
       b.cur={nm,left:P.n,every:P.every,tm:0,k:0};
     }
   }else{
@@ -2076,7 +2206,7 @@ function updateBoss(b,d){
       if(c.nm==='stream')eshot(gx,gy,aimAt(gx,gy)+rand(-.08,.08),sp*1.3,false,'n');
       if(c.nm==='spiral'){b.ang+=.37;const arms=2+(si>=4?1:0)+(ph>=2?1:0)+(X>=2?1:0);for(let i=0;i<arms;i++)eshot(b.x,b.y,b.ang+i*TAU/arms,sp*.8);}
       if(c.nm==='minion'){for(let i=-1;i<=1;i++){const e=addEnemy('fighter',b.x+i*50,b.y+10,{path:'down',sp:130,fac:G.st.fac[0]});e.entered=true;}}
-      if(c.left<=0){b.cur=null;b.patT=Math.max(.35,((armored?2.2:1.4)-si*.1-ph*.25)*(1-.15*X)*(b.enraged?.6:1));}
+      if(c.left<=0){b.cur=null;b.patT=Math.max(.3,((armored?1.9:1.2)-si*.1-ph*.25)*(1-.15*X)*(b.enraged?.6:1));}
     }
   }
 }
@@ -2603,11 +2733,11 @@ function pilotHTML(){
   const mh=maxHp();
   let h=`<div class="pts"><div><h3>스탯 포인트</h3><div class="mini" style="text-transform:none;letter-spacing:.02em">레벨업마다 3포인트</div></div><b>${S.pts}</b></div><div class="sec">`;
   STAT_DEF.forEach(d=>{h+=`<div class="stat"><div><div class="nm">${d.name}</div><div class="ds">${d.ds}</div></div><div class="v">${S.stats[d.id]}</div><button class="plus" data-act="stat" data-id="${d.id}" ${S.pts>0?'':'disabled'} aria-label="${d.name} 올리기">+</button></div>`;});
-  const base=10*(1+S.stats.atk*.08)*(1+(S.lv-1)*.03)*(1+S.tier*.12);
+  const base=8*(1+S.stats.atk*.07)*(1+(S.lv-1)*.025)*(1+S.tier*.1);
   h+=`</div><div class="sec"><h3>기체 성능</h3><div class="derived">
     <div><span>최대 내구도</span><b>${mh}</b></div>
     <div><span>탄당 피해</span><b>${base.toFixed(1)}</b></div>
-    <div><span>연사 배율</span><b>×${(1+S.stats.rate*.04).toFixed(2)}</b></div>
+    <div><span>연사 배율</span><b>×${(1+S.stats.rate*.035).toFixed(2)}</b></div>
     <div><span>치명타</span><b>${(5+S.stats.foc*.6+passLv('crit')*6).toFixed(1)}%</b></div>
     <div><span>재사용 대기 감소</span><b>${(Math.min(.4,S.stats.foc*.012)*100).toFixed(0)}%</b></div>
     <div><span>스킬 슬롯</span><b>${slotsOpen(S.lv)} / 4</b></div>
@@ -2680,8 +2810,8 @@ function shopHTML(){
   <div class="sec"><h3>정비</h3>
     <div class="shop"><div><div class="sn">주포 강화 <span class="num" style="color:var(--amber)">${S.tier} / 10</span></div></div>
       <button class="btn sm" data-act="tier" ${tNext&&S.gold>=tierCost()?'':'disabled'}>${tNext?`<span class="num">${tierCost()}</span> G`:'MAX'}</button>
-      <div class="ds">단계당 주포 피해 +12% · 탄도는 출격 중 P 캡슐로 강화</div></div>
-    <div class="shop"><div><div class="sn">폭탄 적재 <span class="num" style="color:var(--amber)">${2+S.bombUp} / 5</span></div></div>
+      <div class="ds">단계당 주포 피해 +10% · 탄도는 출격 중 P 캡슐로 강화</div></div>
+    <div class="shop"><div><div class="sn">폭탄 적재 <span class="num" style="color:var(--amber)">${1+S.bombUp} / 4</span></div></div>
       <button class="btn sm" data-act="bombup" ${S.bombUp<3&&S.gold>=bombCost()?'':'disabled'}>${S.bombUp<3?`<span class="num">${bombCost()}</span> G`:'MAX'}</button>
       <div class="ds">출격 시 가지고 나가는 폭탄 수</div></div>
     <div class="shop"><div><div class="sn">예비 옵션 <span class="num" style="color:var(--amber)">${S.spare} / 2</span></div></div>
@@ -2833,7 +2963,7 @@ frame.addEventListener('click',e=>{
   else if(a==='vol'){const k=t.dataset.k;S[k]=clamp(S[k]+(+t.dataset.d),0,10);save();AU.applyVol();if(k==='sfxVol')sfx.cap();refreshVol();}
   else if(a==='mute'){S.muted=!S.muted;save();AU.applyVol();refreshVol();updateMuteBtn();}
   else if(a==='plane'){const id=t.dataset.id;if(PLANES[id].req<=S.lv){S.plane=id;save();keepScroll();sfx.click();}}
-  else if(a==='bombup'){if(S.bombUp<3&&S.gold>=bombCost()){S.gold-=bombCost();S.bombUp++;save();keepScroll();toast(`출격 폭탄 ${2+S.bombUp}개`);}}
+  else if(a==='bombup'){if(S.bombUp<3&&S.gold>=bombCost()){S.gold-=bombCost();S.bombUp++;save();keepScroll();toast(`출격 폭탄 ${1+S.bombUp}개`);}}
   else if(a==='wipe'){if(!wipeArm){wipeArm=true;keepScroll();}else{wipeArm=false;S=defSave();save();renderHangar();toast('진행을 초기화했습니다');}}
   else if(a==='pause'){pause();}
   else if(a==='resume'){resume();}
@@ -3257,6 +3387,5 @@ requestAnimationFrame(loop);
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(mode==='hangar')renderHangar();});
 })();
 </script>
-
 </body>
 </html>
