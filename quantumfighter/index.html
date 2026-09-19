@@ -450,7 +450,7 @@ const CAP_BAG=['P','P','P','B','S','S','M','M','R','L','O','O','F','F'];
 
 /* ================= SAVE ================= */
 const SAVE_KEY='aetherwing.save.v1';
-function defSave(){return{lv:1,xp:0,sp:0,pts:0,stats:{atk:0,arm:0,rate:0,foc:0},skills:{homing:1},equip:['homing',null,null,null],gold:0,tier:0,spare:0,cleared:[],best:{},sel:0,tab:'ops',plane:'falcon',ufo:false,bombUp:0,bgmVol:6,sfxVol:8,muted:false,v:3,updatedAt:0,endingSeen:false,tclear:{},dsel:{},endless:{best:0,runs:0},seenTiers:[]};}
+function defSave(){return{lv:1,xp:0,sp:0,pts:0,stats:{atk:0,arm:0,rate:0,foc:0},skills:{homing:1},equip:['homing',null,null,null],gold:0,tier:0,spare:0,cleared:[],best:{},sel:0,tab:'ops',plane:'falcon',ufo:false,bombUp:0,spdUp:0,bgmVol:6,sfxVol:8,muted:false,v:3,updatedAt:0,endingSeen:false,tclear:{},dsel:{},endless:{best:0,runs:0},seenTiers:[]};}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);const d=defSave();
 if((o.v||1)<3){if(Array.isArray(o.cleared)){o.cleared.splice(3,0,!!o.cleared[2]&&false);}if(o.best){const nb={};for(const k in o.best)nb[+k>=3?+k+1:k]=o.best[k];o.best=nb;}if((o.sel||0)>=3)o.sel++;o.v=3;}if(!o.tclear){o.tclear={};(o.cleared||[]).forEach((c,i)=>{if(c)o.tclear[i]=0;});}if(o.sfx===false&&o.sfxVol===undefined)o.sfxVol=0;return Object.assign(d,o,{stats:Object.assign(d.stats,o.stats||{})});}}catch(e){}return defSave();}
 let S=loadSave();
@@ -2050,10 +2050,10 @@ let mode='title';
 const EBASE={
  fighter:{hp:10,r:10,xp:1,gold:0},
  rush:{hp:6,r:8,xp:.8,gold:0},
- bomber:{hp:75,r:20,xp:6,gold:15,hw:32,hh:14},
+ bomber:{hp:75,r:20,xp:6,gold:9,hw:32,hh:14},
  turret:{hp:32,r:11,xp:2,gold:0,ground:true},
  tank:{hp:22,r:10,xp:2,gold:0,ground:true},
- ship:{hp:120,r:12,xp:7,gold:22,ground:true,hw:10,hh:34},
+ ship:{hp:120,r:12,xp:7,gold:13,ground:true,hw:10,hh:34},
  orb:{hp:14,r:9,xp:1.2,gold:0},
  carrier:{hp:26,r:11,xp:2,gold:0},
  heli:{hp:20,r:12,xp:1.8,gold:0},
@@ -2097,7 +2097,7 @@ function applyDiff(L){
   G.dmgMul=(10+L*1.75)*sup.edmg;
   G.fireMul=(1.22+si*.15)*T.fire*(E?1+Math.min(.8,w*.03):1)*R;
   G.bsp=(162+si*11.5)*T.bspd*(E?1+Math.min(.35,w*.012):1)*(R>1?1.06:1);
-  G.goldVal=(2+L*.8)*(1+passLv('magnet')*.08)*T.bonus;
+  G.goldVal=(1.6+L*.58)*(1+passLv('magnet')*.08)*T.bonus;
   G.xpMul=T.bonus*.75;
   G.eliteP=E?Math.min(.6,.08+w*.03):Math.min(.6,T.elite+.04+si*.01+(R>1?.04:0));
   G.extra=E?Math.min(3,Math.floor(w/5)):T.extra;
@@ -2183,19 +2183,27 @@ function onEnemyGone(e,killed){
   F.alive--;if(killed){F.killed++;F.x=e.x;F.y=e.y;}
   if(F.alive<=0){if(F.drop&&F.killed===F.total&&Math.random()<.5)dropCap(F.x,F.y);delete G.forms[e.fid];}
 }
+/* 지금 기체에 모자란 것 위주로 캡슐을 고른다 */
+function needCap(){
+  const p=G.p,w=[];
+  const add=(t,n)=>{for(let i=0;i<n;i++)w.push(t);};
+  add('S',p.speedLv<=0?8:p.speedLv===1?6:p.speedLv<=3?3:p.speedLv<5?1:0);
+  add('P',p.power<2?6:p.power<4?4:0);
+  add('O',p.opts<3?3:0);
+  add('B',G.bombs<=1?3:G.bombs<3?2:0);
+  add('F',p.force<=0?3:p.force<2?1:0);
+  add('M',p.missileLv<2?2:0);
+  if(p.weapon==='normal'){add('R',2);add('L',2);}
+  else if(p.wLv<2)add(p.weapon==='ripple'?'R':'L',3);
+  return w.length?pick(w):null;   /* 더 채울 게 없으면 현금으로 */
+}
 function dropCap(x,y,type){
   /* soft budget: once a run has handed out enough capsules, extras turn into gold */
   G.capN=(G.capN||0)+1;
   if(!type&&G.capN>11&&Math.random()<Math.min(.65,(G.capN-11)*.08)){dropGold(x,y,4);return;}
   if(G)G.parts.push({ty:'flash',x,y,vx:0,vy:0,t:0,life:.25,s:.6});
-  let t=type||pick(CAP_BAG);
-  /* early in a run the ship is slow and weak: hand out speed first */
-  if(!type){
-    const pl=G.p;
-    if(pl.speedLv<1&&G.capN<=2)t='S';
-    else if(pl.speedLv<2&&G.capN<=5&&Math.random()<.55)t='S';
-    else if(pl.speedLv>=3&&t==='S')t=pick(['P','B','O','F','M']);
-  }
+  let t=type||needCap();
+  if(!type&&!t){dropGold(x,y,5);return;}
   if(!type&&t==='P'&&G.p.power>=4)t=pick(['B','O','F','S']);
   G.items.push({x,y,t:0,type:t});sfx.ready();
 }
@@ -2303,7 +2311,7 @@ function applyCap(type){
   const p=G.p;sfx.cap();let label=CAPS[type].n;
   if(type==='P'){if(p.power<4){p.power++;label=p.power===4?'POWER MAX':'POWER '+p.power;}else{G.gold+=G.goldVal*5;label='BONUS';}}
   if(type==='B'){if(G.bombs<4)G.bombs++;else G.gold+=G.goldVal*5;}
-  if(type==='S')p.speedLv=Math.min(3,p.speedLv+1);
+  if(type==='S')p.speedLv=Math.min(5,p.speedLv+1);
   if(type==='M')p.missileLv=Math.min(2,p.missileLv+1);
   if(type==='R'){if(p.weapon==='ripple')p.wLv=2;else{p.weapon='ripple';p.wLv=1;}}
   if(type==='L'){if(p.weapon==='laser')p.wLv=2;else{p.weapon='laser';p.wLv=1;}}
@@ -2445,7 +2453,7 @@ function update(dt){
     if(keys.has('ArrowRight')||keys.has('KeyD'))mx++;
     if(keys.has('ArrowUp')||keys.has('KeyW'))my--;
     if(keys.has('ArrowDown')||keys.has('KeyS'))my++;
-    const sp=(165+p.speedLv*34)*pl.spd*(keys.has('ShiftLeft')||keys.has('ShiftRight')?.5:1);
+    const sp=(165+p.speedLv*46)*(1+(S.spdUp||0)*.05)*pl.spd*(keys.has('ShiftLeft')||keys.has('ShiftRight')?.5:1);
     if(mx&&my){mx*=.7071;my*=.7071;}
     const ox=p.x,oy=p.y;
     p.x+=mx*sp*dt;p.y+=my*sp*dt;
@@ -3417,6 +3425,8 @@ function skillHTML(){
 const tierCost=()=>Math.round(120*Math.pow(1.55,S.tier));
 const spareCost=()=>[500,1800][S.spare];
 const bombCost=()=>[300,900,2400][S.bombUp];
+const spdCost=()=>[350,800,1700,3200,5600][S.spdUp||0];
+const SPD_MAX=5;
 const planeThumbs={};
 function planeThumb(id){
   if(planeThumbs[id])return planeThumbs[id];
@@ -3453,12 +3463,15 @@ function shopHTML(){
     <div class="shop"><div><div class="sn">폭탄 적재 <span class="num" style="color:var(--amber)">${1+S.bombUp} / 4</span></div></div>
       <button class="btn sm" data-act="bombup" ${S.bombUp<3&&S.gold>=bombCost()?'':'disabled'}>${S.bombUp<3?`<span class="num">$${bombCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">출격 시 가지고 나가는 폭탄 수</div></div>
+    <div class="shop"><div><div class="sn">추진기 강화 <span class="num" style="color:var(--amber)">${S.spdUp||0} / ${SPD_MAX}</span></div></div>
+      <button class="btn sm" data-act="spdup" ${(S.spdUp||0)<SPD_MAX&&S.gold>=spdCost()?'':'disabled'}>${(S.spdUp||0)<SPD_MAX?`<span class="num">$${spdCost().toLocaleString()}</span>`:'MAX'}</button>
+      <div class="ds">기본 이동 속도 +5% (현재 +${((S.spdUp||0)*5)}% · 출격 중 S 캡슐과 별도로 적용)</div></div>
     <div class="shop"><div><div class="sn">예비 옵션 <span class="num" style="color:var(--amber)">${S.spare} / 2</span></div></div>
       <button class="btn sm" data-act="spare" ${S.spare<2&&S.gold>=spareCost()?'':'disabled'}>${S.spare<2?`<span class="num">$${spareCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">따라다니며 함께 사격하는 옵션을 처음부터 달고 출격</div></div>
   </div>
   <div class="sec"><h3>캡슐 도감</h3><div class="derived">
-    ${Object.entries(CAPS).map(([k,c])=>`<div><span><b style="color:${c.c}">${k}</b> ${c.n}</span><b style="font-size:.78em;color:var(--mute)">${{P:'탄도 강화 (최대 4)',B:'폭탄 +1 (최대 4)',S:'이동속도 +1 (최대 3)',M:'미사일 · 2회째 유도',R:'링 확산탄 · 2회째 강화',L:'관통 레이저 · 2회째 강화',O:'옵션 +1 (최대 3)',F:'피격 흡수 (최대 3회)'}[k]}</b></div>`).join('')}
+    ${Object.entries(CAPS).map(([k,c])=>`<div><span><b style="color:${c.c}">${k}</b> ${c.n}</span><b style="font-size:.78em;color:var(--mute)">${{P:'탄도 강화 (최대 4)',B:'폭탄 +1 (최대 4)',S:'이동속도 +1 (최대 5)',M:'미사일 · 2회째 유도',R:'링 확산탄 · 2회째 강화',L:'관통 레이저 · 2회째 강화',O:'옵션 +1 (최대 3)',F:'피격 흡수 (최대 3회)'}[k]}</b></div>`).join('')}
   </div><p class="note">편대를 전멸시키거나 붉은 기체를 격추하면 캡슐이 나옵니다. <b>피격당하면 파워가 1단계 내려가고</b>(파워 1이면 옵션이 하나 사라집니다) 캡슐 효과는 해당 출격 동안만 유지됩니다. 금괴는 반짝일 때 먹으면 2배입니다.</p></div>
   <div class="sec"><h3>설정</h3>
     <div class="shop" style="grid-template-columns:1fr">${volHTML()}</div>
@@ -3482,7 +3495,7 @@ function finishRun(win){
   const prevTc=tierCleared(si);
   const firstClear=!E&&win&&prevTc<tier;
   if(E){/* endless: keep everything */}
-  else if(win){xp+=(50+L*30)*T.bonus;if(firstClear)gold+=(100+L*40)*(1+tier*.5);}
+  else if(win){xp+=(50+L*30)*T.bonus;if(firstClear)gold+=(70+L*26)*(1+tier*.5);}
   else{xp*=.6;gold*=.6;}
   const over=S.lv-L,xpMul=E?1:(over>2?Math.max(.25,1-(over-2)*.15):1);
   xp=Math.round(xp*xpMul);gold=Math.round(gold);
@@ -3571,7 +3584,7 @@ frame.addEventListener('click',e=>{
   const t=e.target.closest('[data-act],[data-tab]');if(!t||t.closest('#skillbar'))return;
   AU.init();
   if(t.dataset.tab){
-    if(t.dataset.tab==='shop'&&!S.ufo){const now=Date.now();ufoTaps=now-ufoTapT<1400?ufoTaps+1:1;ufoTapT=now;if(ufoTaps>=7){ufoTaps=0;unlockUfo();return;}}
+    if(t.dataset.tab==='shop'&&!S.ufo){const now=Date.now();ufoTaps=now-ufoTapT<2000?ufoTaps+1:1;ufoTapT=now;if(ufoTaps>=7){ufoTaps=0;unlockUfo();return;}}
     S.tab=t.dataset.tab;wipeArm=false;save();renderHangar();body.scrollTop=0;return;}
   const a=t.dataset.act;
   if(a==='go-hangar'){show('hangar');}
@@ -3605,6 +3618,7 @@ frame.addEventListener('click',e=>{
   else if(a==='mute'){S.muted=!S.muted;save();AU.applyVol();refreshVol();updateMuteBtn();}
   else if(a==='plane'){const id=t.dataset.id;if(PLANES[id].req<=S.lv){S.plane=id;save();keepScroll();sfx.click();}}
   else if(a==='bombup'){if(S.bombUp<3&&S.gold>=bombCost()){S.gold-=bombCost();S.bombUp++;save();keepScroll();toast(`출격 폭탄 ${1+S.bombUp}개`);}}
+  else if(a==='spdup'){if((S.spdUp||0)<SPD_MAX&&S.gold>=spdCost()){S.gold-=spdCost();S.spdUp=(S.spdUp||0)+1;save();keepScroll();toast(`기본 속도 +${S.spdUp*5}%`);}}
   else if(a==='wipe'){if(!wipeArm){wipeArm=true;keepScroll();}else{wipeArm=false;S=defSave();save();renderHangar();toast('진행을 초기화했습니다');}}
   else if(a==='pause'){pause();}
   else if(a==='resume'){resume();}
