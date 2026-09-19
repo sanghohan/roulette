@@ -291,7 +291,7 @@ h3{font-family:var(--disp);font-weight:400;font-size:1.15em;margin:0;letter-spac
           <div style="display:flex;justify-content:space-between"><span class="mini">경험치</span><span class="num" style="font-size:.8em" id="hg-xp"></span></div>
           <div class="bar"><i id="hg-xpbar"></i></div>
         </div>
-        <div class="gold num"><small>GOLD</small><span id="hg-gold">0</span></div>
+        <div class="gold num"><small>CASH</small><span id="hg-gold">$0</span></div>
       </header>
       <nav class="tabs" role="tablist">
         <button class="tab" role="tab" data-tab="ops" id="tab-ops">작전</button>
@@ -390,13 +390,13 @@ const STAGES=[
 ];
 const STAT_DEF=[
  {id:'atk',name:'화력',ds:'주포·스킬 피해 +7%'},
- {id:'arm',name:'장갑',ds:'최대 내구도 +3.3'},
+ {id:'arm',name:'장갑',ds:'최대 내구도 +7.5%'},
  {id:'rate',name:'연사',ds:'주포 연사 속도 +3.5%'},
  {id:'foc',name:'집중',ds:'치명타 +0.6% · 재사용 대기 −1.2%'},
 ];
 const SKILLS={
  homing:{name:'유도 미사일',type:'active',req:1,cd:9,d:l=>`유도 미사일 ${4+l*2}발 · 발당 ${140+l*20}% 피해`},
- magnet:{name:'인양 자석',type:'passive',req:2,d:l=>`캡슐 흡수 범위 +${l*14} · 골드 +${l*8}%`},
+ magnet:{name:'인양 자석',type:'passive',req:2,d:l=>`캡슐 흡수 범위 +${l*14} · 수익 +${l*8}%`},
  barrier:{name:'에너지 방벽',type:'active',req:2,cd:18,d:l=>`${(1.5+l*.5).toFixed(1)}초 무적 · 닿는 탄 소거`},
  pierce:{name:'관통탄',type:'passive',req:3,d:l=>`주포 탄환이 적을 ${l}회 관통`},
  laser:{name:'섬광 레이저',type:'active',req:4,cd:14,d:l=>`${(1.6+l*.3).toFixed(1)}초 관통 광선 · 틱당 ${70+l*15}%`},
@@ -442,9 +442,9 @@ function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSO
 if((o.v||1)<3){if(Array.isArray(o.cleared)){o.cleared.splice(3,0,!!o.cleared[2]&&false);}if(o.best){const nb={};for(const k in o.best)nb[+k>=3?+k+1:k]=o.best[k];o.best=nb;}if((o.sel||0)>=3)o.sel++;o.v=3;}if(!o.tclear){o.tclear={};(o.cleared||[]).forEach((c,i)=>{if(c)o.tclear[i]=0;});}if(o.sfx===false&&o.sfxVol===undefined)o.sfxVol=0;return Object.assign(d,o,{stats:Object.assign(d.stats,o.stats||{})});}}catch(e){}return defSave();}
 let S=loadSave();
 function save(){S.updatedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
-const xpNeed=lv=>Math.round(40*Math.pow(lv,1.45)+20);
+const xpNeed=lv=>Math.round(48*Math.pow(lv,1.55)+22);
 const slotsOpen=lv=>lv>=10?4:lv>=5?3:2;
-const maxHp=()=>Math.round((30+S.stats.arm*3.3+(S.lv-1)*1.33)*PLANES[S.plane||'falcon'].hp);
+const maxHp=()=>Math.round((22+(S.lv-1)*1.6)*(1+S.stats.arm*.075)*PLANES[S.plane||'falcon'].hp);
 const MAX_LV=60;
 const TIERS=[
  {name:'일반',stars:1,add:0,bonus:1,elite:0,bspd:1,fire:1,extra:0,col:'#7BD389'},
@@ -2004,17 +2004,17 @@ function makeDeco(theme){
 let G=null;
 let mode='title';
 const EBASE={
- fighter:{hp:10,r:10,xp:1,gold:1},
+ fighter:{hp:10,r:10,xp:1,gold:0},
  rush:{hp:6,r:8,xp:.8,gold:0},
- bomber:{hp:75,r:20,xp:6,gold:4,hw:32,hh:14},
- turret:{hp:32,r:11,xp:2,gold:1,ground:true},
- tank:{hp:22,r:10,xp:2,gold:2,ground:true},
- ship:{hp:120,r:12,xp:7,gold:5,ground:true,hw:10,hh:34},
- orb:{hp:14,r:9,xp:1.2,gold:1},
- carrier:{hp:26,r:11,xp:2,gold:2},
- heli:{hp:20,r:12,xp:1.8,gold:2},
- part:{hp:0,r:10,xp:4,gold:3},
- mid:{hp:620,r:30,xp:16,gold:10,hw:50,hh:22},
+ bomber:{hp:75,r:20,xp:6,gold:15,hw:32,hh:14},
+ turret:{hp:32,r:11,xp:2,gold:0,ground:true},
+ tank:{hp:22,r:10,xp:2,gold:0,ground:true},
+ ship:{hp:120,r:12,xp:7,gold:22,ground:true,hw:10,hh:34},
+ orb:{hp:14,r:9,xp:1.2,gold:0},
+ carrier:{hp:26,r:11,xp:2,gold:0},
+ heli:{hp:20,r:12,xp:1.8,gold:0},
+ part:{hp:0,r:10,xp:4,gold:6},
+ mid:{hp:620,r:30,xp:16,gold:70,hw:50,hh:22},
 };
 const MIDNAME={human:'중형 폭격기',grey:'대형 비행접시',reptile:'초승달 포함',demon:'마계 전령'};
 const stageLen=si=>136+si*5;
@@ -2050,11 +2050,11 @@ function applyDiff(L){
   G.lvEff=L;G.sup=sup;G.dsi=si;
   const R=G.ramp||1;
   G.hpMul=1.3*(1+L*.35)*sup.ehp*(1+G.tier*.15)*(E?1+w*.04:1);
-  G.dmgMul=(10+L*3.0)*sup.edmg;
+  G.dmgMul=(10+L*1.75)*sup.edmg;
   G.fireMul=(1.22+si*.15)*T.fire*(E?1+Math.min(.8,w*.03):1)*R;
   G.bsp=(162+si*11.5)*T.bspd*(E?1+Math.min(.35,w*.012):1)*(R>1?1.06:1);
   G.goldVal=(2+L*.8)*(1+passLv('magnet')*.08)*T.bonus;
-  G.xpMul=T.bonus;
+  G.xpMul=T.bonus*.75;
   G.eliteP=E?Math.min(.6,.08+w*.03):Math.min(.6,T.elite+.04+si*.01+(R>1?.04:0));
   G.extra=E?Math.min(3,Math.floor(w/5)):T.extra;
 }
@@ -2095,7 +2095,7 @@ function spawnMid(){
   G.mid=e;G.banner={t:2,title:'중간 보스',sub:MIDNAME[fac]||'대형기'};sfx.warn();
 }
 function addEnemy(kind,x,y,o){
-  const b=EBASE[kind],hp=b.hp*G.hpMul;
+  const b=EBASE[kind],hp=b.hp*G.hpMul*(kind==='mid'?1.3:kind==='part'?1:1.6);
   const e=Object.assign({kind,fac:G.st.fac[0],x,y,t:0,hp,maxHp:hp,r:b.r,hw:b.hw,hh:b.hh,flash:0,fire:rand(.8,2.4),cx:x,ground:!!b.ground,entered:false,aim:Math.PI/2},o||{});
   G.enemies.push(e);return e;
 }
@@ -2191,7 +2191,7 @@ function killEnemy(e){
   if(e.boss){
     G.xp+=(80+G.lvEff*45)*G.xpMul;G.kills++;
     for(const q of e.parts)q.dead=true;
-    dropGold(e.x,e.y,18);G.collectAll=true;
+    dropGold(e.x,e.y,34);G.collectAll=true;
     if(G.endless){G.endless.bosses++;G.phase='interlude';G.endT=3;}else{G.phase='clear';G.endT=3.4;}
     G.eb.length=0;G.shake=18;G.flash=.6;sfx.big();
     for(let i=0;i<10;i++)setTimeout(()=>{if(G)explode(e.x+rand(-e.hw,e.hw),e.y+rand(-e.hh,e.hh),26);},i*130);
@@ -2206,7 +2206,8 @@ function killEnemy(e){
   }
   const b=EBASE[e.kind];
   G.kills++;G.xp+=b.xp*(3+G.lvEff*2)*G.xpMul*(e.elite?2.5:1);
-  if(b.gold)dropGold(e.x,e.y,b.gold*(e.elite?2:1));
+  if(b.gold)dropGold(e.x,e.y,Math.round(b.gold*(e.elite?1.8:1)));
+  else if(e.elite)dropGold(e.x,e.y,4);
   const big=e.kind==='bomber'||e.kind==='ship'||e.kind==='mid'||e.part;
   explode(e.x,e.y,big?26:12);
   if(e.ground)G.decals.push({x:e.x,y:e.y,big:big});
@@ -2613,10 +2614,93 @@ function update(dt){
   G.texts=G.texts.filter(t=>t.t<t.life);
   G.shake=Math.max(0,G.shake-dt*30);G.flash=Math.max(0,G.flash-dt);
 }
+/* ---------- boss movement: one signature motion per boss ---------- */
+const BM_CLAMP=(b)=>{b.x=clamp(b.x,b.hw*.55+8,W-b.hw*.55-8);b.y=clamp(b.y,86,205);};
+const BOSS_MOVE={
+  /* 공중 요새: 무겁게 좌우를 훑다가 주기적으로 짓누르듯 내려온다 */
+  fortress(b,d){
+    const m=b.mv,f=b.form===2?1.25:1;
+    const k=Math.sin(b.t*.3*f);
+    b.x=W/2+Math.sign(k)*Math.pow(Math.abs(k),.62)*112;
+    m.t1-=d;
+    if(m.t1<=0){m.t1=7.5/f;m.dip=1.3;}
+    if(m.dip>0){m.dip-=d;const u=1-Math.max(0,m.dip)/1.3;b.y=126+Math.sin(u*Math.PI)*40;}
+    else b.y=126+Math.sin(b.t*.55)*6;
+  },
+  /* 지상 전차: 낮게 붙어 잔걸음, 가끔 플레이어 쪽으로 돌진 */
+  crawler(b,d){
+    const m=b.mv,f=b.form===2?1.3:1;
+    m.t1-=d;
+    if(m.t1<=0&&!m.charge){m.t1=4.2/f;m.charge=.85;m.tx=clamp(G.p.x,60,W-60);}
+    if(m.charge>0){
+      m.charge-=d;b.x+=(m.tx-b.x)*Math.min(1,d*7.5);
+      b.y=152+Math.sin(b.t*9)*2.5;
+    }else{
+      b.x=W/2+Math.sin(b.t*.85*f)*92+Math.sin(b.t*2.9)*11;
+      b.y=150+Math.sin(b.t*1.9)*4;
+    }
+  },
+  /* 기만 보스: 제자리에 머물다 순간이동하듯 쏘아 옮긴다 */
+  impostor(b,d){
+    const m=b.mv,f=b.form===2?.7:1;
+    m.t1-=d;
+    if(m.t1<=0){
+      m.t1=(1.5+Math.random()*.9)*f;m.tx=rand(72,W-72);m.ty=rand(104,168);m.blink=.28;
+      G.parts.push({ty:'flash',x:b.x,y:b.y,vx:0,vy:0,t:0,life:.22,s:1.5});
+    }
+    if(m.blink>0){
+      m.blink-=d;const u=1-Math.max(0,m.blink)/.28,e=1-Math.pow(1-u,3);
+      b.x+=(m.tx-b.x)*Math.min(1,e*.55);b.y+=(m.ty-b.y)*Math.min(1,e*.55);
+    }else b.y+=Math.sin(b.t*3.4)*.35;
+  },
+  /* 그레이 모선: 최면 같은 8자 궤도 */
+  grey(b,d){
+    const f=b.form===2?1.35:1;
+    b.x=W/2+Math.sin(b.t*.55*f)*100;
+    b.y=134+Math.sin(b.t*1.1*f)*26;
+  },
+  /* 거대 방주: 거의 멈춘 채 숨쉬듯 내려왔다 물러난다 */
+  ark(b,d){
+    const m=b.mv,f=b.form===2?1.3:1;
+    b.x=W/2+Math.sin(b.t*.22*f)*46;
+    const br=(Math.sin(b.t*.34*f-Math.PI/2)+1)/2;
+    b.y=104+br*br*72;
+  },
+  /* 렙틸리언 모선: 원을 그리다 플레이어 쪽으로 활강 */
+  reptile(b,d){
+    const m=b.mv,f=b.form===2?1.35:1;
+    m.t1-=d;
+    if(m.t1<=0&&!m.swoop){m.t1=5.5/f;m.swoop=1.1;m.sx=clamp(G.p.x,70,W-70);}
+    if(m.swoop>0){
+      m.swoop-=d;const u=1-Math.max(0,m.swoop)/1.1;
+      b.x+=(m.sx-b.x)*Math.min(1,d*4.2);
+      b.y=126+Math.sin(u*Math.PI)*58;
+    }else{
+      m.a+=d*1.15*f;
+      b.x=W/2+Math.cos(m.a)*86;b.y=132+Math.sin(m.a*2)*20;
+    }
+  },
+  /* 마계: 플레이어를 노리고 급강하했다가 치솟는다 */
+  demon(b,d){
+    const m=b.mv,f=b.form===2?1.35:1;
+    m.t1-=d;
+    if(m.t1<=0){m.t1=(2.3-(b.form===2?.6:0))/f;m.dive=1.2;m.dx2=clamp(G.p.x+rand(-40,40),64,W-64);}
+    if(m.dive>0){
+      m.dive-=d;const u=1-Math.max(0,m.dive)/1.25;
+      b.x+=(m.dx2-b.x)*Math.min(1,d*5.5);
+      b.y=120+Math.sin(u*Math.PI)*76;
+    }else{
+      b.x=W/2+Math.sin(b.t*1.0*f)*78+Math.sin(b.t*2.4)*12;
+      b.y=116+Math.sin(b.t*2.2)*11;
+    }
+  },
+  def(b,d){b.x=W/2+Math.sin(b.t*.42)*(b.form===2?110:85);b.y=132+Math.sin(b.t*.9)*14;},
+};
 function updateBoss(b,d){
   const si=G.dsi,X=G.extra||0;
   if(b.y<130){b.y+=42*d;return;}
-  b.x=W/2+Math.sin(b.t*.42)*(b.form===2?110:85);b.y=132+Math.sin(b.t*.9)*14;
+  if(!b.mv)b.mv={t1:2.2,a:0,dip:0,blink:0,charge:0,swoop:0,dive:0,tx:b.x,ty:b.y,sx:b.x,dx2:b.x};
+  (BOSS_MOVE[b.bk]||BOSS_MOVE.def)(b,d);BM_CLAMP(b);
   if(G.phase!=='boss'||G.p.dead||G.bombT>0)return;
   const armored=b.parts.some(q=>!q.dead);
   const ph=b.form===2?(b.hp/b.maxHp>.25?1:2):0;
@@ -3028,7 +3112,7 @@ function drawHud(){
   if(!G.endless){ctx.fillStyle='#FFB627';ctx.fillRect(W/2-46+80*.45-1,19,2,5);}
   if(G.phase!=='wave'){ctx.fillStyle='#E4572E';ctx.fillRect(W/2+31,18,5,7);}
   txt('XP '+Math.floor(G.xp),W-44,14,'700 10px "Chakra Petch", sans-serif','#5CE1E6','right');
-  txt('G '+Math.floor(G.gold),W-44,27,'700 10px "Chakra Petch", sans-serif','#FFB627','right');
+  txt('$'+Math.floor(G.gold),W-44,27,'700 10px "Chakra Petch", sans-serif','#FFB627','right');
   if(G.sup.gap>0)txt(`레벨 억제 −${Math.round((1-G.sup.pdmg)*100)}% 화력`,W/2,46,'600 10px "IBM Plex Sans KR", sans-serif','#FF8A6B','center');
   if(G.mid&&!G.mid.dead&&G.mid.y>0){
     const m=G.mid,y=G.sup.gap>0?56:44;
@@ -3104,7 +3188,7 @@ function renderHeader(){
   const need=xpNeed(S.lv);
   $('#hg-xp').textContent=S.lv>=MAX_LV?'MAX':`${S.xp} / ${need}`;
   $('#hg-xpbar').style.width=(S.lv>=MAX_LV?100:Math.min(100,S.xp/need*100))+'%';
-  $('#hg-gold').textContent=S.gold.toLocaleString();
+  $('#hg-gold').textContent='$'+S.gold.toLocaleString();
   document.querySelectorAll('.tab').forEach(t=>{
     t.setAttribute('aria-selected',t.dataset.tab===S.tab);
     const label={ops:'작전',pilot:'파일럿',skill:'스킬',shop:'기체'}[t.dataset.tab];
@@ -3204,7 +3288,7 @@ function pilotHTML(){
     <div><span>재사용 대기 감소</span><b>${(Math.min(.4,S.stats.foc*.012)*100).toFixed(0)}%</b></div>
     <div><span>스킬 슬롯</span><b>${slotsOpen(S.lv)} / 4</b></div>
   </div></div>
-  <div class="sec"><button class="btn ghost sm" data-act="respec">스탯 초기화 · ${respecCost()} G</button></div>`;
+  <div class="sec"><button class="btn ghost sm" data-act="respec">스탯 초기화 · $${respecCost().toLocaleString()}</button></div>`;
   return h;
 }
 const respecCost=()=>S.lv*80;
@@ -3272,13 +3356,13 @@ function shopHTML(){
     </div></div>
   <div class="sec"><h3>정비</h3>
     <div class="shop"><div><div class="sn">주포 강화 <span class="num" style="color:var(--amber)">${S.tier} / 10</span></div></div>
-      <button class="btn sm" data-act="tier" ${tNext&&S.gold>=tierCost()?'':'disabled'}>${tNext?`<span class="num">${tierCost()}</span> G`:'MAX'}</button>
+      <button class="btn sm" data-act="tier" ${tNext&&S.gold>=tierCost()?'':'disabled'}>${tNext?`<span class="num">$${tierCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">단계당 주포 피해 +10% · 탄도는 출격 중 P 캡슐로 강화</div></div>
     <div class="shop"><div><div class="sn">폭탄 적재 <span class="num" style="color:var(--amber)">${1+S.bombUp} / 4</span></div></div>
-      <button class="btn sm" data-act="bombup" ${S.bombUp<3&&S.gold>=bombCost()?'':'disabled'}>${S.bombUp<3?`<span class="num">${bombCost()}</span> G`:'MAX'}</button>
+      <button class="btn sm" data-act="bombup" ${S.bombUp<3&&S.gold>=bombCost()?'':'disabled'}>${S.bombUp<3?`<span class="num">$${bombCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">출격 시 가지고 나가는 폭탄 수</div></div>
     <div class="shop"><div><div class="sn">예비 옵션 <span class="num" style="color:var(--amber)">${S.spare} / 2</span></div></div>
-      <button class="btn sm" data-act="spare" ${S.spare<2&&S.gold>=spareCost()?'':'disabled'}>${S.spare<2?`<span class="num">${spareCost()}</span> G`:'MAX'}</button>
+      <button class="btn sm" data-act="spare" ${S.spare<2&&S.gold>=spareCost()?'':'disabled'}>${S.spare<2?`<span class="num">$${spareCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">따라다니며 함께 사격하는 옵션을 처음부터 달고 출격</div></div>
   </div>
   <div class="sec"><h3>캡슐 도감</h3><div class="derived">
@@ -3286,7 +3370,7 @@ function shopHTML(){
   </div><p class="note">편대를 전멸시키거나 붉은 기체를 격추하면 캡슐이 나옵니다. <b>피격당하면 파워가 1단계 내려가고</b>(파워 1이면 옵션이 하나 사라집니다) 캡슐 효과는 해당 출격 동안만 유지됩니다. 금괴는 반짝일 때 먹으면 2배입니다.</p></div>
   <div class="sec"><h3>설정</h3>
     <div class="shop" style="grid-template-columns:1fr">${volHTML()}</div>
-    <div class="shop"><div>진행 초기화<div class="ds">레벨·스킬·골드가 모두 지워집니다</div></div><button class="btn ghost sm" data-act="wipe">${wipeArm?'한 번 더 눌러 확정':'초기화'}</button></div>
+    <div class="shop"><div>진행 초기화<div class="ds">레벨·스킬·자금이 모두 지워집니다</div></div><button class="btn ghost sm" data-act="wipe">${wipeArm?'한 번 더 눌러 확정':'초기화'}</button></div>
     <button class="btn ghost sm" data-act="title">타이틀로</button>
   </div>`;
   return h;
@@ -3331,7 +3415,7 @@ function finishRun(win){
       <div><span>격추</span><b>${G.kills}</b></div>
       <div><span>비행 시간</span><b>${Math.floor(G.t/60)}:${String(Math.floor(G.t%60)).padStart(2,'0')}</b></div>
       <div><span>획득 경험치${xpMul<1?` (×${xpMul.toFixed(2)})`:''}${win||E?'':' ×0.6'}${T.bonus>1&&!E?` · 등급 ×${T.bonus}`:''}</span><b style="color:var(--cyan)">+${xp}</b></div>
-      <div><span>획득 골드${firstClear?` · ${T.name} 첫 클리어`:''}</span><b style="color:var(--amber)">+${gold}</b></div>
+      <div><span>획득 금액${firstClear?` · ${T.name} 첫 클리어`:''}</span><b style="color:var(--amber)">+$${gold.toLocaleString()}</b></div>
     </div>
     ${gained>0?`<div class="lvup"><b>레벨 업 · LV ${oldLv} → ${S.lv}</b><span>스탯 포인트 +${gained*3} · 스킬 포인트 +${gained}</span>${newSk.length?`<span>새 스킬 개방: ${newSk.join(', ')}</span>`:''}${slotMsg?`<span>${slotMsg}</span>`:''}</div>`:''}
     ${newTiers.length?`<div class="lvup" style="border-color:#FF3D6E"><b style="color:#FF8AB0">새 난이도 개방</b><span>${newTiers.join(', ')}</span></div>`:''}
@@ -3350,7 +3434,7 @@ function finishRun(win){
 function showEnding(){
   mode='ending';for(const k in scr)scr[k].hidden=true;skillbar.hidden=true;pauseBtn.hidden=true;
   const el=$('#scr-ending');el.hidden=false;el.scrollTop=0;
-  el.querySelector('.end-stats').textContent=`LV ${S.lv} · 클리어 ${S.cleared.filter(Boolean).length}/${STAGES.length} · 보유 골드 ${S.gold.toLocaleString()}`;
+  el.querySelector('.end-stats').textContent=`LV ${S.lv} · 클리어 ${S.cleared.filter(Boolean).length}/${STAGES.length} · 보유 자금 $${S.gold.toLocaleString()}`;
   sfx.win();
 }
 function startRun(si,tier,endless){
@@ -3410,7 +3494,7 @@ frame.addEventListener('click',e=>{
   else if(a==='respec'){
     const spent=Object.values(S.stats).reduce((x,y)=>x+y,0);
     if(!spent)toast('초기화할 스탯이 없습니다');
-    else if(S.gold<respecCost())toast(`골드가 ${respecCost()-S.gold} 부족합니다`);
+    else if(S.gold<respecCost())toast(`$${(respecCost()-S.gold).toLocaleString()} 부족합니다`);
     else{S.gold-=respecCost();S.pts+=spent;for(const k in S.stats)S.stats[k]=0;save();renderHangar();toast(`스탯 포인트 ${spent} 반환`);}
   }
   else if(a==='learn'){const id=t.dataset.id;if(S.sp>0&&(S.skills[id]||0)<5&&S.lv>=SKILLS[id].req){S.skills[id]=(S.skills[id]||0)+1;S.sp--;save();keepScroll();toast(`${SKILLS[id].name} LV ${S.skills[id]}`);}}
