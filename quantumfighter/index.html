@@ -1742,18 +1742,155 @@ const BOSS_PARTS={
   core:[[0,-56],[0,56],[-56,0],[56,0]],
 };
 const BOSS_BOX={fortress:[58,60],crawler:[64,40],impostor:[76,36],ark:[66,104],grey:[82,22],reptile:[40,96],demon:[86,38],core:[48,48]};
+/* ---- 전선별 인간 폭격기 — 화면에서 가장 큰 일반 몹이라 네 전선이 같으면 티가 난다 ---- */
+const BOMBER_DEF=[
+  {shape:[[0,-18],[8,-12],[38,6],[37,10],[27,8],[20,13],[12,9],[5,13],[0,10]],
+   noz:[[-22,8,1.6],[-12,10.5,1.6],[12,10.5,1.6],[22,8,1.6]],canopy:[-11,2,3.5],span:78},   /* 전익 스텔스 */
+  {shape:[[0,-20],[5,-14],[6,-3],[35,1],[35,6],[7,8],[8,15],[3,19],[0,18]],
+   noz:[[-19,4,1.9],[-11,4,1.9],[11,4,1.9],[19,4,1.9]],canopy:[-13,2.6,3.2],span:76},      /* 구형 직선익 */
+  {shape:[[0,-21],[7,-15],[9,-6],[37,9],[36,13],[11,7],[10,15],[4,18],[0,17]],
+   noz:[[-24,10,2.1],[-14,8,2.1],[14,8,2.1],[24,10,2.1]],canopy:[-14,2,3.6],span:80},      /* 후퇴익 중폭격기 */
+  {shape:[[0,-19],[11,-10],[17,-2],[35,4],[31,10],[17,7],[13,14],[5,12],[0,15]],
+   noz:[[-20,7,1.7],[-9,9,1.7],[9,9,1.7],[20,7,1.7]],canopy:[-10,1,3.4],span:76},          /* 각진 저폴리 */
+];
+function bomberVariant(p,n){
+  const B=BOMBER_DEF[n%4];
+  return hd(82,46,g=>drawJet(g,{len:36,span:B.span,c:p.r,glass:'#5CE1E6',glowLine:rgba(p.y,.6),
+    shape:B.shape,noz:B.noz,canopy:B.canopy}));
+}
+/* ---- 전선별 인간 드론·헬기 — 같은 실루엣이 네 전선에 재탕되던 문제 ---- */
+const DRONE_SHAPE=[
+  [[0,-10],[3,-4],[12,2],[10,5],[4,3],[2,7],[0,6]],          /* 해상 봉쇄: 넓은 스텔스 델타 */
+  [[0,-11],[3.4,-6],[4.6,1],[7,3],[6,6],[3,5],[2,8],[0,7]],  /* 미사일 군도: 뭉툭한 구형 요격기 */
+  [[0,-9],[4,-6],[5,-1],[11,1],[10,4],[5,3],[4,7],[0,6]],    /* 극철 전선: 쌍동 카나드 */
+  [[0,-10],[5,-5],[3,-1],[11,3],[6,4],[4,8],[0,5]],          /* 자율 병기: 각진 저폴리 */
+];
+function droneVariant(p,n){
+  const sp=DRONE_SHAPE[n%4];
+  return hd(26,22,g=>drawJet(g,{len:19,span:24,c:p.k,glass:p.y,shape:sp,
+    glowLine:rgba(p.y,.8),noz:[[0,6,1.1]],eye:[-4,1.1,p.y]}));
+}
+function heliVariant(p,n){
+  const twin=n===2||n===3,tail=n===1?18:15;
+  return hd(28,42,g=>{
+    g.fillStyle=shade(p.r,-.2);g.fillRect(-.9,4,1.8,tail);
+    poly(g,[[-4,tail+1],[4,tail+1],[4,tail+3],[-4,tail+3]]);g.fillStyle=shade(p.r,-.1);g.fill();
+    for(const sg of[-1,1]){
+      poly(g,[[sg*3,-3],[sg*11,-2],[sg*11,2],[sg*3,3]]);
+      g.fillStyle=lin(g,0,-3,0,3,[[0,shade(p.r,.2)],[1,shade(p.r,-.4)]]);g.fill();g.lineWidth=.45;g.strokeStyle=EDGE;g.stroke();
+      const pods=twin?[-3.5,1.5]:[-3.5];
+      for(const py of pods){g.fillStyle='#2A2E34';g.fillRect(sg*9.2-1.3,py,2.6,5.4);g.fillStyle='#FF4A3D';g.fillRect(sg*9.2-1.3,py-.4,2.6,.9);}
+    }
+    g.beginPath();g.ellipse(0,-2,n===1?5.4:4.6,n===3?9:10.5,0,0,TAU);
+    g.fillStyle=lin(g,-5,0,5,0,[[0,shade(p.r,.45)],[.45,p.r],[1,shade(p.r,-.5)]]);g.fill();g.lineWidth=.55;g.strokeStyle=EDGE;g.stroke();
+    g.beginPath();g.ellipse(0,-7.8,2.8,3.8,0,0,TAU);
+    g.fillStyle=lin(g,-2,-11,2,-4,[[0,'#E6FBFF'],[.4,'#5CE1E6'],[1,'#0E3A4A']]);g.fill();
+    if(n===3){g.strokeStyle=rgba(p.y||'#5CE1E6',.7);g.lineWidth=.7;g.beginPath();g.moveTo(-3,3);g.lineTo(3,3);g.stroke();}
+    g.fillStyle='#1A1D22';g.fillRect(-.6,-14,1.2,3.2);
+    sheen(g,28,42);
+  });
+}
+/* ---- 세력별 지상 함선(세로형)과 수송기 — 폭격기·수송기 중복 제거 ---- */
+function greyBarge(p){return hd(28,76,g=>{
+  const hull=()=>{g.beginPath();g.moveTo(0,-36);g.bezierCurveTo(9,-30,11,-12,11,4);g.lineTo(9,32);g.quadraticCurveTo(0,38,-9,32);g.lineTo(-11,4);g.bezierCurveTo(-11,-12,-9,-30,0,-36);g.closePath();};
+  hull();g.fillStyle=lin(g,-11,0,11,0,[[0,shade(p.h,.12)],[.45,p.r],[1,shade(p.k,.08)]]);g.fill();g.lineWidth=.8;g.strokeStyle=EDGE;g.stroke();
+  g.save();hull();g.clip();
+  g.fillStyle='rgba(0,0,0,.24)';for(let y=-28;y<34;y+=6)g.fillRect(-12,y,24,1.1);
+  g.fillStyle='rgba(255,255,255,.10)';for(let y=-27;y<34;y+=6)g.fillRect(-12,y,24,.5);
+  g.fillStyle=rgba(p.y,.45);g.fillRect(-1.7,-26,3.4,54);
+  g.restore();
+  for(const sg of[-1,1]){
+    g.fillStyle=shade(p.k,.28);poly(g,[[sg*10,-10],[sg*15.5,-3],[sg*15.5,10],[sg*10,16]]);g.fill();g.lineWidth=.6;g.strokeStyle=EDGE;g.stroke();
+    g.fillStyle=rad(g,sg*13,3.5,0,3.6,[[0,'#FFFFFF'],[.4,p.y],[1,rgba(p.y,0)]]);g.beginPath();g.arc(sg*13,3.5,3.6,0,TAU);g.fill();
+  }
+  g.fillStyle=rad(g,0,-24,0,7,[[0,'#FFFFFF'],[.42,p.y],[1,rgba(p.y,0)]]);g.beginPath();g.arc(0,-24,7,0,TAU);g.fill();
+  sheen(g,28,76);
+});}
+function greyCarrier(p){return hd(38,32,g=>{
+  g.beginPath();g.ellipse(0,-3,16,9,0,0,TAU);
+  g.fillStyle=lin(g,0,-12,0,6,[[0,shade(p.h,.22)],[.5,p.r],[1,shade(p.k,.12)]]);g.fill();g.lineWidth=.8;g.strokeStyle=EDGE;g.stroke();
+  g.strokeStyle=shade(p.k,.32);g.lineWidth=2.6;
+  for(const sg of[-1,1]){g.beginPath();g.moveTo(sg*10,3);g.quadraticCurveTo(sg*15,10,sg*11,15);g.stroke();}
+  g.beginPath();g.ellipse(0,-5,7.5,4.2,0,0,TAU);
+  g.fillStyle=rad(g,0,-5,0,7.5,[[0,'#FFFFFF'],[.45,p.y],[1,shade(p.k,-.15)]]);g.fill();g.lineWidth=.5;g.strokeStyle=EDGE;g.stroke();
+  g.fillStyle=rad(g,0,13,0,10,[[0,rgba(p.y,.62)],[1,rgba(p.y,0)]]);g.beginPath();g.arc(0,13,10,0,TAU);g.fill();
+  sheen(g,38,32);
+});}
+function reptBarge(p){return hd(28,76,g=>{
+  const hull=()=>{g.beginPath();g.moveTo(0,-37);g.bezierCurveTo(8,-28,11,-10,10,6);g.bezierCurveTo(9,24,6,32,0,37);g.bezierCurveTo(-6,32,-9,24,-10,6);g.bezierCurveTo(-11,-10,-8,-28,0,-37);g.closePath();};
+  hull();g.fillStyle=lin(g,-10,0,10,0,[[0,shade(p.h,.05)],[.45,p.r],[1,shade(p.k,.12)]]);g.fill();g.lineWidth=.8;g.strokeStyle=EDGE;g.stroke();
+  g.save();hull();g.clip();scales(g,28,76,'rgba(0,0,0,.28)');g.restore();
+  g.fillStyle=shade(p.k,.22);
+  for(let i=0;i<7;i++){const y=-28+i*9;poly(g,[[-2.4,y],[0,y-5],[2.4,y]]);g.fill();}
+  for(const sg of[-1,1]){g.fillStyle=shade(p.k,.15);poly(g,[[sg*9,-6],[sg*15,2],[sg*13,9],[sg*9,8]]);g.fill();g.lineWidth=.6;g.strokeStyle=EDGE;g.stroke();}
+  g.beginPath();g.ellipse(0,-22,5.5,4,0,0,TAU);
+  g.fillStyle=rad(g,0,-22,0,5.5,[[0,'#FFF0B0'],[.5,p.y],[1,shade(p.y,-.6)]]);g.fill();
+  g.fillStyle='#0A0602';g.beginPath();g.ellipse(0,-22,1,3.6,0,0,TAU);g.fill();
+  sheen(g,28,76);
+});}
+function reptCarrier(p){return hd(38,32,g=>{
+  g.beginPath();g.moveTo(0,-13);g.bezierCurveTo(13,-10,17,0,14,9);g.bezierCurveTo(7,14,-7,14,-14,9);g.bezierCurveTo(-17,0,-13,-10,0,-13);g.closePath();
+  g.fillStyle=lin(g,0,-13,0,13,[[0,shade(p.h,.08)],[.5,p.r],[1,shade(p.k,.1)]]);g.fill();g.lineWidth=.8;g.strokeStyle=EDGE;g.stroke();
+  g.save();g.clip();scales(g,38,32,'rgba(0,0,0,.26)');g.restore();
+  for(const [ex,ey,er] of [[-7,3,4.2],[0,5,4.8],[7,3,4.2]]){
+    g.beginPath();g.ellipse(ex,ey,er*.78,er,0,0,TAU);
+    g.fillStyle=rad(g,ex-1,ey-1.5,0,er,[[0,shade(p.w,.3)],[.6,p.w],[1,shade(p.g,.1)]]);g.fill();
+    g.lineWidth=.5;g.strokeStyle=EDGE;g.stroke();
+    g.fillStyle=rgba(p.y,.5);g.beginPath();g.ellipse(ex,ey+.5,er*.34,er*.5,0,0,TAU);g.fill();
+  }
+  g.fillStyle=shade(p.k,.25);for(const sg of[-1,1]){poly(g,[[sg*12,-6],[sg*18,-2],[sg*13,3]]);g.fill();}
+  sheen(g,38,32);
+});}
+function demonBarge(p){return hd(28,76,g=>{
+  const hull=()=>{g.beginPath();g.moveTo(0,-36);g.lineTo(8,-24);g.lineTo(10,2);g.lineTo(7,30);g.lineTo(0,37);g.lineTo(-7,30);g.lineTo(-10,2);g.lineTo(-8,-24);g.closePath();};
+  hull();g.fillStyle=lin(g,-10,0,10,0,[[0,shade(p.h,.02)],[.4,p.r],[1,shade(p.k,.14)]]);g.fill();g.lineWidth=.8;g.strokeStyle=EDGE;g.stroke();
+  g.save();hull();g.clip();
+  g.strokeStyle='rgba(0,0,0,.35)';g.lineWidth=.7;
+  for(let i=0;i<9;i++){g.beginPath();g.moveTo(-10,-30+i*8);g.lineTo(10,-26+i*8);g.stroke();}
+  g.restore();
+  g.fillStyle=shade(p.k,.3);
+  for(const sg of[-1,1])for(let i=0;i<4;i++){const y=-20+i*13;poly(g,[[sg*9,y],[sg*16,y+3],[sg*9,y+6]]);g.fill();}
+  g.beginPath();g.ellipse(0,-6,6.5,8,0,0,TAU);
+  g.fillStyle=rad(g,0,-6,0,8,[[0,'#FFF3C8'],[.35,p.y2],[.7,p.y],[1,rgba(p.y,0)]]);g.fill();
+  g.fillStyle=rgba(p.y,.35);g.beginPath();g.ellipse(0,-6,10,12,0,0,TAU);g.fill();
+  sheen(g,28,76);
+});}
+function demonCarrier(p){return hd(38,32,g=>{
+  poly(g,[[0,-12],[11,-7],[15,2],[8,12],[-8,12],[-15,2],[-11,-7]]);
+  g.fillStyle=lin(g,0,-12,0,12,[[0,shade(p.h,.05)],[.5,p.r],[1,shade(p.k,.12)]]);g.fill();g.lineWidth=.8;g.strokeStyle=EDGE;g.stroke();
+  g.strokeStyle=shade(p.k,.35);g.lineWidth=2.2;
+  for(const sg of[-1,1]){g.beginPath();g.moveTo(sg*8,-9);g.quadraticCurveTo(sg*17,-14,sg*15,-3);g.stroke();}
+  g.beginPath();g.ellipse(0,3,7,5,0,0,TAU);g.fillStyle=shade(p.k,-.1);g.fill();
+  g.fillStyle=rad(g,0,3,0,7,[[0,'#FFF6D8'],[.3,p.y2],[.65,p.y],[1,rgba(p.y,0)]]);g.beginPath();g.ellipse(0,3,6,4.2,0,0,TAU);g.fill();
+  g.fillStyle=rgba(p.y,.3);g.beginPath();g.ellipse(0,1,11,9,0,0,TAU);g.fill();
+  sheen(g,38,32);
+});}
+/* 인간 정찰 구체 — 돌격 드론과 실루엣을 확실히 구분 */
+function reconOrb(p){return hd(24,24,g=>{
+  g.beginPath();g.arc(0,0,9,0,TAU);
+  g.fillStyle=rad(g,-3,-3.5,1,11,[[0,shade(p.r,.45)],[.55,p.r],[1,shade(p.k,-.1)]]);g.fill();g.lineWidth=.7;g.strokeStyle=EDGE;g.stroke();
+  g.save();g.beginPath();g.arc(0,0,9,0,TAU);g.clip();
+  g.fillStyle='rgba(0,0,0,.30)';g.fillRect(-9,-1.4,18,2.8);
+  g.fillStyle='rgba(255,255,255,.14)';g.beginPath();g.ellipse(-3,-4,5,2.6,-.4,0,TAU);g.fill();
+  g.restore();
+  g.beginPath();g.arc(0,2.4,3.4,0,TAU);
+  g.fillStyle=rad(g,0,2.4,0,3.4,[[0,'#FFFFFF'],[.4,p.y||'#FFB627'],[1,'rgba(0,0,0,.4)']]);g.fill();
+  g.strokeStyle=shade(p.k,.3);g.lineWidth=1.3;
+  for(const sg of[-1,1]){g.beginPath();g.moveTo(sg*7,-5);g.lineTo(sg*10.5,-9);g.stroke();}
+  sheen(g,24,24);
+});}
 const FAC_BUILD={
-  human:p=>({fighter:hd(32,34,g=>{g.rotate(Math.PI);drawJet(g,ENEMY_JET_UNUSED(p));}),rush:droneSprite(p),bomber:bomberSprite(p),heli:heliBody(p),orb:droneSprite(p),turret:turretBase(p,26),walker:tankBody(p),walkerTop:tankTurret(p),ship:shipBody(p),shipTop:tankTurret(p,true),
+  human:(p,si)=>({fighter:hd(32,34,g=>{g.rotate(Math.PI);drawJet(g,ENEMY_JET_UNUSED(p));}),rush:droneVariant(p,si||0),bomber:bomberVariant(p,si||0),heli:heliVariant(p,si||0),orb:reconOrb(p),turret:turretBase(p,26),walker:tankBody(p),walkerTop:tankTurret(p),ship:shipBody(p),shipTop:tankTurret(p,true),
     carrier:hd(32,34,g=>{g.rotate(Math.PI);drawJet(g,Object.assign(ENEMY_JET_UNUSED({r:'#C8322B',y:'#FFE08A'}),{stripe:'rgba(255,224,138,.8)'}));})}),
-  grey:p=>({fighter:saucer(p,13,{pilot:true}),rush:probe(p),bomber:saucer(p,28,{seg:16,dome:.3}),heli:ringDrone(p),orb:hd(22,22,g=>{g.fillStyle=rad(g,0,0,1,10,[[0,'#FFFFFF'],[.3,p.y],[.6,rgba(p.y2,.6)],[1,rgba(p.y2,0)]]);g.beginPath();g.arc(0,0,10,0,TAU);g.fill();g.strokeStyle=rgba('#FFFFFF',.7);g.lineWidth=.6;g.beginPath();g.ellipse(0,0,9,3,.5,0,TAU);g.stroke();}),turret:greyPod(p),walker:walkerBody(p,'grey'),ship:saucer(p,26,{seg:16,dome:.3})}),
-  reptile:p=>({fighter:reptTri(p),rush:reptDart(p),bomber:reptCrescent(p),heli:hd(26,26,g=>{for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4;g.strokeStyle=shade(p.k,.2);g.lineWidth=1.6;g.beginPath();g.moveTo(Math.cos(a)*6,Math.sin(a)*6);g.quadraticCurveTo(Math.cos(a+.3)*11,Math.sin(a+.3)*11,Math.cos(a+.1)*12,Math.sin(a+.1)*12);g.stroke();}g.drawImage(hive(p).img,-13,-13,26,26);}),orb:reptEgg(p),turret:hive(p),walker:walkerBody(p,'reptile'),ship:reptCrescent(p)}),
-  demon:p=>({fighter:batShip(p),rush:skull(p),bomber:demonWing(p),heli:floatEye(p),orb:fireOrb(p),turret:spire(p),walker:walkerBody(p,'demon'),ship:demonWing(p)}),
+  grey:p=>({fighter:saucer(p,13,{pilot:true}),rush:probe(p),bomber:saucer(p,28,{seg:16,dome:.3}),heli:ringDrone(p),orb:hd(22,22,g=>{g.fillStyle=rad(g,0,0,1,10,[[0,'#FFFFFF'],[.3,p.y],[.6,rgba(p.y2,.6)],[1,rgba(p.y2,0)]]);g.beginPath();g.arc(0,0,10,0,TAU);g.fill();g.strokeStyle=rgba('#FFFFFF',.7);g.lineWidth=.6;g.beginPath();g.ellipse(0,0,9,3,.5,0,TAU);g.stroke();}),turret:greyPod(p),walker:walkerBody(p,'grey'),ship:greyBarge(p),carrier:greyCarrier(p)}),
+  reptile:p=>({fighter:reptTri(p),rush:reptDart(p),bomber:reptCrescent(p),heli:hd(26,26,g=>{for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4;g.strokeStyle=shade(p.k,.2);g.lineWidth=1.6;g.beginPath();g.moveTo(Math.cos(a)*6,Math.sin(a)*6);g.quadraticCurveTo(Math.cos(a+.3)*11,Math.sin(a+.3)*11,Math.cos(a+.1)*12,Math.sin(a+.1)*12);g.stroke();}g.drawImage(hive(p).img,-13,-13,26,26);}),orb:reptEgg(p),turret:hive(p),walker:walkerBody(p,'reptile'),ship:reptBarge(p),carrier:reptCarrier(p)}),
+  demon:p=>({fighter:batShip(p),rush:skull(p),bomber:demonWing(p),heli:floatEye(p),orb:fireOrb(p),turret:spire(p),walker:walkerBody(p,'demon'),ship:demonBarge(p),carrier:demonCarrier(p)}),
 };
 const stageSprCache={};
 function ensureFac(o,si,f){
   if(o.fac[f])return;
   {
-    const p=f==='human'?Object.assign({},EPAL[si],{eb:FAC.human.eb}):FAC[f],b=FAC_BUILD[f](p),m={};
+    const p=f==='human'?Object.assign({},EPAL[si],{eb:FAC.human.eb}):FAC[f],b=FAC_BUILD[f](p,si),m={};
     if(!b.carrier)b.carrier=saucer(p,13,{c:'#E0B040',glass:'#FFE08A',pilot:f==='grey'});
     for(const k in b){m[k]=armor(b[k],k==='orb'||k==='rush'?1.1:1.4);if(k.endsWith('Top'))continue;m[k+'W']=tint(m[k],'#FFFFFF');m[k+'Sh']=tint(m[k],'#000000');}
     m.eb={o:ebSprite(4.3,p.eb[0]),b:ebSprite(6.3,p.eb[1]),n:ebNeedle(p.eb[2])};
@@ -3972,8 +4109,10 @@ function loop(now){
       sheen(g, 28, 80);
     });
   }
-  FAC_BUILD.human = p => {
-    const b = originalHumanBuild(p);
+  FAC_BUILD.human = (p, si) => {
+    /* 전선 번호를 흘리면 네 전선이 전부 1번 변형으로 굳는다 */
+    const n = si !== undefined ? si : (p.frontIndex || 0);
+    const b = originalHumanBuild(p, n);
     b.fighter = hd(34, 36, g => { g.rotate(Math.PI); drawJet(g, nationalJet(p)); });
     const cp = Object.assign({}, p, { r: '#AD493C' });
     b.carrier = hd(34, 36, g => { g.rotate(Math.PI); drawJet(g, nationalJet(cp, true)); });
