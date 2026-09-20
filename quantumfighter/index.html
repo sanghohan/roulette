@@ -408,8 +408,8 @@ const SKILLS={
  nano:{name:'나노 수복',type:'passive',req:7,d:l=>`초당 최대 내구도 ${(.3+l*.25).toFixed(2)}% 회복`},
  chrono:{name:'시간 왜곡',type:'active',req:9,cd:22,only:'saucer',d:l=>`${3+l}초간 적과 적탄 감속`},
  clone:{name:'분신술',type:'active',req:10,cd:24,only:'saucer',d:l=>`분신 2기 ${(4+l*.8).toFixed(1)}초 · 주포 ${40+l*8}% 위력`},
- gravity:{name:'중력 조작',type:'active',req:7,cd:26,d:l=>`${(2+l*.4).toFixed(1)}초간 일반 적 기체를 추락시킨다 · 중간보스와 보스에는 통하지 않는다`},
- nova:{name:'노바 폭격',type:'active',req:12,cd:28,d:l=>`탄막 소거 + 화면 전체 ${500+l*150}% 피해`},
+ gravity:{name:'중력 조작',type:'active',req:7,cd:26,only:'saucer',d:l=>`${(2+l*.4).toFixed(1)}초간 일반 적 기체를 추락시킨다 · 중간보스와 보스에는 통하지 않는다`},
+ nova:{name:'노바 폭격',type:'active',req:12,cd:28,only:'saucer',d:l=>`탄막 소거 + 화면 전체 ${500+l*150}% 피해`},
 };
 const SK_ORDER=Object.keys(SKILLS);
 const SYNERGY=[
@@ -1312,6 +1312,14 @@ function buildSprites(){
        hot:[[0,'#FFF4EE'],[.26,'#FFC3B0'],[.55,'#E4614C'],[.82,'#A93129'],[1,'#5E1616']],
        sh:'rgba(14,3,3,.5)',edge:'#2E080A',ink:'rgba(46,10,12,.5)',med:'rgba(48,12,14,.45)',glyph:'#33090B',
        face:'rgba(255,236,230,.24)',faceHot:'rgba(255,255,255,.34)'},
+    v:{cool:[[0,'#F6EEFF'],[.26,'#D4B4F5'],[.55,'#8E4FD6'],[.82,'#5A2590'],[1,'#26093F']],
+       hot:[[0,'#FFFFFF'],[.26,'#ECD9FF'],[.55,'#B173EE'],[.82,'#7436AE'],[1,'#350F57']],
+       sh:'rgba(10,2,16,.5)',edge:'#1E0733',ink:'rgba(38,12,60,.5)',med:'rgba(42,14,66,.45)',glyph:'#230A38',
+       face:'rgba(246,238,255,.30)',faceHot:'rgba(255,255,255,.40)'},
+    p:{cool:[[0,'#F2FEFF'],[.26,'#BFEFF6'],[.55,'#5FC9DC'],[.82,'#2A7E93'],[1,'#103A47']],
+       hot:[[0,'#FFFFFF'],[.26,'#E2FAFF'],[.55,'#8FE4F2'],[.82,'#3E9CB4'],[1,'#17505F']],
+       sh:'rgba(2,12,14,.5)',edge:'#082630',ink:'rgba(10,44,54,.5)',med:'rgba(12,48,58,.45)',glyph:'#0A2C38',
+       face:'rgba(232,252,255,.28)',faceHot:'rgba(255,255,255,.38)'},
     g:{cool:[[0,'#FFF8DC'],[.26,'#FFDE8E'],[.55,'#DFA736'],[.82,'#A2701A'],[1,'#553608']],
        hot:[[0,'#FFFDF0'],[.26,'#FFEFB6'],[.55,'#F5C455'],[.82,'#C08A22'],[1,'#6B460C']],
        sh:'rgba(14,10,2,.5)',edge:'#3A2706',ink:'rgba(58,39,6,.5)',med:'rgba(60,42,8,.45)',glyph:'#3F2A06',
@@ -2359,9 +2367,9 @@ function dropCap(x,y,type){
   G.items.push({x,y,t:0,type:t});sfx.ready();
 }
 /* 지폐 액면: $15 녹색 · $30 적색 · $50 금색. 총액은 그대로 두고 화면에 뿌려지는 장수만 줄인다 */
-const CASH_DEN=[50,30,15];
-const CASH_COL={n:'#C7EFA6',r:'#FF9E8C',g:'#FFE08A'};
-const cashKind=v=>v>=45?'g':v>=26?'r':'n';
+const CASH_DEN=[200,100,50,30,15];
+const CASH_COL={n:'#C7EFA6',r:'#FF9E8C',g:'#FFE08A',p:'#A8F0FF',v:'#D9B4FF'};
+const cashKind=v=>v>=180?'v':v>=90?'p':v>=45?'g':v>=26?'r':'n';
 function dropGold(x,y,n){
   /* 1.34 = 예전 '반짝일 때 2배' 보너스의 기댓값 — 액면에 흡수해 수입 총량은 그대로 */
   let V=Math.max(1,Math.round(n*Math.max(.6,G.goldVal)*1.34)),out=[];
@@ -3508,7 +3516,7 @@ function drawItem(it){
   const x=it.x,y=it.y;
   if(it.gold){
     // cash note: flat and flipping, never mistakable for a bullet
-    const k=it.k||'n',shine=(it.t%1)<.34,sy=Math.abs(Math.cos(it.t*3.6))*.6+.4,sc=k==='g'?1.26:k==='r'?1.12:1;
+    const k=it.k||'n',shine=(it.t%1)<.34,sy=Math.abs(Math.cos(it.t*3.6))*.6+.4,sc=k==='v'?1.58:k==='p'?1.42:k==='g'?1.26:k==='r'?1.12:1;
     ctx.globalAlpha=.32;drawS(SPR.cashSh[k],x+1.5,y+3,0,sc,sy*.9*sc);ctx.globalAlpha=1;
     drawS(shine?SPR.cashHot[k]:SPR.cash[k],x,y,Math.sin(it.t*1.6)*.16,sc,sy*sc);
     if(shine){
@@ -3672,7 +3680,7 @@ function renderHeader(){
   document.querySelectorAll('.tab').forEach(t=>{
     t.setAttribute('aria-selected',t.dataset.tab===S.tab);
     const label={ops:'작전',pilot:'파일럿',skill:'스킬',shop:'기체'}[t.dataset.tab];
-    const dot=(t.dataset.tab==='ops'&&availableTiers().some(x=>!(S.seenTiers||[]).includes(x)))||(t.dataset.tab==='pilot'&&S.pts>0)||(t.dataset.tab==='skill'&&S.sp>0&&SK_ORDER.some(id=>SKILLS[id].req<=S.lv&&(S.skills[id]||0)<5))||(t.dataset.tab==='shop'&&PLANE_ORDER.some(id=>(!PLANES[id].hidden||S.ufo)&&PLANES[id].req<=S.lv&&!(S.seenPlanes||[]).includes(id)));
+    const dot=(t.dataset.tab==='ops'&&availableTiers().some(x=>!(S.seenTiers||[]).includes(x)))||(t.dataset.tab==='pilot'&&S.pts>0)||(t.dataset.tab==='skill'&&S.sp>0&&SK_ORDER.some(id=>skillShown(id)&&SKILLS[id].req<=S.lv&&(S.skills[id]||0)<5))||(t.dataset.tab==='shop'&&PLANE_ORDER.some(id=>(!PLANES[id].hidden||S.ufo)&&PLANES[id].req<=S.lv&&!(S.seenPlanes||[]).includes(id)));
     t.innerHTML=label+(dot?'<span class="dot" aria-label="사용 가능한 포인트"></span>':'');
   });
 }
@@ -3772,19 +3780,21 @@ function pilotHTML(){
   return h;
 }
 const respecCost=()=>S.lv*80;
+const skillShown=id=>{const k=SKILLS[id];return !k.only||k.only===S.plane;};
 function skillHTML(){
   const open=slotsOpen(S.lv),syns=activeSynergies();
   let h=`<div class="sec"><div class="sec-h"><h3>장착 슬롯</h3><span class="mini">SP <span class="num" style="color:var(--amber);font-size:1.3em">${S.sp}</span></span></div><div class="slots">`;
   for(let i=0;i<4;i++){
     const id=S.equip[i];
     if(i>=open)h+=`<div class="slot lock"><span class="k">${i+1}</span>LV ${i===2?5:10} 개방</div>`;
-    else if(id)h+=`<button class="slot on" data-act="unequip" data-i="${i}" aria-label="${SKILLS[id].name} 해제"><span class="k">${i+1}</span>${svg(id)}${SKILLS[id].name}</button>`;
+    else if(id&&skillShown(id))h+=`<button class="slot on" data-act="unequip" data-i="${i}" aria-label="${SKILLS[id].name} 해제"><span class="k">${i+1}</span>${svg(id)}${SKILLS[id].name}</button>`;
     else h+=`<div class="slot"><span class="k">${i+1}</span>비어 있음</div>`;
   }
   h+=`</div></div><div class="sec"><div class="sec-h"><h3>조합 효과</h3><span class="mini">두 스킬을 함께 장착</span></div><div class="syn">`;
-  SYNERGY.forEach(s=>{h+=`<div class="${syns.has(s.id)?'act':''}"><b>${s.name}</b><span class="rq">${s.req.map(r=>SKILLS[r].name).join(' + ')}</span><span class="ds">${s.d}</span></div>`;});
+  SYNERGY.filter(s=>s.req.every(skillShown)).forEach(s=>{h+=`<div class="${syns.has(s.id)?'act':''}"><b>${s.name}</b><span class="rq">${s.req.map(r=>SKILLS[r].name).join(' + ')}</span><span class="ds">${s.d}</span></div>`;});
   h+=`</div></div><div class="sec"><h3>스킬 목록</h3><div>`;
   SK_ORDER.forEach(id=>{
+    if(!skillShown(id))return;
     const k=SKILLS[id],lv=S.skills[id]||0,lock=S.lv<k.req,eq=equipped(id);
     const pips=Array.from({length:5},(_,n)=>`<i class="${n<lv?'f':''}"></i>`).join('');
     let acts='';
@@ -3798,7 +3808,7 @@ function skillHTML(){
       <div class="ic">${svg(id)}</div>
       <div class="nm">${k.name}<span class="chip ${k.type==='active'?'c-clear':'c-ok'}">${k.type==='active'?'액티브':'패시브'}</span>${k.only?`<span class="chip c-warn">${onlyName} 전용</span>`:''}<span class="pip">${pips}</span></div>
       <div class="acts">${acts}</div>
-      <div class="ds">${k.d(Math.max(1,lv))}${k.cd?` · 대기 ${cdOf(id).toFixed(1)}초`:''}${k.only&&S.plane!==k.only?` · <b style="color:var(--amber)">${onlyName}(으)로 출격해야 발동</b>`:''}</div>
+      <div class="ds">${k.d(Math.max(1,lv))}${k.cd?` · 대기 ${cdOf(id).toFixed(1)}초`:''}</div>
     </div>`;
   });
   return h+'</div></div>';
