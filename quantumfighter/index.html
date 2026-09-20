@@ -401,11 +401,14 @@ const SKILLS={
  magnet:{name:'인양 자석',type:'passive',req:2,d:l=>`캡슐 흡수 범위 +${l*14} · 수익 +${l*8}%`},
  barrier:{name:'에너지 방벽',type:'active',req:2,cd:18,d:l=>`${(1.5+l*.5).toFixed(1)}초 무적 · 닿는 탄 소거`},
  pierce:{name:'관통탄',type:'passive',req:3,d:l=>`주포 탄환이 적을 ${l}회 관통`},
- laser:{name:'섬광 레이저',type:'active',req:4,cd:14,d:l=>`${(1.6+l*.3).toFixed(1)}초 관통 광선 · 틱당 ${70+l*15}%`},
+ laser:{name:'섬광 레이저',type:'active',req:4,cd:14,only:'saucer',d:l=>`${(1.6+l*.3).toFixed(1)}초 관통 광선 · 틱당 ${70+l*15}%`},
+ warp:{name:'공간 왜곡',type:'active',req:5,cd:15,only:'saucer',d:l=>`전방 ${120+l*20}px 도약 · 경로의 적탄 소거 · ${(.5+l*.1).toFixed(1)}초 무적`},
  crit:{name:'약점 포착',type:'passive',req:5,d:l=>`치명타 확률 +${l*6}% (치명타 2배)`},
  drones:{name:'호위 드론',type:'active',req:6,cd:22,d:l=>`드론 2기 ${6+l*2}초 · 발당 ${40+l*10}%`},
  nano:{name:'나노 수복',type:'passive',req:7,d:l=>`초당 최대 내구도 ${(.3+l*.25).toFixed(2)}% 회복`},
- chrono:{name:'시간 왜곡',type:'active',req:9,cd:22,d:l=>`${3+l}초간 적과 적탄 감속`},
+ chrono:{name:'시간 왜곡',type:'active',req:9,cd:22,only:'saucer',d:l=>`${3+l}초간 적과 적탄 감속`},
+ clone:{name:'분신술',type:'active',req:10,cd:24,only:'saucer',d:l=>`분신 2기 ${(4+l*.8).toFixed(1)}초 · 주포 ${40+l*8}% 위력`},
+ gravity:{name:'중력 조작',type:'active',req:7,cd:26,d:l=>`${(2+l*.4).toFixed(1)}초간 일반 적 기체를 추락시킨다 · 중간보스와 보스에는 통하지 않는다`},
  nova:{name:'노바 폭격',type:'active',req:12,cd:28,d:l=>`탄막 소거 + 화면 전체 ${500+l*150}% 피해`},
 };
 const SK_ORDER=Object.keys(SKILLS);
@@ -418,6 +421,9 @@ const SYNERGY=[
  {id:'deadeye',name:'데드아이',req:['chrono','crit'],d:'시간 왜곡 중 치명타 확률 +35%'},
 ];
 const ICON={
+ warp:'<path d="M4 12h6l-3-4"/><path d="M20 12h-6l3 4"/><circle cx="12" cy="12" r="2.5"/>',
+ clone:'<path d="M9 4l4 6-4 6"/><path d="M15 8l4 6-4 6"/><circle cx="6" cy="14" r="2"/>',
+ gravity:'<path d="M12 3v10"/><path d="M8 10l4 4 4-4"/><path d="M4 19h16"/>',
  homing:'<path d="M5 19c0-8 5-12 13-13"/><path d="M13 3l5 3-3 5"/><circle cx="5" cy="19" r="1.5"/>',
  barrier:'<path d="M12 2l8 4.5v9L12 20l-8-4.5v-9z"/><path d="M12 7v8"/>',
  laser:'<path d="M12 2v20"/><path d="M8 5v14M16 5v14" opacity=".5"/>',
@@ -2219,8 +2225,9 @@ function newRun(si,tier,endless){
     p:{x:W/2,y:H+40,hp:mh,maxHp:mh,inv:2.2,fire:0,mfire:0,trail:[],speedLv:0,missileLv:0,weapon:'normal',wLv:1,opts:S.spare,force:0,dead:false,tilt:0,power:1},
     bullets:[],eb:[],enemies:[],items:[],parts:[],texts:[],rings:[],decals:[],allies:[],
     forms:{},fid:0,kills:0,xp:0,gold:0,shake:0,flash:0,banner:endless?{t:3.6,title:'무한 공역',sub:'ENDLESS · WAVE 1',story:st.story}:{t:3.6,title:st.name,sub:(st.act===1?'1부 · 독재자 전쟁':'2부 · 외계 침공')+' · '+st.code+' · '+T.name,story:st.story},wing:[],wingT:6,curFac:null,
-    sk:S.equip.map((id,i)=>id&&i<slotsOpen(S.lv)&&S.skills[id]?{id,lv:S.skills[id],cd:0}:null),
-    laser:0,laserTick:0,chrono:0,barrier:0,drones:0,droneFire:0,swarmT:0,droneAng:0,
+    /* 기체 전용 스킬은 해당 기체로 출격했을 때만 발동한다 */
+    sk:S.equip.map((id,i)=>id&&i<slotsOpen(S.lv)&&S.skills[id]&&(!SKILLS[id].only||SKILLS[id].only===S.plane)?{id,lv:S.skills[id],cd:0}:null),
+    laser:0,laserTick:0,chrono:0,barrier:0,drones:0,droneFire:0,swarmT:0,droneAng:0,grav:0,cloneT:0,cloneLv:0,warpFx:null,
     charge:0,chargeReady:false,bombs:1+S.bombUp,bombT:0,bombTick:0,bombK:'falcon',collectAll:false,
     syn:activeSynergies(),
   };
@@ -2335,7 +2342,7 @@ function needCap(){
   add('P',p.power<2?6:p.power<4?4:0);
   add('O',p.opts<3?3:0);
   add('B',G.bombs<=1?3:G.bombs<3?2:0);
-  add('F',p.force<=0?3:p.force<2?1:0);
+  add('F',p.force<=0?3:0);
   add('M',p.missileLv<2?2:0);
   if(p.weapon==='normal'){add('R',2);add('L',2);}
   else if(p.wLv<2)add(p.weapon==='ripple'?'R':'L',3);
@@ -2464,7 +2471,7 @@ function hitFx(x,y,vx,vy,m){
 function hitPlayer(dmg){
   const p=G.p;
   if(p.dead||p.inv>0||G.barrier>0||G.bombT>0||G.phase==='clear')return;
-  if(p.force>0){p.force--;p.inv=.5;sfx.guard();G.rings.push({x:p.x,y:p.y,t:0,life:.3,r:26,c:'#F2E8CF'});return;}
+  if(p.force>0){p.force--;p.forceT=FORCE_LIFE;p.inv=.5;sfx.guard();G.rings.push({x:p.x,y:p.y,t:0,life:.3,r:26,c:'#F2E8CF'});return;}
   p.hp-=dmg;p.inv=1.1;G.shake=Math.max(G.shake,7);G.flash=.18;sfx.hurt();
   if(p.power>1){p.power--;G.texts.push({x:p.x,y:p.y-38,s:'POWER DOWN',c:'#FF5A3C',t:0,life:.8});}
   else if(p.opts>0){p.opts--;G.texts.push({x:p.x,y:p.y-38,s:'OPTION LOST',c:'#FFB627',t:0,life:.8});}
@@ -2472,16 +2479,46 @@ function hitPlayer(dmg){
   G.texts.push({x:p.x,y:p.y-18,s:'-'+Math.round(dmg),c:'#FF8A6B',t:0,life:.7});
   if(p.hp<=0){p.hp=0;p.dead=true;explode(p.x,p.y,40);sfx.big();G.shake=16;G.phase='dead';G.endT=2.2;}
 }
+const FORCE_LIFE=15;   /* 방어막 1회분이 유지되는 시간(초) */
 function applyCap(type){
   const p=G.p;sfx.cap();let label=CAPS[type].n;
-  if(type==='P'){if(p.power<4){p.power++;label=p.power===4?'POWER MAX':'POWER '+p.power;}else{G.gold+=G.goldVal*5;label='BONUS';}}
+  /* 상위 단계일수록 여러 개를 모아야 오른다 — 초반만 버티면 풀파워가 되던 문제 */
+  p.frag=p.frag||{};
+  const need=(k,n)=>{p.frag[k]=(p.frag[k]||0)+1;if(p.frag[k]>=n){p.frag[k]=0;return true;}return false;};
+  const part=(k,n,nm)=>{label=nm+' '+p.frag[k]+'/'+n;return false;};
+  if(type==='P'){
+    if(p.power<4){const n=p.power>=3?3:p.power>=2?2:1;
+      if(need('P',n)){p.power++;label=p.power===4?'POWER MAX':'POWER '+p.power;}
+      else part('P',n,'POWER '+(p.power+1));
+    }else{G.gold+=G.goldVal*5;label='BONUS';}
+  }
   if(type==='B'){if(G.bombs<4)G.bombs++;else G.gold+=G.goldVal*5;}
-  if(type==='S')p.speedLv=Math.min(5,p.speedLv+1);
-  if(type==='M')p.missileLv=Math.min(2,p.missileLv+1);
-  if(type==='R'){if(p.weapon==='ripple')p.wLv=2;else{p.weapon='ripple';p.wLv=1;}}
-  if(type==='L'){if(p.weapon==='laser')p.wLv=2;else{p.weapon='laser';p.wLv=1;}}
-  if(type==='O'){if(p.opts<3)p.opts++;else G.gold+=G.goldVal*5;}
-  if(type==='F')p.force=Math.min(3,p.force+2);
+  if(type==='S'){
+    if(p.speedLv<5){const n=p.speedLv>=3?2:1;
+      if(need('S',n)){p.speedLv++;label='SPEED '+p.speedLv;}else part('S',n,'SPEED '+(p.speedLv+1));
+    }else{G.gold+=G.goldVal*5;label='BONUS';}
+  }
+  if(type==='M'){
+    if(p.missileLv<2){const n=p.missileLv>=1?2:1;
+      if(need('M',n)){p.missileLv++;label='MISSILE '+p.missileLv;}else part('M',n,'MISSILE '+(p.missileLv+1));
+    }else{G.gold+=G.goldVal*5;label='BONUS';}
+  }
+  if(type==='R'||type==='L'){
+    const wk=type==='R'?'ripple':'laser';
+    if(p.weapon!==wk){p.weapon=wk;p.wLv=1;p.frag.W=0;}
+    else if(p.wLv<2){if(need('W',2)){p.wLv=2;label=CAPS[type].n+' MAX';}else part('W',2,CAPS[type].n+' 2');}
+    else{G.gold+=G.goldVal*5;label='BONUS';}
+  }
+  if(type==='O'){
+    if(p.opts<3){const n=p.opts+1;
+      if(need('O',n)){p.opts++;label='OPTION '+p.opts;}else part('O',n,'OPTION '+(p.opts+1));
+    }else{G.gold+=G.goldVal*5;label='BONUS';}
+  }
+  /* 방어막은 한 번에 1회분만 충전되고 시간이 지나면 흩어진다 */
+  if(type==='F'){
+    if(p.force<2){p.force++;p.forceT=FORCE_LIFE;label='FORCE '+p.force;}
+    else{G.gold+=G.goldVal*5;label='BONUS';}
+  }
   if(syn('salvage'))p.hp=Math.min(p.maxHp,p.hp+p.maxHp*.06);
   G.texts.push({x:p.x,y:p.y-24,s:label,c:CAPS[type].c,t:0,life:.9,big:true});
 }
@@ -2506,13 +2543,31 @@ function useSkill(i){
   if(s.id==='drones'){G.drones=6+l*2;G.droneLv=l;}
   if(s.id==='chrono')G.chrono=3+l;
   if(s.id==='nova')nova(p.x,p.y,5+l*1.5,999);
+  if(s.id==='warp'){
+    /* 공간 왜곡: 전방으로 도약하며 지나온 경로의 적탄을 지운다 */
+    const ny=Math.max(58,p.y-(120+l*20));
+    for(let i=0;i<=6;i++){
+      const yy=p.y+(ny-p.y)*i/6;clearBullets(p.x,yy,58);
+      G.parts.push({ty:'flash',x:p.x,y:yy,vx:0,vy:0,t:0,life:.3,s:1.05});
+    }
+    G.warpFx={x:p.x,y0:p.y,y1:ny,t:0};
+    p.y=ny;p.inv=Math.max(p.inv,.5+l*.1);
+    G.rings.push({x:p.x,y:p.y,t:0,life:.36,r:74,c:'#A96BFF',w:4});
+    G.shake=Math.max(G.shake,4);
+  }
+  if(s.id==='clone'){G.cloneT=4+l*.8;G.cloneLv=l;}
+  if(s.id==='gravity'){
+    G.grav=2+l*.4;
+    G.flash=Math.max(G.flash,.25);G.shake=Math.max(G.shake,7);
+    G.rings.push({x:W/2,y:H*.45,t:0,life:.7,r:300,c:'#9CFF6B',w:6});
+  }
   G.texts.push({x:p.x,y:p.y-30,s:SKILLS[s.id].name,c:'#5CE1E6',t:0,life:.8,big:true});
 }
 function useCharge(){
   if(mode!=='play'||!G)return;
   const p=G.p;if(G.charge<1||p.dead||G.intro>0||G.phase==='clear')return;
   G.charge=0;G.chargeReady=false;sfx.charge();
-  const pw=1+(p.power-1)*.15;
+  const pw=1+(p.power-1)*.10;   /* 아이템 파워가 스킬을 무의미하게 만들던 문제 — 차지 보정 하향 */
   if(S.plane==='falcon'){
     for(let i=0;i<9;i++){const a=(i/8-.5)*1.3;G.bullets.push({kind:'shell',x:p.x,y:p.y-14,vx:Math.sin(a)*430,vy:-Math.cos(a)*430,r:6,m:3.4*pw,pierce:1});}
   }else if(S.plane==='raven'){
@@ -2621,9 +2676,9 @@ function fireMain(x,y,m,opt){
   const p=G.p,pw=opt?1:p.power;
   if(p.weapon==='normal')planeShot(x,y,m,opt);
   else if(p.weapon==='ripple'){
-    G.bullets.push({kind:'ripple',x,y,vx:0,vy:-380,r:5,grow:(p.wLv===2?46:30)+pw*3,m:m*(p.wLv===2?1.6:1.3)*(1+(pw-1)*.22),pierce:1+passLv('pierce'),t:0});
+    G.bullets.push({kind:'ripple',x,y,vx:0,vy:-380,r:5,grow:(p.wLv===2?46:30)+pw*3,m:m*(p.wLv===2?1.6:1.3)*(1+(pw-1)*.13),pierce:1+passLv('pierce'),t:0});
   }else{
-    G.bullets.push({kind:'laser',x,y:y-8,vx:0,vy:-780,r:3,len:26,m:m*(p.wLv===2?.72:.55)*(1+(pw-1)*.22),pierce:99});
+    G.bullets.push({kind:'laser',x,y:y-8,vx:0,vy:-780,r:3,len:26,m:m*(p.wLv===2?.72:.55)*(1+(pw-1)*.13),pierce:99});
     if(pw>=3){G.bullets.push({kind:'laser',x:x-7,y,vx:0,vy:-780,r:2,len:18,m:m*.3,pierce:99});G.bullets.push({kind:'laser',x:x+7,y,vx:0,vy:-780,r:2,len:18,m:m*.3,pierce:99});}
   }
 }
@@ -2688,11 +2743,17 @@ function update(dt){
   }
   if(!p.dead){
     p.inv=Math.max(0,p.inv-dt);
+    if(p.force>0){
+      p.forceT=(p.forceT||FORCE_LIFE)-dt;
+      if(p.forceT<=0){p.force--;p.forceT=FORCE_LIFE;
+        G.texts.push({x:p.x,y:p.y-26,s:'방어막 감쇠',c:'#9FD0FF',t:0,life:.8});}
+    }
     if(G.phase!=='clear'&&G.intro<=.3){
       p.fire-=dt;
       if(p.fire<=0){
         fireMain(p.x,p.y-14,1);
         for(let i=0;i<p.opts;i++){const o=optionPos(i);fireMain(o.x,o.y-4,.6,true);}
+        if(G.cloneT>0)for(const dx of [-36,36])fireMain(clamp(p.x+dx,10,W-10),p.y-10,.4+G.cloneLv*.08,true);
         const iv=p.weapon==='ripple'?.21:p.weapon==='laser'?.085:FIRE_IV[S.plane]||.11;
         p.fire=iv/(1+S.stats.rate*.035);
         sfx.shot();
@@ -2714,6 +2775,8 @@ function update(dt){
   // skills / bomb timers
   for(const s of G.sk)if(s&&s.cd>0){s.cd=Math.max(0,s.cd-dt);if(s.cd<=0)sfx.skready();}
   G.barrier=Math.max(0,G.barrier-dt);G.chrono=Math.max(0,G.chrono-dt);
+  G.grav=Math.max(0,G.grav-dt);G.cloneT=Math.max(0,G.cloneT-dt);
+  if(G.warpFx){G.warpFx.t+=dt;if(G.warpFx.t>.3)G.warpFx=null;}
   if(G.bombT>0){
     const B=BOMBS[G.bombK]||BOMBS.falcon;
     G.bombT-=dt;G.bombTick-=dt;G.eb.length=0;
@@ -2803,6 +2866,16 @@ function update(dt){
   for(const e of G.enemies){
     if(e.dead)continue;
     const d=dt*eslow;e.t+=d;e.flash=Math.max(0,e.flash-dt);if(e.hitS)e.hitS=Math.max(0,e.hitS-dt*4.5);if(e.wince)e.wince=Math.max(0,e.wince-dt*2.2);if(e.wAcc)e.wAcc=Math.max(0,e.wAcc-dt*e.maxHp*.06);
+    /* 중력 조작에 걸린 일반 적은 경로를 버리고 추락한다 — 중간보스·보스·파츠는 면역 */
+    if(G.grav>0&&!e.boss&&!e.part&&e.kind!=='mid'&&e.entered&&!e.falling){
+      e.falling=true;e.gv=40;e.gvx=rand(-34,34);
+    }
+    if(e.falling){
+      e.gv+=540*d;e.y+=e.gv*d;e.x+=e.gvx*d;e.rot=(e.rot||0)+d*7;
+      if(Math.random()<.4)G.parts.push({ty:'smoke',x:e.x+rand(-4,4),y:e.y,vx:rand(-8,8),vy:-24,t:0,life:.7,s:.4});
+      if(e.y>H+26)hurtEnemy(e,1e9);
+      continue;
+    }
     switch(e.path){
       case 'down':e.y+=e.sp*d;break;
       case 'sine':e.y+=e.sp*d;e.x=e.cx+Math.sin(e.t*2.4+e.ph)*e.amp;break;
@@ -3457,6 +3530,27 @@ function drawItem(it){
 function drawPlayer(){
   const p=G.p;if(p.dead)return;
   const P=PLANES[S.plane];
+  /* 공간 왜곡 잔상 — 도약 경로에 잔상이 남았다 사라진다 */
+  if(G.warpFx){
+    const u=G.warpFx.t/.3;ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<5;i++){
+      const yy=G.warpFx.y0+(G.warpFx.y1-G.warpFx.y0)*i/4;
+      ctx.globalAlpha=(1-u)*(.34-i*.05);
+      drawS(SPR.planes[S.plane].s,G.warpFx.x,yy,0,1,1);
+    }
+    ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+  }
+  /* 분신술 — 좌우 분신이 본체를 따라 붙어 함께 사격한다 */
+  if(G.cloneT>0){
+    const fade=Math.min(1,G.cloneT/.5);
+    ctx.globalCompositeOperation='lighter';
+    for(const dx of [-36,36]){
+      const cx=clamp(p.x+dx,10,W-10),cy=p.y+Math.sin(G.t*6+dx)*3;
+      ctx.globalAlpha=.42*fade;drawS(SPR.fx.blue,cx,cy,0,1.5);
+      ctx.globalAlpha=.62*fade;drawS(SPR.planes[S.plane].s,cx,cy,0,1,1);
+    }
+    ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+  }
   for(let i=p.opts-1;i>=0;i--){const o=optionPos(i);ctx.globalCompositeOperation='lighter';drawS(SPR.fx.fire,o.x,o.y,0,.45+Math.sin(G.t*12+i)*.05);ctx.globalCompositeOperation='source-over';drawS(SPR.option,o.x,o.y,G.t*3);}
   if(G.drones>0){for(let k=0;k<2;k++){const a=G.droneAng+k*Math.PI,dx=p.x+Math.cos(a)*30,dy=p.y+Math.sin(a)*16;drawFlames([[0,4]],dx,dy,0,.5,G.t,k);drawS(SPR.drone,dx,dy);}}
   const blink=p.inv>0&&G.intro<=0&&G.bombT<=0&&Math.floor(p.inv*20)%2===0;
@@ -3691,6 +3785,7 @@ function skillHTML(){
     const k=SKILLS[id],lv=S.skills[id]||0,lock=S.lv<k.req,eq=equipped(id);
     const pips=Array.from({length:5},(_,n)=>`<i class="${n<lv?'f':''}"></i>`).join('');
     let acts='';
+    const onlyName = k.only ? (PLANES[k.only] ? PLANES[k.only].name : k.only) : '';
     if(lock)acts=`<span class="chip c-lock">LV ${k.req} 필요</span>`;
     else{
       acts+=`<button class="btn sm" data-act="learn" data-id="${id}" ${S.sp>0&&lv<5?'':'disabled'}>${lv===0?'습득':lv>=5?'MAX':'강화'}</button>`;
@@ -3698,9 +3793,9 @@ function skillHTML(){
     }
     h+=`<div class="sk ${k.type==='passive'?'pass':''} ${lock?'locked':''}">
       <div class="ic">${svg(id)}</div>
-      <div class="nm">${k.name}<span class="chip ${k.type==='active'?'c-clear':'c-ok'}">${k.type==='active'?'액티브':'패시브'}</span><span class="pip">${pips}</span></div>
+      <div class="nm">${k.name}<span class="chip ${k.type==='active'?'c-clear':'c-ok'}">${k.type==='active'?'액티브':'패시브'}</span>${k.only?`<span class="chip c-warn">${onlyName} 전용</span>`:''}<span class="pip">${pips}</span></div>
       <div class="acts">${acts}</div>
-      <div class="ds">${k.d(Math.max(1,lv))}${k.cd?` · 대기 ${cdOf(id).toFixed(1)}초`:''}</div>
+      <div class="ds">${k.d(Math.max(1,lv))}${k.cd?` · 대기 ${cdOf(id).toFixed(1)}초`:''}${k.only&&S.plane!==k.only?` · <b style="color:var(--amber)">${onlyName}(으)로 출격해야 발동</b>`:''}</div>
     </div>`;
   });
   return h+'</div></div>';
