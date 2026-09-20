@@ -1303,23 +1303,8 @@ function buildSprites(){
     g.lineTo(x+w,y+h-r);g.quadraticCurveTo(x+w,y+h,x+w-r,y+h);g.lineTo(x+r,y+h);g.quadraticCurveTo(x,y+h,x,y+h-r);
     g.lineTo(x,y+r);g.quadraticCurveTo(x,y,x+r,y);g.closePath();};
   /* 액면권: 녹색(기본) · 적색(2배) · 금색(3.4배) — 색만 보고 가치를 알 수 있게 */
+  /* 지폐는 금색 한 종류. 액면은 주울 때 뜨는 금액으로만 구분한다 */
   const CASH_PAL={
-    n:{cool:[[0,'#E8F7DA'],[.26,'#B6E39C'],[.55,'#5FB554'],[.82,'#33853A'],[1,'#16521F']],
-       hot:[[0,'#F6FFEE'],[.26,'#CFF7B8'],[.55,'#74CE63'],[.82,'#3E9B45'],[1,'#1B6327']],
-       sh:'rgba(4,10,4,.5)',edge:'#0A2410',ink:'rgba(10,40,16,.5)',med:'rgba(10,45,18,.45)',glyph:'#0C2E14',
-       face:'rgba(240,255,232,.24)',faceHot:'rgba(255,255,255,.34)'},
-    r:{cool:[[0,'#FFE6DE'],[.26,'#F3AC9B'],[.55,'#C8483A'],[.82,'#8E2622'],[1,'#4B1013']],
-       hot:[[0,'#FFF4EE'],[.26,'#FFC3B0'],[.55,'#E4614C'],[.82,'#A93129'],[1,'#5E1616']],
-       sh:'rgba(14,3,3,.5)',edge:'#2E080A',ink:'rgba(46,10,12,.5)',med:'rgba(48,12,14,.45)',glyph:'#33090B',
-       face:'rgba(255,236,230,.24)',faceHot:'rgba(255,255,255,.34)'},
-    v:{cool:[[0,'#F6EEFF'],[.26,'#D4B4F5'],[.55,'#8E4FD6'],[.82,'#5A2590'],[1,'#26093F']],
-       hot:[[0,'#FFFFFF'],[.26,'#ECD9FF'],[.55,'#B173EE'],[.82,'#7436AE'],[1,'#350F57']],
-       sh:'rgba(10,2,16,.5)',edge:'#1E0733',ink:'rgba(38,12,60,.5)',med:'rgba(42,14,66,.45)',glyph:'#230A38',
-       face:'rgba(246,238,255,.30)',faceHot:'rgba(255,255,255,.40)'},
-    p:{cool:[[0,'#F2FEFF'],[.26,'#BFEFF6'],[.55,'#5FC9DC'],[.82,'#2A7E93'],[1,'#103A47']],
-       hot:[[0,'#FFFFFF'],[.26,'#E2FAFF'],[.55,'#8FE4F2'],[.82,'#3E9CB4'],[1,'#17505F']],
-       sh:'rgba(2,12,14,.5)',edge:'#082630',ink:'rgba(10,44,54,.5)',med:'rgba(12,48,58,.45)',glyph:'#0A2C38',
-       face:'rgba(232,252,255,.28)',faceHot:'rgba(255,255,255,.38)'},
     g:{cool:[[0,'#FFF8DC'],[.26,'#FFDE8E'],[.55,'#DFA736'],[.82,'#A2701A'],[1,'#553608']],
        hot:[[0,'#FFFDF0'],[.26,'#FFEFB6'],[.55,'#F5C455'],[.82,'#C08A22'],[1,'#6B460C']],
        sh:'rgba(14,10,2,.5)',edge:'#3A2706',ink:'rgba(58,39,6,.5)',med:'rgba(60,42,8,.45)',glyph:'#3F2A06',
@@ -2367,21 +2352,18 @@ function dropCap(x,y,type){
   G.items.push({x,y,t:0,type:t});sfx.ready();
 }
 /* 지폐 액면: $15 녹색 · $30 적색 · $50 금색. 총액은 그대로 두고 화면에 뿌려지는 장수만 줄인다 */
-const CASH_DEN=[200,100,50,30,15];
-const CASH_COL={n:'#C7EFA6',r:'#FF9E8C',g:'#FFE08A',p:'#A8F0FF',v:'#D9B4FF'};
-const cashKind=v=>v>=180?'v':v>=90?'p':v>=45?'g':v>=26?'r':'n';
+/* 지폐는 금색 한 종류 — 금액만 다르다. 장수는 강하게 제한한다 */
+const CASH_COL={g:'#FFE08A'};
 function dropGold(x,y,n){
   /* 1.34 = 예전 '반짝일 때 2배' 보너스의 기댓값 — 액면에 흡수해 수입 총량은 그대로 */
-  let V=Math.max(1,Math.round(n*Math.max(.6,G.goldVal)*1.34)),out=[];
-  for(const d of CASH_DEN)while(V>=d&&out.length<8){out.push(d);V-=d;}
-  if(!out.length)out.push(0);
-  if(V>0){const per=Math.floor(V/out.length);for(let i=0;i<out.length;i++)out[i]+=per;out[out.length-1]+=V-per*out.length;}
-  for(const v0 of out){
-    const v=Math.max(1,Math.round(v0));
-    G.items.push({gold:true,k:cashKind(v),v,x:x+rand(-8,8),y:y+rand(-6,6),vx:rand(-50,50),vy:rand(-110,-40),t:rand(0,1)});
+  const V=Math.max(1,Math.round(n*Math.max(.6,G.goldVal)*1.34));
+  /* 한 장이 기본, 큰 보상만 2~3장. 총액은 그대로 두고 장수만 1/5 수준으로 줄였다 */
+  const cnt=Math.max(1,Math.min(3,Math.round(V/300))),base=Math.floor(V/cnt);
+  for(let i=0;i<cnt;i++){
+    const v=Math.max(1,i===cnt-1?V-base*(cnt-1):base);
+    G.items.push({gold:true,k:'g',v,x:x+rand(-8,8),y:y+rand(-6,6),vx:rand(-50,50),vy:rand(-110,-40),t:rand(0,1)});
   }
 }
-
 /* ---------- combat helpers ---------- */
 const aimAt=(x,y)=>Math.atan2(G.p.y-y,G.p.x-x);
 function eshot(x,y,a,sp,big,k){
@@ -2984,7 +2966,7 @@ function update(dt){
     if(!p.dead&&mag&&dd<pickR+40){it.x+=dx/dd*170*dt;it.y+=dy/dd*170*dt;}
     if(!p.dead&&dd<pickR){
       it.gone=true;
-      if(it.gold){const v=it.v||Math.round(G.goldVal);G.gold+=v;sfx.gold();G.texts.push({x:it.x,y:it.y-6,s:'+$'+v,c:CASH_COL[it.k]||'#E0B04A',t:0,life:.5});}
+      if(it.gold){const v=it.v||Math.round(G.goldVal);G.gold+=v;sfx.gold();G.texts.push({x:it.x,y:it.y-6,s:'+$'+v,c:CASH_COL.g,t:0,life:.5});}
       else applyCap(it.type);
     }
     if(it.y>H+20)it.gone=true;
@@ -3516,7 +3498,7 @@ function drawItem(it){
   const x=it.x,y=it.y;
   if(it.gold){
     // cash note: flat and flipping, never mistakable for a bullet
-    const k=it.k||'n',shine=(it.t%1)<.34,sy=Math.abs(Math.cos(it.t*3.6))*.6+.4,sc=k==='v'?1.58:k==='p'?1.42:k==='g'?1.26:k==='r'?1.12:1;
+    const k='g',shine=(it.t%1)<.34,sy=Math.abs(Math.cos(it.t*3.6))*.6+.4,sc=.9;   /* 한 종류·한 크기 */
     ctx.globalAlpha=.32;drawS(SPR.cashSh[k],x+1.5,y+3,0,sc,sy*.9*sc);ctx.globalAlpha=1;
     drawS(shine?SPR.cashHot[k]:SPR.cash[k],x,y,Math.sin(it.t*1.6)*.16,sc,sy*sc);
     if(shine){
@@ -3781,7 +3763,22 @@ function pilotHTML(){
 }
 const respecCost=()=>S.lv*80;
 const skillShown=id=>{const k=SKILLS[id];return !k.only||k.only===S.plane;};
+/* 기체를 바꾸면 전용 스킬이 편성에서 빠져 슬롯이 텅 빈다 — 쓸 수 있는 스킬로 자동 보충 */
+function fixEquip(){
+  const open=slotsOpen(S.lv);let changed=false;
+  for(let i=0;i<open;i++){
+    const id=S.equip[i];
+    if(id&&!skillShown(id)){S.equip[i]=null;changed=true;}
+  }
+  if(!changed)return false;
+  const pool=SK_ORDER.filter(id=>skillShown(id)&&(S.skills[id]||0)>0&&SKILLS[id].req<=S.lv&&!S.equip.includes(id));
+  pool.sort((a,b)=>(SKILLS[a].type==='active'?0:1)-(SKILLS[b].type==='active'?0:1));
+  for(let i=0;i<open&&pool.length;i++)if(!S.equip[i])S.equip[i]=pool.shift();
+  save();
+  return true;
+}
 function skillHTML(){
+  fixEquip();
   const open=slotsOpen(S.lv),syns=activeSynergies();
   let h=`<div class="sec"><div class="sec-h"><h3>장착 슬롯</h3><span class="mini">SP <span class="num" style="color:var(--amber);font-size:1.3em">${S.sp}</span></span></div><div class="slots">`;
   for(let i=0;i<4;i++){
@@ -4007,7 +4004,7 @@ frame.addEventListener('click',e=>{
   else if(a==='spare'){if(S.spare<2&&S.gold>=spareCost()){S.gold-=spareCost();S.spare++;save();keepScroll();}}
   else if(a==='vol'){const k=t.dataset.k;S[k]=clamp(S[k]+(+t.dataset.d),0,10);save();AU.applyVol();if(k==='sfxVol')sfx.cap();refreshVol();}
   else if(a==='mute'){S.muted=!S.muted;save();AU.applyVol();refreshVol();updateMuteBtn();}
-  else if(a==='plane'){const id=t.dataset.id;if(PLANES[id].req<=S.lv){S.plane=id;save();keepScroll();sfx.click();}}
+  else if(a==='plane'){const id=t.dataset.id;if(PLANES[id].req<=S.lv){S.plane=id;fixEquip();save();keepScroll();sfx.click();}}
   else if(a==='bombup'){if(S.bombUp<3&&S.gold>=bombCost()){S.gold-=bombCost();S.bombUp++;save();keepScroll();toast(`출격 폭탄 ${1+S.bombUp}개`);}}
   else if(a==='spdup'){if((S.spdUp||0)<SPD_MAX&&S.gold>=spdCost()){S.gold-=spdCost();S.spdUp=(S.spdUp||0)+1;save();keepScroll();toast(`기본 속도 +${S.spdUp*5}%`);}}
   else if(a==='wipe'){if(!wipeArm){wipeArm=true;keepScroll();}else{wipeArm=false;S=defSave();save();renderHangar();toast('진행을 초기화했습니다');}}
@@ -4032,7 +4029,7 @@ const UFO_SEQ=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRig
 let ufoIdx=0,ufoTaps=0,ufoTapT=0;
 function unlockUfo(){
   if(S.ufo)return;
-  S.ufo=true;S.plane='saucer';S.tab='shop';ufoIdx=0;save();
+  S.ufo=true;S.plane='saucer';S.tab='shop';ufoIdx=0;fixEquip();save();
   try{sfx.win();}catch(_){}
   toast('■ 미확인 비행체 격납 — 리버스엔지니어드 UFO 개방');
   if(mode==='hangar')renderHangar();
@@ -4614,6 +4611,7 @@ resize();
 SR=1;   /* 도트풍: 스프라이트를 내부 해상도 1:1로 굽는다 */
 buildSprites();
 if(!PLANES[S.plane])S.plane='falcon';
+fixEquip();
 S.tab=S.tab||'ops';
 show('title');
 requestAnimationFrame(loop);
