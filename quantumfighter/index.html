@@ -467,7 +467,8 @@ const allCleared=()=>STAGES.every((_,i)=>S.cleared[i]);
 const ENDLESS_LV=()=>Math.max(10,S.lv);
 function suppression(stLv,pLv){
   const gap=stLv-pLv;
-  if(gap<=0) return {gap,ehp:1,edmg:1,pdmg:1};
+  /* 권장 레벨을 넘긴 만큼 적 체력도 같이 오른다 — 안 그러면 몇 판 만에 적이 녹아버린다 */
+  if(gap<=0) return {gap,ehp:1+Math.min(1.2,-gap*.06),edmg:1,pdmg:1};
   return {gap,ehp:1+.2*gap,edmg:1+.15*gap,pdmg:Math.max(.35,1-.07*gap)};
 }
 function dangerChip(gap){
@@ -2236,7 +2237,7 @@ function applyDiff(L){
   G.lvEff=L;G.sup=sup;G.dsi=si;
   const R=G.ramp||1;
   /* 권장 레벨을 넘긴 만큼 적이 더 매섭게 나온다 — 과성장해도 무적이 되지 않도록 */
-  /* 권장 레벨을 넘겨도 적탄은 계속 아프다. 단 적 체력·보상은 그대로라 저난도 파밍은 유지된다 */
+  /* 권장 레벨을 넘기면 적탄도 아프고 체력도 오른다(suppression). 보상만 그대로라 파밍은 여전히 가능 */
   const over=E?0:Math.max(0,S.lv-L),vet=1+Math.min(1.5,over*.04);
   G.vet=vet;
   G.hpMul=1.3*(1+L*.35)*sup.ehp*(1+G.tier*.15)*(E?1+w*.04:1);
@@ -2335,7 +2336,7 @@ function needCap(){
   const add=(t,n)=>{for(let i=0;i<n;i++)w.push(t);};
   add('S',p.speedLv<=0?8:p.speedLv===1?6:p.speedLv<=3?3:p.speedLv<5?1:0);
   add('P',p.power<2?6:p.power<4?4:0);
-  add('O',p.opts<3?3:0);
+  add('O',p.opts<MAX_OPTS?1:0);
   add('B',G.bombs<=1?3:G.bombs<3?2:0);
   add('F',p.force<=0?3:0);
   add('M',p.missileLv<2?2:0);
@@ -2475,6 +2476,7 @@ function hitPlayer(dmg){
   if(p.hp<=0){p.hp=0;p.dead=true;explode(p.x,p.y,40);sfx.big();G.shake=16;G.phase='dead';G.endT=2.2;}
 }
 const FORCE_LIFE=15;   /* 방어막 1회분이 유지되는 시간(초) */
+const MAX_OPTS=2;      /* 따라다니는 옵션 최대 개수 */
 function applyCap(type){
   const p=G.p;sfx.cap();let label=CAPS[type].n;
   /* 상위 단계일수록 여러 개를 모아야 오른다 — 초반만 버티면 풀파워가 되던 문제 */
@@ -2505,7 +2507,7 @@ function applyCap(type){
     else{G.gold+=G.goldVal*5;label='BONUS';}
   }
   if(type==='O'){
-    if(p.opts<3){const n=p.opts+1;
+    if(p.opts<MAX_OPTS){const n=p.opts+1;
       if(need('O',n)){p.opts++;label='OPTION '+p.opts;}else part('O',n,'OPTION '+(p.opts+1));
     }else{G.gold+=G.goldVal*5;label='BONUS';}
   }
