@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>퀀텀 파이터</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -392,6 +393,8 @@ const STAGES=[
  {act:2,code:'QF-08',name:'생체 성운',lv:20,theme:'bio',fac:['demon','grey'],boss:'demon',bossFac:'demon',bossName:'심연의 군주 아비스',story:'대기권 밖, 모선으로 가는 길을 마계의 군주가 막아선다.',desc:'떠다니는 눈과 불꽃 구체가 빈틈없이 몰려듭니다.',pool:['orbs','orbs','rush','sine','swoop','bomber','helis']},
  {act:2,code:'QF-09',name:'에테르 핵',lv:23,theme:'core',fac:['grey','reptile','demon'],boss:'ark',bossFac:'ark',bossName:'그레이 집합의식 · 에테르 아크',story:'모선의 핵이 열리자 모든 침공을 지휘하던 집합의식이 모습을 드러낸다. 지구의 운명이 걸린 최종 작전.',desc:'세 세력의 정예가 모선을 호위합니다. 최종 작전입니다.',pool:['orbs','bomber','rush','sine','swoop','turret','vee','helis']},
 ];
+const RATE_CAP=1.8;    /* 연사 스탯은 상한이 없으면 만렙에서 65발/초까지 간다 — 배율을 여기서 끊는다.
+                          STAT_DEF 설명이 정의 시점에 읽으므로 선언은 반드시 그보다 위에 */
 const STAT_DEF=[
  {id:'atk',name:'화력',ds:'주포·스킬 피해 +7%'},
  {id:'arm',name:'장갑',ds:'최대 내구도 +7.5%'},
@@ -1111,15 +1114,35 @@ function gritty(s,amt){
 function outlined(s,px){
   const ratio=s.img.width/s.w,pd=Math.ceil((px||1.5)*2.1*ratio);
   const W2=s.img.width+pd*2,H2=s.img.height+pd*2;
-  const dark=tint(s,'rgba(4,7,13,.95)').img,lite=tint(s,'rgba(214,228,246,.34)').img;
+  const dark=tint(s,'rgba(4,7,13,.95)').img,lite=tint(s,'rgba(230,243,255,.5)').img;
   const c=mk(W2,H2),g=c.getContext('2d');
   const ring=(img,rad)=>{for(let i=0;i<10;i++){const a=i/10*TAU;g.drawImage(img,pd+Math.cos(a)*rad,pd+Math.sin(a)*rad);}};
-  ring(dark,(px||1.5)*2.0*ratio);ring(lite,(px||1.5)*.8*ratio);
+  ring(dark,(px||1.5)*2.0*ratio);
+  /* 빛은 좌상단 한 방향에서만 온다 — 사방 균일한 흰 테두리는 어떤 실루엣이든 납작하게 만든다 */
+  const lr=(px||1.5)*.95*ratio;
+  for(const [dx,dy] of[[-1,-1],[0,-1],[-1,0],[-1,1]])g.drawImage(lite,pd+dx*lr,pd+dy*lr);
   g.drawImage(s.img,pd,pd);
   const lw=s.w+pd*2/ratio,lh=s.h+pd*2/ratio;
   return{img:c,w:lw,h:lh};
 }
-function armor(s,px){return outlined(gritty(s),px);}
+/* 좌상단 광원과 표면 디테일을 공통 경로에서 입힌다 — 스프라이트를 하나하나 다시 그리지 않고
+   모든 적기·보스·파츠가 같은 광원을 공유하게 만드는 게 목적이다 */
+function modeled(s){
+  const W=s.img.width,H=s.img.height,c=mk(W,H),g=c.getContext('2d');
+  g.drawImage(s.img,0,0);
+  g.globalCompositeOperation='source-atop';
+  const G=g.createLinearGradient(0,0,W*.85,H);
+  G.addColorStop(0,'rgba(255,250,232,.26)');G.addColorStop(.4,'rgba(255,255,255,0)');
+  G.addColorStop(.6,'rgba(0,4,14,.12)');G.addColorStop(1,'rgba(0,4,14,.4)');
+  g.fillStyle=G;g.fillRect(0,0,W,H);
+  /* 패널 라인 — 단색 면을 끊어야 기계로 읽힌다 */
+  g.strokeStyle='rgba(0,6,16,.26)';g.lineWidth=Math.max(1,W/60);
+  for(let i=1;i<4;i++){const y=H*i/4;g.beginPath();g.moveTo(-2,y);g.lineTo(W+2,y+H*.045);g.stroke();}
+  g.strokeStyle='rgba(255,255,255,.10)';
+  for(let i=1;i<4;i++){const y=H*i/4;g.beginPath();g.moveTo(-2,y-g.lineWidth);g.lineTo(W+2,y+H*.045-g.lineWidth);g.stroke();}
+  return{img:c,w:s.w,h:s.h};
+}
+function armor(s,px){return outlined(modeled(gritty(s)),px);}
 /* wash a sprite with a colour without touching its silhouette */
 function wash(s,color,alpha){
   const c=mk(s.img.width,s.img.height),g=c.getContext('2d');
@@ -2118,6 +2141,9 @@ function getBg(theme){
   }
   if(T.land==='downtown'){
     const blk=62,rw=12;
+    /* 강 — 완벽한 격자만 있으면 도시가 아니라 바둑판이다. 세로로 이어 붙어야 하니 주기는 정수 */
+    const RIV_W=19,rvx=y=>54+Math.sin(y/ch*TAU*2)*30;
+    const inRiver=(x,w,y)=>x+w>rvx(y)-RIV_W&&x<rvx(y)+RIV_W;
     const roofs=['#2A303A','#323946','#262B33','#3A4150','#2E3440'];
     const winC=['rgba(255,214,120,.95)','rgba(255,240,200,.9)','rgba(140,210,255,.85)'];
     const neon=['#FF3D9A','#39E6FF','#B45CFF','#FFD24A','#3DFF9A'];
@@ -2126,33 +2152,70 @@ function getBg(theme){
       const x0=bx+rw/2+1,y0=by+rw/2+1,sz=blk-rw-2;
       if(bx>=124&&bx<186)continue;
       g.fillStyle='#232830';g.fillRect(x0,y0,sz,sz);
-      if(rr()<.1){g.fillStyle='#1C2A1E';g.fillRect(x0+2,y0+2,sz-4,sz-4);for(let k=0;k<25;k++)tree(x0+4+rr()*(sz-8),y0+4+rr()*(sz-8),.45+rr()*.35,2);
+      if(rr()<.075&&!inRiver(x0,sz,y0+sz/2)){g.fillStyle='#1C2A1E';g.fillRect(x0+2,y0+2,sz-4,sz-4);for(let k=0;k<25;k++)tree(x0+4+rr()*(sz-8),y0+4+rr()*(sz-8),.45+rr()*.35,2);
         g.globalCompositeOperation='lighter';for(let k=0;k<4;k++){const lx=x0+4+rr()*(sz-8),ly=y0+4+rr()*(sz-8);g.fillStyle=rad(g,lx,ly,0,4,[[0,'rgba(255,200,120,.5)'],[1,'rgba(255,160,60,0)']]);g.fillRect(lx-4,ly-4,8,8);}g.globalCompositeOperation='source-over';continue;}
       const n=1+((rr()*3)|0);
       for(let k=0;k<n;k++){
-        const w=12+rr()*(sz/(n>1?1.8:1.2)-12),d=12+rr()*(sz/(n>1?1.8:1.2)-12),x=x0+1+rr()*(sz-w-2),y=y0+1+rr()*(sz-d-2),h=8+rr()*26;
+        const w=12+rr()*(sz/(n>1?1.8:1.2)-12),d=12+rr()*(sz/(n>1?1.8:1.2)-12),x=x0+1+rr()*(sz-w-2),y=y0+1+rr()*(sz-d-2),h=(8+rr()*26)*(rr()<.14?1.9:1);
+        if(inRiver(x,w,y))continue;
         const roof=roofs[(rr()*roofs.length)|0];
         bldg(x,y,w,d,h,roof);
         const wh=Math.min(3.5,h*.28),wc=winC[(rr()*winC.length)|0];
         place(y,d+wh,dy=>{g.globalCompositeOperation='lighter';for(let wx=x+1;wx<x+w-1;wx+=1.6){if(rr()<.55){g.fillStyle=wc;g.fillRect(wx,y+dy+d+.5,.8,wh-1);}}
           if(rr()<.5){g.fillStyle='rgba(255,60,60,.9)';g.fillRect(x+w-1.4,y+dy+.4,1,1);}
-          if(rr()<.3){const nc=neon[(rr()*neon.length)|0],nx=x+w*.15,ny=y+dy+d*.4,nw=w*.7;g.fillStyle=rgba(nc,.25);g.fillRect(nx-2,ny-2,nw+4,5);g.fillStyle=rgba(nc,.95);g.fillRect(nx,ny,nw,1);}
+          if(rr()<.42){const nc=neon[(rr()*neon.length)|0],nx=x+w*.15,ny=y+dy+d*.4,nw=w*.7;g.fillStyle=rgba(nc,.25);g.fillRect(nx-2,ny-2,nw+4,5);g.fillStyle=rgba(nc,.95);g.fillRect(nx,ny,nw,1);}
           g.globalCompositeOperation='source-over';});
         if(w>16&&d>16&&rr()<.35)helipad(x+w/2,y+d/2,Math.min(w,d)*.26);
       }
     }
     g.fillStyle='#101318';for(let y=0;y<ch;y+=blk)g.fillRect(0,y-rw/2,cw,rw);for(let x=0;x<cw;x+=blk)g.fillRect(x-rw/2,0,rw,ch);
+    g.save();g.beginPath();
+    for(let y=0;y<=ch;y+=8)g.lineTo(rvx(y)-RIV_W,y);
+    for(let y=ch;y>=0;y-=8)g.lineTo(rvx(y)+RIV_W,y);
+    g.closePath();
+    /* 물은 주변 도로(#101318)보다 밝아야 강으로 읽힌다 — 어둡게 두면 그냥 빈 땅으로 보인다 */
+    g.fillStyle=lin(g,0,0,cw,ch,[[0,'#0A1A2A'],[1,'#0D2436']]);g.fill();
+    g.save();g.clip();
+    g.globalCompositeOperation='lighter';
+    for(let n=0;n<220;n++){const y=rr()*ch,x=rvx(y)+(rr()-.5)*RIV_W*1.9,w=2+rr()*9;
+      g.fillStyle=`rgba(${110+(rr()*140|0)},${160+(rr()*90|0)},255,.26)`;g.fillRect(x,y,w,.7);}
+    /* 강변 네온이 수면에 길게 번진다 */
+    for(let n=0;n<26;n++){const y=rr()*ch,x=rvx(y)+(rr()<.5?-1:1)*RIV_W*(.55+rr()*.4),c=neon[(rr()*neon.length)|0];
+      g.fillStyle=rad(g,x,y,0,10,[[0,rgba(c,.5)],[1,rgba(c,0)]]);g.fillRect(x-10,y-10,20,20);
+      g.fillStyle=rgba(c,.4);g.fillRect(x-1,y-9,2,18);}
+    g.globalCompositeOperation='source-over';g.restore();
+    /* 호안 — 경계가 없으면 물이 번져 보인다 */
+    g.strokeStyle='rgba(150,190,225,.22)';g.lineWidth=.7;g.stroke();
+    g.restore();
+    for(let y=0;y<ch;y+=blk){const rc=rvx(y);
+      g.fillStyle='#161B23';g.fillRect(rc-RIV_W-7,y-rw/2,RIV_W*2+14,rw);
+      g.fillStyle='rgba(255,205,120,.3)';g.fillRect(rc-RIV_W-7,y-rw/2+1,RIV_W*2+14,.5);g.fillRect(rc-RIV_W-7,y+rw/2-1.5,RIV_W*2+14,.5);}
     g.fillStyle='#0E1116';g.fillRect(124,0,62,ch);
     g.fillStyle='rgba(255,255,255,.25)';for(let y=0;y<ch;y+=12)for(const lx of[137,146,164,173])g.fillRect(lx,y,.5,6);
     g.fillStyle='rgba(255,210,60,.5)';g.fillRect(154.6,0,.5,ch);g.fillRect(155.6,0,.5,ch);
     g.globalCompositeOperation='lighter';
-    for(let y=0;y<ch;y+=24)for(const lx of[126,184]){g.fillStyle=rad(g,lx,y,0,7,[[0,'rgba(255,190,110,.55)'],[1,'rgba(255,150,60,0)']]);g.fillRect(lx-7,y-7,14,14);}
-    for(let y=0;y<ch;y+=blk)for(let x=0;x<cw;x+=31){g.fillStyle=rad(g,x,y,0,5,[[0,'rgba(255,190,110,.35)'],[1,'rgba(255,150,60,0)']]);g.fillRect(x-5,y-5,10,10);}
+    for(let y=0;y<ch;y+=24)for(const lx of[126,184]){g.fillStyle=rad(g,lx,y,0,5,[[0,'rgba(255,190,110,.32)'],[1,'rgba(255,150,60,0)']]);g.fillRect(lx-5,y-5,10,10);}
+    for(let y=0;y<ch;y+=blk)for(let x=0;x<cw;x+=31){g.fillStyle=rad(g,x,y,0,4,[[0,'rgba(255,190,110,.2)'],[1,'rgba(255,150,60,0)']]);g.fillRect(x-4,y-4,8,8);}
     for(let n=0;n<260;n++){const dn=rr()<.5,lx=dn?[140,149][(rr()*2)|0]:[161,170][(rr()*2)|0],y=rr()*ch;
       if(dn){g.fillStyle='rgba(255,40,40,.9)';g.fillRect(lx,y,.8,.8);g.fillRect(lx+1.6,y,.8,.8);g.fillStyle='rgba(255,60,60,.12)';g.fillRect(lx-.5,y-6,3.4,6);}
       else{g.fillStyle='rgba(255,255,230,.95)';g.fillRect(lx,y,.8,.8);g.fillRect(lx+1.6,y,.8,.8);g.fillStyle='rgba(255,250,210,.14)';g.fillRect(lx-.8,y-9,4,9);}}
     for(let n=0;n<260;n++){const horiz=rr()<.5;const y=horiz?Math.round(rr()*ch/blk)*blk+(rr()<.5?-2.5:2):rr()*ch,x=horiz?rr()*cw:Math.round(rr()*cw/blk)*blk+(rr()<.5?-2.5:2);if(x>120&&x<190)continue;g.fillStyle=rr()<.5?'rgba(255,60,60,.8)':'rgba(255,250,220,.85)';g.fillRect(x,y,.8,.8);}
     g.globalCompositeOperation='source-over';
+    g.globalCompositeOperation='source-over';
+    /* 이미 두들겨 맞은 도심 — 불타는 건물과 바람에 눕는 연기 기둥 */
+    const fires=[];
+    for(let n=0;n<9;n++){const fx=10+rr()*(cw-20),fy=rr()*ch;
+      if(fx>112&&fx<198)continue; if(Math.abs(fx-rvx(fy))<RIV_W+8)continue; fires.push([fx,fy]);}
+    for(const [fx,fy] of fires)place(fy,96,dy=>{const Y=fy+dy;
+      for(let k=1;k<=30;k++){const t=k/30,sx=fx+t*32+(rr()-.5)*10,sy=Y-t*78,r=5+t*18;
+        const a=(.085*(1-t*.5)).toFixed(3),warm=t<.32;
+        g.fillStyle=rad(g,sx,sy,0,r,warm?[[0,`rgba(168,112,70,${a})`],[1,'rgba(168,112,70,0)']]
+                                        :[[0,`rgba(122,116,110,${a})`],[1,'rgba(122,116,110,0)']]);
+        g.fillRect(sx-r,sy-r,r*2,r*2);}});
+    g.globalCompositeOperation='lighter';
+    for(const [fx,fy] of fires)place(fy,34,dy=>{const Y=fy+dy;
+      g.fillStyle=rad(g,fx,Y,0,24,[[0,'rgba(255,186,88,.5)'],[.45,'rgba(255,108,28,.26)'],[1,'rgba(255,60,0,0)']]);g.fillRect(fx-24,Y-24,48,48);
+      g.fillStyle=rad(g,fx,Y,0,7,[[0,'rgba(255,246,214,.95)'],[1,'rgba(255,150,40,0)']]);g.fillRect(fx-7,Y-7,14,14);});
   }
   if(T.land==='lava'){
     g.globalCompositeOperation='lighter';
@@ -2160,7 +2223,28 @@ function getBg(theme){
     g.globalCompositeOperation='source-over';
     for(let n=0;n<160;n++){const x=rr()*cw,y=rr()*ch;if(at(x,y)>.45){const s=1.5+rr()*3;place(y,s,dy=>{g.fillStyle='rgba(20,10,8,.6)';g.beginPath();g.arc(x+.8,y+dy+.8,s,0,TAU);g.fill();g.fillStyle=rad(g,x-s*.3,y+dy-s*.3,.2,s,[[0,'#7A5A4E'],[1,'#2E1E1A']]);g.beginPath();g.arc(x,y+dy,s,0,TAU);g.fill();});}}
   }
+  if(T.land==='clouds'){
+    /* 성층권 — 지형이 없으니 구름 자체가 지형이다. 덩어리·그림자·비행운 세 겹으로 고도감을 만든다 */
+    for(let n=0;n<26;n++){const x=rr()*cw,y=rr()*ch,r=26+rr()*52;
+      place(y,r+10,dy=>{g.fillStyle=rad(g,x+r*.22,y+dy+r*.28,r*.2,r,[[0,'rgba(104,136,176,.13)'],[1,'rgba(104,136,176,0)']]);g.fillRect(x-r,y+dy-r,r*2,r*2);});}
+    for(let n=0;n<40;n++){const x=rr()*cw,y=rr()*ch,r=22+rr()*54;
+      place(y,r+8,dy=>{g.fillStyle=rad(g,x-r*.22,y+dy-r*.26,r*.12,r,[[0,'rgba(255,255,255,.26)'],[.5,'rgba(228,240,252,.12)'],[1,'rgba(206,224,244,0)']]);g.fillRect(x-r,y+dy-r,r*2,r*2);});}
+    g.globalCompositeOperation='lighter';
+    for(let n=0;n<16;n++){const x=rr()*cw,y=rr()*ch,len=50+rr()*140,a=(rr()-.5)*.45;
+      place(y,len+8,dy=>{for(let k=0;k<len;k+=2){const t=k/len;
+        g.fillStyle=`rgba(255,255,255,${(.13*(1-t)).toFixed(3)})`;
+        g.fillRect(x+Math.sin(a)*k,y+dy-k,1.3+t*1.8,1.3);}});}
+    g.globalCompositeOperation='source-over';
+  }
   if(T.land==='space'){
+    /* 생체 성운 — 별 배경 위에 떠다니는 생체 덩어리. 별보다 먼저 깔아 별이 위로 반짝이게 한다 */
+    for(let n=0;n<30;n++){const x=rr()*cw,y=rr()*ch,r=11+rr()*27;
+      place(y,r+10,dy=>{const Y=y+dy;
+        g.fillStyle=rad(g,x-r*.3,Y-r*.3,r*.14,r,[[0,'rgba(198,98,152,.3)'],[.5,'rgba(112,40,104,.2)'],[1,'rgba(48,12,56,0)']]);
+        g.fillRect(x-r,Y-r,r*2,r*2);
+        g.strokeStyle='rgba(255,152,202,.2)';g.lineWidth=.7;
+        for(let k=0;k<5;k++){const a=rr()*TAU;g.beginPath();g.moveTo(x,Y);
+          g.quadraticCurveTo(x+Math.cos(a)*r*.55,Y+Math.sin(a)*r*.55,x+Math.cos(a+.6)*r*.95,Y+Math.sin(a+.6)*r*.95);g.stroke();}});}
     g.globalCompositeOperation='lighter';
     for(let n=0;n<60;n++){const x=rr()*cw,y=rr()*ch,r=6+rr()*18;place(y,r,dy=>{g.fillStyle=rad(g,x,y+dy,0,r,[[0,'rgba(255,120,200,.12)'],[1,'rgba(120,40,160,0)']]);g.fillRect(x-r,y+dy-r,r*2,r*2);});}
     for(let n=0;n<700;n++){const x=rr()*cw,y=rr()*ch,s=rr();g.fillStyle=s>.93?'rgba(255,255,255,.95)':s>.6?'rgba(190,200,240,.6)':'rgba(120,130,170,.5)';g.fillRect(x,y,s>.93?1:.5,s>.93?1:.5);}
@@ -2182,6 +2266,14 @@ function getBg(theme){
     conduit(60);conduit(300);
     g.fillStyle='rgba(92,225,230,.9)';for(let y=0;y<ch;y+=16){g.fillRect(160,y,1.2,1.2);g.fillRect(199,y,1.2,1.2);}
     g.fillStyle='rgba(255,90,165,.8)';for(let y=8;y<ch;y+=32)g.fillRect(179.4,y,1.2,1.2);
+    /* 모선 핵 — 패널만 있으면 바닥 타일이다. 격자를 타고 흐르는 도관과 노드로 '살아있는 기계'를 만든다 */
+    for(let n=0;n<34;n++){const vert=rr()<.5,c=rr()<.35?'#7CF2FF':'#9C7CFF';
+      const x=Math.round(rr()*cw/cell)*cell,y=Math.round(rr()*ch/cell)*cell,len=cell*(3+((rr()*8)|0));
+      place(y,len+6,dy=>{
+        g.fillStyle=rgba(c,.09);if(vert)g.fillRect(x-2.5,y+dy,5,len);else g.fillRect(x,y+dy-2.5,len,5);
+        g.fillStyle=rgba(c,.55);if(vert)g.fillRect(x-.5,y+dy,1,len);else g.fillRect(x,y+dy-.5,len,1);
+        for(let k=0;k<=len;k+=cell){const nx=vert?x:x+k,ny=vert?y+dy+k:y+dy;
+          g.fillStyle=rad(g,nx,ny,0,4.5,[[0,rgba(c,.7)],[1,rgba(c,0)]]);g.fillRect(nx-4.5,ny-4.5,9,9);}});}
     g.globalCompositeOperation='source-over';
   }
   if(T.grade){g.fillStyle=T.grade;g.fillRect(0,0,cw,ch);}
@@ -2704,7 +2796,6 @@ function fireMain(x,y,m,opt){
   }
 }
 const FIRE_IV={falcon:.13,raven:.10,hornet:.17,saucer:.12};
-const RATE_CAP=1.8;    /* 연사 스탯은 상한이 없으면 만렙에서 65발/초까지 간다 — 배율을 여기서 끊는다 */
 /* 스트라이커즈식 점사 — 5발 쏘고 한 박자 쉰다. 간격에 비례해 어느 연사 속도에서도 리듬이 같다 */
 const BURST_N=5,BURST_GAP=1.2;
 function optionPos(i){const tr=G.p.trail;return tr[Math.min(tr.length-1,(i+1)*16)];}
