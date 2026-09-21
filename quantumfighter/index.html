@@ -1105,8 +1105,9 @@ function grainCanvas(){if(!GRAIN){const n=mk(96,96),q=n.getContext('2d'),im=q.cr
 function gritty(s,amt){
   const c=mk(s.img.width,s.img.height),g=c.getContext('2d');
   g.drawImage(s.img,0,0);
-  g.globalCompositeOperation='saturation';g.globalAlpha=amt==null?.48:amt*1.3;g.fillStyle='#FF2E00';g.fillRect(0,0,c.width,c.height);
-  g.globalCompositeOperation='overlay';g.globalAlpha=.13;g.fillStyle='#AFAFAF';g.fillRect(0,0,c.width,c.height);
+  /* 채도를 과하게 밀면 캐노피 유리·금속 같은 저채도 재질이 원색으로 뭉개져 유닛이 단색 덩어리가 된다 */
+  g.globalCompositeOperation='saturation';g.globalAlpha=amt==null?.28:amt*.7;g.fillStyle='#FF2E00';g.fillRect(0,0,c.width,c.height);
+  g.globalCompositeOperation='overlay';g.globalAlpha=.2;g.fillStyle='#AFAFAF';g.fillRect(0,0,c.width,c.height);
   g.globalAlpha=1;g.globalCompositeOperation='destination-in';g.drawImage(s.img,0,0);
   return{img:c,w:s.w,h:s.h};
 }
@@ -1142,7 +1143,27 @@ function modeled(s){
   for(let i=1;i<4;i++){const y=H*i/4;g.beginPath();g.moveTo(-2,y-g.lineWidth);g.lineTo(W+2,y+H*.045-g.lineWidth);g.stroke();}
   return{img:c,w:s.w,h:s.h};
 }
-function armor(s,px){return outlined(modeled(gritty(s)),px);}
+/* 스프라이트 안의 밝은 픽셀만 뽑아 블룸으로 되쏜다 — 캐노피·눈·엔진·경고등이 저절로 발광해서
+   유닛을 하나하나 다시 그리지 않고도 재질 대비가 생긴다. outlined 뒤에 걸어야 빛이 외곽으로 번진다 */
+function emissive(s,amt,thr){
+  const W=s.img.width,H=s.img.height,T=thr==null?.56:thr;
+  const src=mk(W,H),sg=src.getContext('2d');
+  sg.drawImage(s.img,0,0);
+  const d=sg.getImageData(0,0,W,H),a=d.data;
+  for(let i=0;i<a.length;i+=4){
+    const l=(a[i]*.299+a[i+1]*.587+a[i+2]*.114)/255;
+    a[i+3]=Math.round(a[i+3]*(l>T?(l-T)/(1-T):0));
+  }
+  sg.putImageData(d,0,0);
+  const c=mk(W,H),g=c.getContext('2d');
+  g.drawImage(s.img,0,0);
+  g.globalCompositeOperation='lighter';g.globalAlpha=amt==null?.9:amt;
+  g.filter=`blur(${Math.max(1.2,W/24).toFixed(1)}px)`;g.drawImage(src,0,0);
+  g.filter='none';g.globalAlpha=.7;g.drawImage(src,0,0);   /* 중심부 코어 */
+  g.globalAlpha=1;g.globalCompositeOperation='source-over';
+  return{img:c,w:s.w,h:s.h};
+}
+function armor(s,px){return emissive(outlined(modeled(gritty(s)),px));}
 /* wash a sprite with a colour without touching its silhouette */
 function wash(s,color,alpha){
   const c=mk(s.img.width,s.img.height),g=c.getContext('2d');
@@ -1614,6 +1635,93 @@ function walkerBody(p,fac){return hd(22,22,g=>{
   if(fac==='reptile'){g.save();hexPath(g,8,0);g.clip();scales(g,16,16,'rgba(0,0,0,.3)');g.restore();}
   g.beginPath();g.arc(0,1,3,0,TAU);g.fillStyle=rad(g,0,1,0,3,[[0,'#FFFFFF'],[.4,p.y],[1,shade(p.y,-.5)]]);g.fill();
 });}
+/* 렙틸리언 비행체 — 예전엔 삼각형 한 장이었다. drawJet의 실제 기체 구조(동체 스플라인·주익·
+   미익·수직핀·노즐) 위에 등줄기 능선과 세로동공을 얹어, 기계가 아닌 생체 병기로 읽히게 한다 */
+const reptSpec=(p,o)=>Object.assign({
+  len:32,span:30,fw:7.4,c:p.r,a:p.y,glass:'#D8F27A',
+  body:[[0,0],[.07,.32],[.2,.58],[.45,.7],[.75,.6],[1,.32]],
+  wing:{x0:2.6,y0:-4,rc:15,x1:15,sw:13,tc:2.2},
+  tail:{x0:2.4,y0:10,rc:5,x1:7.5,sw:3,tc:2},
+  fins:{x:2,y:7,len:8,w:1.5,cant:2.2},
+  noz:[[-2.6,15,1.5],[2.6,15,1.5]],canopy:[-6.5,1.6,3.2]
+},o||{});
+function reptCraft(p,spec,W,H){return hd(W||36,H||34,g=>{
+  g.rotate(Math.PI);
+  drawJet(g,spec);
+  const L=spec.len/2;
+  /* 등줄기 능선 */
+  for(let i=0;i<5;i++){const y=-L+6+i*3.2;
+    g.fillStyle=rgba(p.h,.42);poly(g,[[0,y],[1.7,y+1.7],[0,y+3.2],[-1.7,y+1.7]]);g.fill();}
+  /* 세로동공 — 세력 표식 */
+  g.beginPath();g.ellipse(0,-L*.42,3.3,2.4,0,0,TAU);
+  g.fillStyle=rad(g,0,-L*.42,0,3.3,[[0,'#FFF6C0'],[.45,p.y],[1,shade(p.y,-.65)]]);g.fill();
+  g.fillStyle='#0A0602';g.beginPath();g.ellipse(0,-L*.42,.6,2.1,0,0,TAU);g.fill();
+  /* 날개 끝 갈고리 */
+  g.fillStyle=shade(p.k,.14);
+  const W2=spec.wing;
+  for(const sd of[-1,1]){poly(g,[[sd*W2.x1,W2.y0+W2.sw],[sd*(W2.x1+2.8),W2.y0+W2.sw+4.4],[sd*(W2.x1-.6),W2.y0+W2.sw+tcOf(spec)]]);g.fill();}
+});}
+const tcOf=sp=>sp.wing.tc+1.2;
+function reptFighter(p){return reptCraft(p,reptSpec(p),36,34);}
+function reptDartNew(p){return reptCraft(p,reptSpec(p,{
+  len:26,span:20,fw:5.6,
+  wing:{x0:2,y0:0,rc:9,x1:9.5,sw:8,tc:1.6},
+  tail:{x0:1.8,y0:8,rc:3.4,x1:5,sw:2,tc:1.6},
+  noz:[[0,12,1.7]],canopy:[-5,1.2,2.6]}),28,30);}
+function reptBomberNew(p){return reptCraft(p,reptSpec(p,{
+  len:30,span:46,fw:9,
+  wing:{x0:3.4,y0:-3,rc:16,x1:23,sw:15,tc:3},
+  tail:{x0:3,y0:10,rc:5,x1:9,sw:3.4,tc:2.4},
+  noz:[[-4.4,14,1.7],[4.4,14,1.7]],canopy:[-6,1.8,3.4]}),50,34);}
+/* 마계 비행체 — 박쥐 날개(극단적 후퇴각)에 두개골 프로우. 날개 가시와 뿔로 실루엣을 깨뜨려
+   같은 delta 계열인 렙틸리언과 한눈에 구분되게 한다 */
+const demonSpec=(p,o)=>Object.assign({
+  len:30,span:38,fw:6.4,c:p.r,a:p.y,glass:'#FF9A3C',
+  body:[[0,0],[.06,.36],[.22,.64],[.5,.72],[.8,.55],[1,.28]],
+  wing:{x0:2.4,y0:-1,rc:16,x1:19,sw:16,tc:1.6},
+  tail:{x0:2,y0:11,rc:4,x1:6,sw:4,tc:1.4},
+  noz:[[-2.2,14.5,1.6],[2.2,14.5,1.6]],canopy:[-5.5,1.4,3]
+},o||{});
+function demonCraft(p,spec,W,H){return hd(W||44,H||34,g=>{
+  g.rotate(Math.PI);drawJet(g,spec);
+  const L=spec.len/2,Wg=spec.wing;
+  g.fillStyle=shade(p.k,.22);
+  for(const sd of[-1,1])for(const t of[.38,.68,1]){const x=sd*(Wg.x0+(Wg.x1-Wg.x0)*t),y=Wg.y0+Wg.sw*t;
+    poly(g,[[x-sd*1.3,y],[x+sd*.5,y+5.6],[x+sd*1.3,y+.2]]);g.fill();}
+  for(const sd of[-1,1]){g.beginPath();g.arc(sd*1.9,-L*.5,1.6,0,TAU);g.fillStyle='#120404';g.fill();
+    g.beginPath();g.arc(sd*1.9,-L*.5,.85,0,TAU);g.fillStyle=rad(g,sd*1.9,-L*.5,0,.85,[[0,'#FFE08A'],[1,p.y]]);g.fill();}
+  g.fillStyle=shade(p.k,.1);
+  for(const sd of[-1,1]){poly(g,[[sd*2.2,-L+2.5],[sd*4.8,-L-3.6],[sd*3.6,-L+3.4]]);g.fill();}
+});}
+function demonFighter(p){return demonCraft(p,demonSpec(p),44,34);}
+function demonRush(p){return demonCraft(p,demonSpec(p,{len:24,span:22,fw:5.2,
+  wing:{x0:2,y0:1,rc:9,x1:11,sw:9,tc:1.4},tail:{x0:1.6,y0:8,rc:3,x1:4.6,sw:3,tc:1.2},
+  noz:[[0,11.5,1.8]],canopy:[-4.5,1.1,2.4]}),28,28);}
+function demonBomber(p){return demonCraft(p,demonSpec(p,{len:28,span:54,fw:8.2,
+  wing:{x0:3.4,y0:-2,rc:17,x1:27,sw:18,tc:2.4},tail:{x0:3,y0:9,rc:5,x1:8,sw:4,tc:2},
+  noz:[[-4,13.5,1.8],[4,13.5,1.8]],canopy:[-5.5,1.8,3.2]}),58,34);}
+
+/* 그레이 요격기 — 원반 한 장 대신 납작한 렌즈형 동체에 만타 날개. 하부 반중력 링과 돔이
+   세력 표식. 폭격기는 원래의 대형 원반을 유지한다(모선 계열의 정체성) */
+const greySpec=(p,o)=>Object.assign({
+  len:26,span:34,fw:8.4,c:p.r,a:p.y,glass:'#9CF2E6',
+  body:[[0,0],[.1,.5],[.3,.82],[.55,.92],[.85,.72],[1,.4]],
+  wing:{x0:3.8,y0:-2,rc:12,x1:17,sw:6,tc:5},
+  noz:[[0,12,2.4]],canopy:[-3,2,3.6]
+},o||{});
+function greyCraft(p,spec,W,H){return hd(W||40,H||32,g=>{
+  g.rotate(Math.PI);drawJet(g,spec);
+  const L=spec.len/2,R=spec.span*.3;
+  g.strokeStyle=rgba(p.y,.85);g.lineWidth=1.1;
+  g.beginPath();g.ellipse(0,1,R,3.2,0,0,TAU);g.stroke();
+  for(let i=0;i<6;i++){const a=i/6*TAU,x=Math.cos(a)*R,y=1+Math.sin(a)*3.2;
+    g.fillStyle=rad(g,x,y,0,1.6,[[0,'#FFFFFF'],[.5,p.y],[1,rgba(p.y,0)]]);g.beginPath();g.arc(x,y,1.6,0,TAU);g.fill();}
+  g.beginPath();g.ellipse(0,-L*.3,3.6,2.6,0,0,TAU);
+  g.fillStyle=rad(g,-1,-L*.3-1,0,3.8,[[0,'#FFFFFF'],[.35,'#9CF2E6'],[1,'#1C5A60']]);g.fill();
+});}
+function greyFighter(p){return greyCraft(p,greySpec(p),40,32);}
+function greyRush(p){return greyCraft(p,greySpec(p,{len:20,span:22,fw:6,
+  wing:{x0:3,y0:-1,rc:8,x1:11,sw:4,tc:3.6},noz:[[0,9,2]],canopy:[-2,1.6,2.8]}),26,26);}
 function reptTri(p,s){s=s||1;return hd(34*s,32*s,g=>{
   g.scale(s,s);
   const P=[[0,15],[15,-11],[-15,-11]];
@@ -1928,9 +2036,9 @@ function reconOrb(p){return hd(24,24,g=>{
 const FAC_BUILD={
   human:(p,si)=>({fighter:hd(32,34,g=>{g.rotate(Math.PI);drawJet(g,ENEMY_JET_UNUSED(p));}),rush:droneVariant(p,si||0),bomber:bomberVariant(p,si||0),heli:heliVariant(p,si||0),orb:reconOrb(p),turret:turretBase(p,26),walker:tankBody(p),walkerTop:tankTurret(p),ship:shipBody(p),shipTop:tankTurret(p,true),
     carrier:hd(32,34,g=>{g.rotate(Math.PI);drawJet(g,Object.assign(ENEMY_JET_UNUSED({r:'#C8322B',y:'#FFE08A'}),{stripe:'rgba(255,224,138,.8)'}));})}),
-  grey:p=>({fighter:saucer(p,13,{pilot:true}),rush:probe(p),bomber:saucer(p,28,{seg:16,dome:.3}),heli:ringDrone(p),orb:hd(22,22,g=>{g.fillStyle=rad(g,0,0,1,10,[[0,'#FFFFFF'],[.3,p.y],[.6,rgba(p.y2,.6)],[1,rgba(p.y2,0)]]);g.beginPath();g.arc(0,0,10,0,TAU);g.fill();g.strokeStyle=rgba('#FFFFFF',.7);g.lineWidth=.6;g.beginPath();g.ellipse(0,0,9,3,.5,0,TAU);g.stroke();}),turret:greyPod(p),walker:walkerBody(p,'grey'),ship:greyBarge(p),carrier:greyCarrier(p)}),
-  reptile:p=>({fighter:reptTri(p),rush:reptDart(p),bomber:reptCrescent(p),heli:hd(26,26,g=>{for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4;g.strokeStyle=shade(p.k,.2);g.lineWidth=1.6;g.beginPath();g.moveTo(Math.cos(a)*6,Math.sin(a)*6);g.quadraticCurveTo(Math.cos(a+.3)*11,Math.sin(a+.3)*11,Math.cos(a+.1)*12,Math.sin(a+.1)*12);g.stroke();}g.drawImage(hive(p).img,-13,-13,26,26);}),orb:reptEgg(p),turret:hive(p),walker:walkerBody(p,'reptile'),ship:reptBarge(p),carrier:reptCarrier(p)}),
-  demon:p=>({fighter:batShip(p),rush:skull(p),bomber:demonWing(p),heli:floatEye(p),orb:fireOrb(p),turret:spire(p),walker:walkerBody(p,'demon'),ship:demonBarge(p),carrier:demonCarrier(p)}),
+  grey:p=>({fighter:greyFighter(p),rush:greyRush(p),bomber:saucer(p,28,{seg:16,dome:.3}),heli:ringDrone(p),orb:hd(22,22,g=>{g.fillStyle=rad(g,0,0,1,10,[[0,'#FFFFFF'],[.3,p.y],[.6,rgba(p.y2,.6)],[1,rgba(p.y2,0)]]);g.beginPath();g.arc(0,0,10,0,TAU);g.fill();g.strokeStyle=rgba('#FFFFFF',.7);g.lineWidth=.6;g.beginPath();g.ellipse(0,0,9,3,.5,0,TAU);g.stroke();}),turret:greyPod(p),walker:walkerBody(p,'grey'),ship:greyBarge(p),carrier:greyCarrier(p)}),
+  reptile:p=>({fighter:reptFighter(p),rush:reptDartNew(p),bomber:reptBomberNew(p),heli:hd(26,26,g=>{for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4;g.strokeStyle=shade(p.k,.2);g.lineWidth=1.6;g.beginPath();g.moveTo(Math.cos(a)*6,Math.sin(a)*6);g.quadraticCurveTo(Math.cos(a+.3)*11,Math.sin(a+.3)*11,Math.cos(a+.1)*12,Math.sin(a+.1)*12);g.stroke();}g.drawImage(hive(p).img,-13,-13,26,26);}),orb:reptEgg(p),turret:hive(p),walker:walkerBody(p,'reptile'),ship:reptBarge(p),carrier:reptCarrier(p)}),
+  demon:p=>({fighter:demonFighter(p),rush:demonRush(p),bomber:demonBomber(p),heli:floatEye(p),orb:fireOrb(p),turret:spire(p),walker:walkerBody(p,'demon'),ship:demonBarge(p),carrier:demonCarrier(p)}),
 };
 const stageSprCache={};
 function ensureFac(o,si,f){
