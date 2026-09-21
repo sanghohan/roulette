@@ -446,10 +446,11 @@ const CAPS={
 const CAP_BAG=['P','P','P','B','S','S','M','M','R','L','O','O','F','F'];
 
 /* ================= SAVE ================= */
+const MAX_SPARE=1;     /* 상점에서 미리 사는 옵션 — MAX_OPTS보다 작아야 캡슐을 주울 이유가 남는다 */
 const SAVE_KEY='aetherwing.save.v1';
 function defSave(){return{lv:1,xp:0,sp:0,pts:0,stats:{atk:0,arm:0,rate:0,foc:0},skills:{homing:1},equip:['homing',null,null,null],gold:0,tier:0,spare:0,cleared:[],best:{},sel:0,tab:'ops',plane:'falcon',ufo:false,bombUp:0,spdUp:0,bgmVol:6,sfxVol:8,muted:false,v:3,updatedAt:0,endingSeen:false,tclear:{},dsel:{},endless:{best:0,runs:0},seenTiers:[]};}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);const d=defSave();
-if((o.v||1)<3){if(Array.isArray(o.cleared)){o.cleared.splice(3,0,!!o.cleared[2]&&false);}if(o.best){const nb={};for(const k in o.best)nb[+k>=3?+k+1:k]=o.best[k];o.best=nb;}if((o.sel||0)>=3)o.sel++;o.v=3;}if(!o.tclear){o.tclear={};(o.cleared||[]).forEach((c,i)=>{if(c)o.tclear[i]=0;});}if(o.sfx===false&&o.sfxVol===undefined)o.sfxVol=0;return Object.assign(d,o,{stats:Object.assign(d.stats,o.stats||{})});}}catch(e){}return defSave();}
+if((o.v||1)<3){if(Array.isArray(o.cleared)){o.cleared.splice(3,0,!!o.cleared[2]&&false);}if(o.best){const nb={};for(const k in o.best)nb[+k>=3?+k+1:k]=o.best[k];o.best=nb;}if((o.sel||0)>=3)o.sel++;o.v=3;}if(!o.tclear){o.tclear={};(o.cleared||[]).forEach((c,i)=>{if(c)o.tclear[i]=0;});}if(o.sfx===false&&o.sfxVol===undefined)o.sfxVol=0;if((o.spare||0)>MAX_SPARE){o.gold=(o.gold||0)+1800;o.spare=MAX_SPARE;}return Object.assign(d,o,{stats:Object.assign(d.stats,o.stats||{})});}}catch(e){}return defSave();}
 let S=loadSave();
 function save(){S.updatedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
 const xpNeed=lv=>Math.round(48*Math.pow(lv,1.55)+22);
@@ -2336,7 +2337,7 @@ function needCap(){
   const add=(t,n)=>{for(let i=0;i<n;i++)w.push(t);};
   add('S',p.speedLv<=0?8:p.speedLv===1?6:p.speedLv<=3?3:p.speedLv<5?1:0);
   add('P',p.power<2?6:p.power<4?4:0);
-  add('O',p.opts<MAX_OPTS?1:0);
+  add('O',p.opts<MAX_OPTS&&Math.random()<.35?1:0);   /* 옵션은 가방 최소 가중치로도 너무 잦아서 확률로 한 번 더 거른다 */
   add('B',G.bombs<=1?3:G.bombs<3?2:0);
   add('F',p.force<=0?3:0);
   add('M',p.missileLv<2?2:0);
@@ -2673,7 +2674,7 @@ function fireMain(x,y,m,opt){
   const p=G.p,pw=opt?1:p.power;
   if(p.weapon==='normal')planeShot(x,y,m,opt);
   else if(p.weapon==='ripple'){
-    G.bullets.push({kind:'ripple',x,y,vx:0,vy:-380,r:5,grow:(p.wLv===2?46:30)+pw*3,m:m*(p.wLv===2?1.6:1.3)*(1+(pw-1)*.13),pierce:1+passLv('pierce'),t:0});
+    G.bullets.push({kind:'ripple',x,y,vx:0,vy:-380,r:5,grow:(p.wLv===2?32:20)+pw*2,m:m*(p.wLv===2?1.6:1.3)*(1+(pw-1)*.13),pierce:1+passLv('pierce'),t:0});
   }else{
     G.bullets.push({kind:'laser',x,y:y-8,vx:0,vy:-780,r:3,len:26,m:m*(p.wLv===2?.72:.55)*(1+(pw-1)*.13),pierce:99});
     if(pw>=3){G.bullets.push({kind:'laser',x:x-7,y,vx:0,vy:-780,r:2,len:18,m:m*.3,pierce:99});G.bullets.push({kind:'laser',x:x+7,y,vx:0,vy:-780,r:2,len:18,m:m*.3,pierce:99});}
@@ -3815,7 +3816,7 @@ function skillHTML(){
   return h+'</div></div>';
 }
 const tierCost=()=>Math.round(120*Math.pow(1.55,S.tier));
-const spareCost=()=>[500,1800][S.spare];
+const spareCost=()=>1500;
 const bombCost=()=>[300,900,2400][S.bombUp];
 const spdCost=()=>[350,800,1700,3200,5600][S.spdUp||0];
 const SPD_MAX=5;
@@ -3858,8 +3859,8 @@ function shopHTML(){
     <div class="shop"><div><div class="sn">추진기 강화 <span class="num" style="color:var(--amber)">${S.spdUp||0} / ${SPD_MAX}</span></div></div>
       <button class="btn sm" data-act="spdup" ${(S.spdUp||0)<SPD_MAX&&S.gold>=spdCost()?'':'disabled'}>${(S.spdUp||0)<SPD_MAX?`<span class="num">$${spdCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">기본 이동 속도 +5% (현재 +${((S.spdUp||0)*5)}% · 출격 중 S 캡슐과 별도로 적용)</div></div>
-    <div class="shop"><div><div class="sn">예비 옵션 <span class="num" style="color:var(--amber)">${S.spare} / 2</span></div></div>
-      <button class="btn sm" data-act="spare" ${S.spare<2&&S.gold>=spareCost()?'':'disabled'}>${S.spare<2?`<span class="num">$${spareCost().toLocaleString()}</span>`:'MAX'}</button>
+    <div class="shop"><div><div class="sn">예비 옵션 <span class="num" style="color:var(--amber)">${S.spare} / ${MAX_SPARE}</span></div></div>
+      <button class="btn sm" data-act="spare" ${S.spare<MAX_SPARE&&S.gold>=spareCost()?'':'disabled'}>${S.spare<MAX_SPARE?`<span class="num">$${spareCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">따라다니며 함께 사격하는 옵션을 처음부터 달고 출격</div></div>
   </div>
   <div class="sec"><h3>캡슐 도감</h3><div class="derived">
@@ -4005,7 +4006,7 @@ frame.addEventListener('click',e=>{
   }
   else if(a==='unequip'){S.equip[+t.dataset.i]=null;save();keepScroll();}
   else if(a==='tier'){if(S.tier<10&&S.gold>=tierCost()){S.gold-=tierCost();S.tier++;save();keepScroll();toast(`주포 ${S.tier}단계`);}}
-  else if(a==='spare'){if(S.spare<2&&S.gold>=spareCost()){S.gold-=spareCost();S.spare++;save();keepScroll();}}
+  else if(a==='spare'){if(S.spare<MAX_SPARE&&S.gold>=spareCost()){S.gold-=spareCost();S.spare++;save();keepScroll();}}
   else if(a==='vol'){const k=t.dataset.k;S[k]=clamp(S[k]+(+t.dataset.d),0,10);save();AU.applyVol();if(k==='sfxVol')sfx.cap();refreshVol();}
   else if(a==='mute'){S.muted=!S.muted;save();AU.applyVol();refreshVol();updateMuteBtn();}
   else if(a==='plane'){const id=t.dataset.id;if(PLANES[id].req<=S.lv){S.plane=id;fixEquip();save();keepScroll();sfx.click();}}
