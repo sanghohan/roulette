@@ -8,7 +8,7 @@
 ```
 index.html            # 루트 → /aicheck/ 리다이렉트
 aicheck/index.html    # 🔍 AI 영상 판별
-dev/index.html        # 📱 참교육앱
+dev/index.html        # 📱 돈지랄의 앱 게시판 (앱 소개·사용법 + 커뮤니티)
 lotto/index.html      # 🍀 로또 6/45 번호 생성기 (자동·반자동·수동·통계·추천)
 quantumfighter/index.html # 🛸 퀀텀 파이터 (종스크롤 슈팅 게임)
 pension/index.html    # 💰 연금복권720+ 번호 생성기 (자동·반자동·수동)

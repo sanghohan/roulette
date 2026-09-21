@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>참교육 앱 게시판 - donjiral</title>
-<meta name="description" content="참교육 앱 이용자들이 질문하고 자유롭게 이야기하는 커뮤니티 게시판. 마크다운 지원.">
+<title>돈지랄 앱 게시판 - donjiral</title>
+<meta name="description" content="돈지랄 앱 소개와 사용법을 안내하고, 궁금한 점을 묻고 답하는 커뮤니티 게시판. 마크다운 지원.">
 <link rel="canonical" href="https://www.donjiral.net/dev/">
-<meta property="og:title" content="참교육 앱 게시판 - donjiral">
-<meta property="og:description" content="참교육 앱 이용자들이 궁금한 걸 묻고 자유롭게 이야기하는 공간.">
+<meta property="og:title" content="돈지랄 앱 게시판 - donjiral">
+<meta property="og:description" content="돈지랄 앱 소개, 사용법.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.donjiral.net/dev/">
 <meta name="robots" content="index,follow">
@@ -77,6 +77,15 @@
   .form label{display:block;font-size:12px;color:var(--sub);margin:10px 0 4px}
   .form input,.form select,.form textarea{width:100%;background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:14px}
   .form textarea{min-height:200px;resize:vertical;line-height:1.6;font-family:'SFMono-Regular',Consolas,monospace}
+  .appintro{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;line-height:1.65}
+  .appintro summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--accent2)}
+  .appintro[open] summary{margin-bottom:8px}
+  .appintro p{margin:8px 0;color:var(--sub)}
+  .appintro ul{margin:8px 0 8px 18px;color:var(--sub)}
+  .appintro li{margin:3px 0}
+  .appintro b{color:var(--txt)}
+  .appintro a{color:var(--blue)}
+  .appintro code{background:#0e1230;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-family:'SFMono-Regular',Consolas,monospace;font-size:12px}
   .hidden{display:none}
   .note{color:var(--sub);font-size:12px;line-height:1.5}
   .banner{border-radius:12px;padding:11px 14px;font-size:12.5px;margin-bottom:14px;line-height:1.5}
@@ -92,14 +101,28 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>📱 참교육 앱 게시판</h1>
-    <p>참교육 앱 이용자들이 궁금한 걸 묻고 자유롭게 이야기하는 공간</p>
-    <div class="nav"><a href="/aicheck/">🔍 AI판별</a> · <a href="/dev/">📱 참교육앱</a> · <a href="/lotto/">🍀 로또</a> · <a href="/pension/">💰 연금복권</a> · <a href="/quantumfighter/">🛸 퀀텀 파이터</a></div>
+    <h1>📱 돈지랄 앱 게시판</h1>
+    <p>돈지랄 앱 소개, 사용법</p>
+    <div class="nav"><a href="/aicheck/">🔍 AI판별</a> · <a href="/dev/">📱 돈지랄의 앱</a> · <a href="/quantumfighter/">🛸 퀀텀 파이터</a></div>
   </header>
 
   <div id="banner"></div>
 
   <div class="card" id="listView">
+    <details class="appintro">
+      <summary>🛸 퀀텀 파이터 — 소개 · 사용법</summary>
+      <p>설치 없이 <a href="/quantumfighter/">브라우저에서 바로</a> 즐기는 종스크롤 슈팅 게임. PC·모바일 모두 지원합니다.</p>
+      <ul>
+        <li><b>구성</b> — 2부 9스테이지. 1부 독재자 전쟁 → 2부 외계 침공(그레이·렙틸리언·마계) → 거대 UFO 모선 → 엔딩</li>
+        <li><b>육성</b> — 기체 3종, 차지 샷, 폭탄, 캡슐 파워업, 레벨·스탯·스킬 조합</li>
+        <li><b>난이도</b> — 스테이지별 ★일반 / ★★정예 / ★★★악몽(레벨로 개방), 전 스테이지 클리어 후 ∞ 무한 공역</li>
+        <li><b>저장</b> — 진행 상황은 이 브라우저(localStorage)에 저장됩니다. 시크릿 모드나 브라우저 데이터 삭제 시 초기화돼요.</li>
+      </ul>
+      <p><b>조작</b><br>
+        PC · 이동 <code>←↑↓→</code>/<code>WASD</code> · 정밀 <code>Shift</code> · 차지 <code>C</code> · 폭탄 <code>B</code> · 스킬 <code>1</code>–<code>4</code> · 정지 <code>P</code><br>
+        모바일 · 화면을 드래그해 이동 · 하단 버튼으로 스킬·차지·폭탄 · 사격은 자동
+      </p>
+    </details>
     <div class="toolbar">
       <input id="search" placeholder="🔍 제목·내용·작성자 검색">
       <button class="btn" id="writeBtn">✏️ 글쓰기</button>
@@ -157,9 +180,9 @@ let filter='전체';
 /* ---------- 데이터 계층 ---------- */
 const LS='dev_v1';
 const SEED=[
-  {id:0,board:'dev',category:'notice',title:'참교육 앱 게시판을 오픈했습니다',author:'돈지랄',content:'참교육 앱 이용자들을 위한 게시판이 열렸어요. 공지사항 확인, 궁금한 점 질문, 자유로운 이야기 모두 환영합니다.',media:'',likes:3,views:52,comments:[],createdAt:Date.now()-3600e3},
-  {id:1,board:'dev',category:'qna',title:'참교육 앱 알림이 안 와요',author:'궁금맘',content:'알림 설정을 켰는데도 공지 알림이 안 옵니다. 혹시 확인해볼 설정이 있을까요?',media:'',likes:2,views:34,comments:[],createdAt:Date.now()-7200e3},
-  {id:2,board:'dev',category:'free',title:'참교육 앱 잘 쓰고 있어요',author:'열공생',content:'알림장이랑 일정 확인이 편해서 만족합니다. 다들 어떤 기능 자주 쓰시나요?',media:'',likes:5,views:48,comments:[],createdAt:Date.now()-86400e3}
+  {id:0,board:'dev',category:'notice',title:'돈지랄 앱 게시판을 오픈했습니다',author:'돈지랄',content:'돈지랄 앱 소개와 사용법을 안내하는 게시판이 열렸어요. 공지사항 확인, 궁금한 점 질문, 자유로운 이야기 모두 환영합니다.',media:'',likes:3,views:52,comments:[],createdAt:Date.now()-3600e3},
+  {id:1,board:'dev',category:'notice',title:'🛸 퀀텀 파이터 — 소개와 사용법',author:'돈지랄',content:'설치 없이 브라우저에서 바로 즐기는 종스크롤 슈팅 게임입니다. 자세한 내용은 게시판 상단의 앱 소개를 펼쳐보세요.\n\n바로가기: https://www.donjiral.net/quantumfighter/',media:'',likes:7,views:120,comments:[],createdAt:Date.now()-7200e3},
+  {id:2,board:'dev',category:'qna',title:'퀀텀 파이터 진행 상황이 사라졌어요',author:'조종사',content:'레벨이랑 스테이지 진행이 초기화됐습니다. 혹시 확인해볼 게 있을까요?',media:'',likes:2,views:34,comments:[],createdAt:Date.now()-86400e3}
 ];
 function lsLoad(){try{const o=JSON.parse(localStorage.getItem(LS));if(o&&o.posts)return o;}catch(e){}return {posts:SEED.slice(),nextId:100,nextCid:1000};}
 function lsSave(d){localStorage.setItem(LS,JSON.stringify(d));}
