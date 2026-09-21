@@ -826,6 +826,12 @@ const sfx={
   guard(){if(!AU.ok()||AU.throttle('guard',.05))return;const t=AU.ctx.currentTime;
     if(AU.shot('gd',t,{gain:.95,rate:1+Math.random()*.1,dest:AU.sfxG}))return;
     AU.noise(.05,.3,0,t,null,4800,1.2);AU.tone(1760,.16,'triangle',.09,880,t);AU.tone(2640,.1,'sine',.05,1320,t);},
+  /* 방벽이 시간을 다하고 흩어질 때 — 날카로운 파열음 뒤로 파편이 잘게 튄다 */
+  shatter(){if(!AU.ok()||AU.throttle('shat',.25))return;const t=AU.ctx.currentTime;
+    AU.noise(.06,.38,0,t,null,5000,1.8);AU.noise(.28,.14,0,t+.02,null,3000);
+    AU.tone(1900,.08,'triangle',.055,700,t);
+    for(let i=0;i<9;i++){const d=.03+Math.random()*.32;
+      AU.tone(1800+Math.random()*3400,.05+Math.random()*.05,'triangle',.05*(1-d),null,t+d);}},
   click(){if(AU.ok())AU.tone(820,.035,'triangle',.045,560);},
 };
 /* ---- metal sequencer: every track is generated from a seed, so it is stable across plays ---- */
@@ -2772,7 +2778,8 @@ function update(dt){
   }
   // skills / bomb timers
   for(const s of G.sk)if(s&&s.cd>0){s.cd=Math.max(0,s.cd-dt);if(s.cd<=0)sfx.skready();}
-  G.barrier=Math.max(0,G.barrier-dt);G.chrono=Math.max(0,G.chrono-dt);
+  if(G.barrier>0){G.barrier=Math.max(0,G.barrier-dt);if(G.barrier<=0)sfx.shatter();}
+  G.chrono=Math.max(0,G.chrono-dt);
   G.grav=Math.max(0,G.grav-dt);G.cloneT=Math.max(0,G.cloneT-dt);
   if(G.warpFx){G.warpFx.t+=dt;if(G.warpFx.t>.3)G.warpFx=null;}
   if(G.bombT>0){
