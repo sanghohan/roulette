@@ -395,7 +395,7 @@ const STAGES=[
 const STAT_DEF=[
  {id:'atk',name:'화력',ds:'주포·스킬 피해 +7%'},
  {id:'arm',name:'장갑',ds:'최대 내구도 +7.5%'},
- {id:'rate',name:'연사',ds:'주포 연사 속도 +3.5%'},
+ {id:'rate',name:'연사',ds:`주포 연사 속도 +3.5% (배율 최대 ×${RATE_CAP})`},
  {id:'foc',name:'집중',ds:'치명타 +0.6% · 재사용 대기 −1.2%'},
 ];
 const SKILLS={
@@ -406,7 +406,7 @@ const SKILLS={
  laser:{name:'섬광 레이저',type:'active',req:4,cd:14,only:'saucer',d:l=>`${(1.6+l*.3).toFixed(1)}초 관통 광선 · 틱당 ${70+l*15}%`},
  warp:{name:'공간 왜곡',type:'active',req:5,cd:15,only:'saucer',d:l=>`전방 ${120+l*20}px 도약 · 경로의 적탄 소거 · ${(.5+l*.1).toFixed(1)}초 무적`},
  crit:{name:'약점 포착',type:'passive',req:5,d:l=>`치명타 확률 +${l*6}% (치명타 2배)`},
- drones:{name:'호위 드론',type:'active',req:6,cd:22,d:l=>`드론 2기 ${6+l*2}초 · 발당 ${40+l*10}%`},
+ drones:{name:'호위 드론',type:'active',req:6,cd:22,d:l=>`드론 2기 ${6+l*2}초 · 발당 ${32+l*8}%`},
  nano:{name:'나노 수복',type:'passive',req:7,d:l=>`초당 최대 내구도 ${(.3+l*.25).toFixed(2)}% 회복`},
  chrono:{name:'시간 왜곡',type:'active',req:9,cd:22,only:'saucer',d:l=>`${3+l}초간 적과 적탄 감속`},
  clone:{name:'분신술',type:'active',req:10,cd:24,only:'saucer',d:l=>`분신 2기 ${(4+l*.8).toFixed(1)}초 · 주포 ${40+l*8}% 위력`},
@@ -2686,7 +2686,8 @@ function fireMain(x,y,m,opt){
     if(pw>=3){G.bullets.push({kind:'laser',x:x-7,y,vx:0,vy:-780,r:2,len:18,m:m*.3,pierce:99});G.bullets.push({kind:'laser',x:x+7,y,vx:0,vy:-780,r:2,len:18,m:m*.3,pierce:99});}
   }
 }
-const FIRE_IV={falcon:.11,raven:.085,hornet:.15,saucer:.1};
+const FIRE_IV={falcon:.13,raven:.10,hornet:.17,saucer:.12};
+const RATE_CAP=1.8;    /* 연사 스탯은 상한이 없으면 만렙에서 65발/초까지 간다 — 배율을 여기서 끊는다 */
 function optionPos(i){const tr=G.p.trail;return tr[Math.min(tr.length-1,(i+1)*16)];}
 
 /* ================= UPDATE ================= */
@@ -2759,7 +2760,7 @@ function update(dt){
         for(let i=0;i<p.opts;i++){const o=optionPos(i);fireMain(o.x,o.y-4,.6,true);}
         if(G.cloneT>0)for(const dx of [-36,36])fireMain(clamp(p.x+dx,10,W-10),p.y-10,.4+G.cloneLv*.08,true);
         const iv=p.weapon==='ripple'?.21:p.weapon==='laser'?.085:FIRE_IV[S.plane]||.11;
-        p.fire=iv/(1+S.stats.rate*.035);
+        p.fire=iv/Math.min(RATE_CAP,1+S.stats.rate*.035);
         sfx.shot();
       }
       if(p.missileLv>0){
@@ -2831,8 +2832,8 @@ function update(dt){
   if(G.drones>0&&!p.dead){
     G.drones-=dt;G.droneAng+=dt*3;G.droneFire-=dt;
     if(G.droneFire<=0){
-      G.droneFire=.16;
-      for(let k=0;k<2;k++){const a=G.droneAng+k*Math.PI,dx=p.x+Math.cos(a)*30,dy=p.y+Math.sin(a)*16;const t=nearestEnemy(dx,dy);const an=t?Math.atan2(t.y-dy,t.x-dx):-Math.PI/2;G.bullets.push({kind:'dshot',x:dx,y:dy,vx:Math.cos(an)*540,vy:Math.sin(an)*540,r:3,m:.4+G.droneLv*.1,pierce:0});}
+      G.droneFire=.22;
+      for(let k=0;k<2;k++){const a=G.droneAng+k*Math.PI,dx=p.x+Math.cos(a)*30,dy=p.y+Math.sin(a)*16;const t=nearestEnemy(dx,dy);const an=t?Math.atan2(t.y-dy,t.x-dx):-Math.PI/2;G.bullets.push({kind:'dshot',x:dx,y:dy,vx:Math.cos(an)*540,vy:Math.sin(an)*540,r:3,m:.32+G.droneLv*.08,pierce:0});}
     }
     if(syn('swarm')){G.swarmT-=dt;if(G.swarmT<=0){G.swarmT=1.1;for(let k=0;k<2;k++){const a=G.droneAng+k*Math.PI;fireHoming(p.x+Math.cos(a)*30,p.y+Math.sin(a)*16,1,1.2);}}}
   }
@@ -3765,7 +3766,7 @@ function pilotHTML(){
   h+=`</div><div class="sec"><h3>기체 성능</h3><div class="derived">
     <div><span>최대 내구도</span><b>${mh}</b></div>
     <div><span>탄당 피해</span><b>${base.toFixed(1)}</b></div>
-    <div><span>연사 배율</span><b>×${(1+S.stats.rate*.035).toFixed(2)}</b></div>
+    <div><span>연사 배율</span><b>×${Math.min(RATE_CAP,1+S.stats.rate*.035).toFixed(2)}${1+S.stats.rate*.035>=RATE_CAP?' 최대':''}</b></div>
     <div><span>치명타</span><b>${(5+S.stats.foc*.6+passLv('crit')*6).toFixed(1)}%</b></div>
     <div><span>재사용 대기 감소</span><b>${(Math.min(.4,S.stats.foc*.012)*100).toFixed(0)}%</b></div>
     <div><span>스킬 슬롯</span><b>${slotsOpen(S.lv)} / 4</b></div>
