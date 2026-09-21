@@ -1312,6 +1312,18 @@ function ebSprite(r,col){return hd(r*4.4,r*4.4,g=>{
   g.beginPath();g.arc(0,0,r,0,TAU);g.fillStyle=rad(g,-r*.15,-r*.2,0,r,[[0,'#FFFFFF'],[.34,'#FFFFFF'],[.55,shade(col,.45)],[.88,col],[1,shade(col,-.3)]]);g.fill();
   g.beginPath();g.arc(-r*.16,-r*.2,r*.34,0,TAU);g.fillStyle='#FFFFFF';g.fill();
 },3);}
+/* 탄 모양이 곧 발사자 표식이다 — 니들/대구경/펠릿/다트/지뢰. 색은 세력, 모양은 종류 */
+function ebDart(col){return hd(12,36,g=>{
+  g.fillStyle=rad(g,0,0,1,15,[[0,rgba(col,.5)],[1,rgba(col,0)]]);g.save();g.scale(.4,1);g.beginPath();g.arc(0,0,15,0,TAU);g.restore();g.fill();
+  g.beginPath();g.ellipse(0,0,2.4,12,0,0,TAU);g.fillStyle='rgba(6,2,10,.95)';g.fill();
+  g.beginPath();g.ellipse(0,0,1.5,10.5,0,0,TAU);g.fillStyle=lin(g,0,10,0,-10,[[0,rgba(col,.2)],[.5,col],[1,'#FFFFFF']]);g.fill();
+  g.beginPath();g.ellipse(0,-6,.8,3,0,0,TAU);g.fillStyle='#FFFFFF';g.fill();});}
+function ebMine(col){return hd(26,26,g=>{
+  g.fillStyle=rad(g,0,0,4,12,[[0,rgba(col,.45)],[1,rgba(col,0)]]);g.beginPath();g.arc(0,0,12,0,TAU);g.fill();
+  g.fillStyle=shade(col,-.55);for(let i=0;i<6;i++){const a=i*TAU/6;poly(g,[[Math.cos(a)*5,Math.sin(a)*5],[Math.cos(a+.35)*5,Math.sin(a+.35)*5],[Math.cos(a+.17)*8.6,Math.sin(a+.17)*8.6]]);g.fill();}
+  g.beginPath();g.arc(0,0,5.6,0,TAU);g.fillStyle=rad(g,-1.5,-1.8,0,5.6,[[0,'#3A3444'],[.6,'#12101A'],[1,'#050308']]);g.fill();
+  g.strokeStyle=rgba(col,.9);g.lineWidth=.9;g.beginPath();g.arc(0,0,5.6,0,TAU);g.stroke();
+  g.beginPath();g.arc(0,0,1.7,0,TAU);g.fillStyle='#FFFFFF';g.fill();});}
 function ebNeedle(col){return hd(14,26,g=>{
   g.fillStyle=rad(g,0,0,1,12,[[0,'rgba(0,0,0,.5)'],[1,'rgba(0,0,0,0)']]);g.save();g.scale(.62,1);g.beginPath();g.arc(0,0,12,0,TAU);g.restore();g.fill();
   g.fillStyle=rad(g,0,0,1,10,[[0,rgba(col,.6)],[1,rgba(col,0)]]);g.save();g.scale(.55,1);g.beginPath();g.arc(0,0,10,0,TAU);g.restore();g.fill();
@@ -2047,7 +2059,8 @@ function ensureFac(o,si,f){
     const p=f==='human'?Object.assign({},EPAL[si],{eb:FAC.human.eb}):FAC[f],b=FAC_BUILD[f](p,si),m={};
     if(!b.carrier)b.carrier=saucer(p,13,{c:'#E0B040',glass:'#FFE08A',pilot:f==='grey'});
     for(const k in b){m[k]=armor(b[k],k==='orb'||k==='rush'?1.1:1.4);if(k.endsWith('Top'))continue;m[k+'W']=tint(m[k],'#FFFFFF');m[k+'Sh']=tint(m[k],'#000000');}
-    m.eb={o:ebSprite(5.1,p.eb[0]),b:ebSprite(7.4,p.eb[1]),n:ebNeedle(p.eb[2])};
+    m.eb={o:ebSprite(5.1,p.eb[0]),b:ebSprite(7.4,p.eb[1]),n:ebNeedle(p.eb[2]),s:ebSprite(3.6,p.eb[2]),d:ebDart(p.eb[0]),m:ebMine(p.eb[1])};
+    for(const [nk,src] of [['strafer','fighter'],['spinner','turret'],['diver','rush'],['miner','orb']]){m[nk]=m[src];m[nk+'W']=m[src+'W'];m[nk+'Sh']=m[src+'Sh'];}
     o.fac[f]=m;
   }
 }
@@ -2420,11 +2433,19 @@ const EBASE={
  orb:{hp:14,r:9,xp:1.2,gold:0},
  carrier:{hp:26,r:11,xp:2,gold:0},
  heli:{hp:20,r:12,xp:1.8,gold:0},
+ /* 새 종류 — 이동과 공격이 서로 다르다. 전부 조준 단발이던 판에 '위치 선점'을 강제하는 패턴을 섞는다 */
+ strafer:{hp:14,r:10,xp:1.4,gold:0},   /* 측면 횡단 + 수직 탄막 */
+ spinner:{hp:28,r:11,xp:2.2,gold:0},   /* 정지 후 회전 스파이럴 */
+ diver:{hp:9,r:9,xp:1.1,gold:0},       /* 급강하 후 상승 이탈, 바닥에서 3점사 */
+ miner:{hp:18,r:10,xp:1.6,gold:0},     /* 느리게 표류하며 지뢰 투하 */
  part:{hp:0,r:10,xp:4,gold:6},
  mid:{hp:840,r:30,xp:16,gold:70,hw:50,hh:22},
 };
 const MIDNAME={human:'중형 폭격기',grey:'대형 비행접시',reptile:'초승달 포함',demon:'마계 전령'};
 const stageLen=si=>136+si*5;
+/* 새 종류는 2스테이지부터 단계적으로. 1스테이지는 기본 조작을 익히는 곳으로 남긴다 */
+[[1,'strafers'],[2,'divers'],[3,'spinners'],[3,'strafers'],[4,'miners'],[4,'divers'],[5,'spinners'],[5,'strafers'],
+ [6,'divers'],[6,'miners'],[7,'spinners'],[7,'strafers'],[8,'divers'],[8,'spinners'],[8,'miners']].forEach(([i,f])=>STAGES[i].pool.push(f));
 const equipped=id=>S.equip.includes(id);
 const passLv=id=>equipped(id)?(S.skills[id]||0):0;
 const syn=id=>G&&G.syn.has(id);
@@ -2433,7 +2454,7 @@ const plane=()=>PLANES[S.plane]||PLANES.falcon;
 function activeSynergies(){const s=new Set();SYNERGY.forEach(x=>{if(x.req.every(equipped))s.add(x.id);});return s;}
 
 const ALL_FAC=['human','grey','reptile','demon'];
-function endlessStage(src){return Object.assign({},STAGES[src],{code:'∞',name:'무한 공역',act:2,fac:ALL_FAC,story:'끝없이 몰려오는 적. 몇 웨이브까지 버틸 수 있을까?',pool:['vee','sine','swoop','helis','rush','bomber','turret','tanks','orbs']});}
+function endlessStage(src){return Object.assign({},STAGES[src],{code:'∞',name:'무한 공역',act:2,fac:ALL_FAC,story:'끝없이 몰려오는 적. 몇 웨이브까지 버틸 수 있을까?',pool:['vee','sine','swoop','helis','rush','bomber','turret','tanks','orbs','strafers','divers','spinners','miners']});}
 function newRun(si,tier,endless){
   tier=endless?0:(tier||0);
   const st=endless?endlessStage(si):STAGES[si],mh=maxHp(),T=TIERS[tier];
@@ -2530,6 +2551,10 @@ function spawnFormation(f){
   else if(f==='orbs'){const cx=rand(100,W-100);const no=7+X*2;for(let i=0;i<no;i++)add('orb',cx,-60,{path:'orb',cx,cy:-60,ang:i*TAU/no,av:2.2,rad:46,fire:rand(2,5)});}
   else if(f==='helis'){const n=Math.min(5,3+(si>=3?1:0)+X);for(let i=0;i<n;i++){const x=W*(i+1)/(n+1)+rand(-20,20);add('heli',x,-30-i*20,{path:'heli',ty:rand(90,210),cx:x,fire:rand(1.2,2.2)});}}
   else if(f==='carrier'){const x=rand(90,W-90);add('carrier',x,-20,{path:'carrier',cx:x});}
+  else if(f==='strafers'){const L=Math.random()<.5,y=rand(90,230);for(let i=0;i<3+X;i++)add('strafer',L?-30-i*46:W+30+i*46,y+i*10,{path:'strafe',vx:(L?1:-1)*(150+si*7)});F.drop=Math.random()<.5;}
+  else if(f==='spinners'){const n=2+(X>=2?1:0);for(let i=0;i<n;i++){const tx=W*(i+1)/(n+1);add('spinner',tx,-30,{path:'hold',tx,ty:rand(110,200),stay:6+si*.3,fire:1});}}
+  else if(f==='divers'){for(let i=0;i<4+X;i++)add('diver',rand(40,W-40),-24-i*40,{path:'dive',tx:G.p.x,ty:Math.min(H*.7,G.p.y-20),vx:0,vy:60});F.drop=false;}
+  else if(f==='miners'){const cx=rand(80,W-80);for(let i=0;i<2+(X>0?1:0);i++){const mx=cx+(i-.5)*70;add('miner',mx,-30-i*40,{path:'drift',sp:42+si*2,cx:mx,amp:36,ph:i*1.7,fire:1.2});}}
   G.forms[fid]=F;
 }
 let MID_ART=null;
@@ -2593,12 +2618,16 @@ function dropGold(x,y,n){
 }
 /* ---------- combat helpers ---------- */
 const aimAt=(x,y)=>Math.atan2(G.p.y-y,G.p.x-x);
+const EB_R={b:5,m:5.5,d:3.2,s:2.6},EB_D={b:1.3,m:1.35,s:.85,d:1.05};   /* 탄 종류별 판정·피해 */
 function eshot(x,y,a,sp,big,k){
   if(G.eb.length>700)return;
-  G.eb.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:big?5:3.5,dmg:G.dmgMul*(big?1.3:1),k:big?'b':(k||'o'),f:G.curFac||G.st.fac[0]});
+  const kk=big?'b':(k||'o');
+  G.eb.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:EB_R[kk]||3.5,dmg:G.dmgMul*(EB_D[kk]||1),k:kk,f:G.curFac||G.st.fac[0]});
 }
-function fan(x,y,n,spread,sp,base){const a0=base??aimAt(x,y);for(let i=0;i<n;i++)eshot(x,y,a0+(n>1?(i/(n-1)-.5)*spread:0),sp);}
-function ring(x,y,n,sp,off,big){for(let i=0;i<n;i++)eshot(x,y,off+i*TAU/n,sp,big);}
+function fan(x,y,n,spread,sp,base,k){const a0=base??aimAt(x,y);for(let i=0;i<n;i++)eshot(x,y,a0+(n>1?(i/(n-1)-.5)*spread:0),sp,false,k);}
+function ring(x,y,n,sp,off,big,k){for(let i=0;i<n;i++)eshot(x,y,off+i*TAU/n,sp,big,k);}
+/* 지뢰 — 지면과 같이 천천히 내려오다 도화선이 다 타면 링으로 터진다. 영역 봉쇄용 */
+function mine(x,y){if(G.eb.length>700)return;G.eb.push({x,y,vx:0,vy:BG_SPEED*.6,r:EB_R.m,dmg:G.dmgMul*EB_D.m,k:'m',f:G.curFac||G.st.fac[0],fuse:1.6+Math.random()*.6});}
 function dmgRoll(m,kind){
   let d=9*(1+S.stats.atk*.07)*(1+(S.lv-1)*.025)*(1+S.tier*.1)*plane().dmg*G.sup.pdmg*m;
   let c=.05+S.stats.foc*.006+passLv('crit')*.06;
@@ -3117,6 +3146,17 @@ function update(dt){
       case 'ship':e.y+=(BG_SPEED*.8)*dt;e.x+=e.vx*d;if(Math.random()<.4)G.parts.push({ty:'foam',x:e.x+rand(-4,4),y:e.y+34,vx:rand(-14,14),vy:0,t:0,life:1.1,s:rand(.3,.5)});break;
       case 'heli':if(e.t<7){e.y+=(e.ty-e.y)*Math.min(1,d*1.4);e.cx+=clamp(G.p.x-e.cx,-30,30)*d*.5;e.x=e.cx+Math.sin(e.t*1.3)*18;}else{e.y+=80*d;e.x+=Math.sin(e.t)*30*d;}break;
       case 'carrier':e.y+=58*d;e.x=e.cx+Math.sin(e.t*2.6)*60;break;
+      /* 횡단하며 수직 탄막을 흘린다 — 조준 사격이 아니라 '서 있으면 맞는' 위치 선점 강제 */
+      case 'strafe':e.x+=e.vx*d;e.y+=Math.sin(e.t*2.2)*14*d;
+        e.cur=(e.cur||0)-d;if(e.cur<=0&&e.y>10&&e.x>10&&e.x<W-10){e.cur=.38/Math.min(1.6,G.fireMul);eshot(e.x,e.y+6,Math.PI/2,G.bsp*.9,false,'d');}break;
+      case 'hold':if(e.t<2.2){e.y+=(e.ty-e.y)*Math.min(1,d*1.6);e.x+=(e.tx-e.x)*Math.min(1,d*1.6);}else if(e.t>e.stay)e.y-=140*d;break;
+      /* 출현 시점의 플레이어 위치로 급강하 → 바닥에서 3점사 → 상승 이탈 */
+      case 'dive':{const ax=e.tx-e.x,ay=e.ty-e.y,L=Math.hypot(ax,ay)||1;
+        if(!e.pull){e.vx+=(ax/L)*560*d;e.vy+=(ay/L)*560*d;const v=Math.hypot(e.vx,e.vy),vm=250+G.dsi*12;if(v>vm){e.vx*=vm/v;e.vy*=vm/v;}
+          if(L<28||e.y>e.ty){e.pull=true;for(let i=0;i<3;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),G.bsp*1.1,false,'d');},i*90);}}
+        else{e.vy-=900*d;e.vx*=1-d*1.2;}
+        e.x+=e.vx*d;e.y+=e.vy*d;break;}
+      case 'drift':e.y+=e.sp*d;e.x=e.cx+Math.sin(e.t*.9+e.ph)*e.amp;break;
       case 'mid':
         if(e.t<2.2)e.y+=(150-e.y)*Math.min(1,d*1.6);
         else if(e.t<26){e.x=W/2+Math.sin((e.t-2.2)*.55)*95;e.y=150+Math.sin(e.t*1.1)*18;}
@@ -3134,7 +3174,7 @@ function update(dt){
       if(e.fire<=0){
         const onScr=e.y>20&&e.y<H*.72&&e.x>0&&e.x<W;const sp=G.bsp;
         if(onScr||(e.part&&e.entered)){
-          if(e.kind==='fighter'&&(e.elite||Math.random()<.68+G.dsi*.04)){if(e.elite)fan(e.x,e.y+8,3,.35,sp);else eshot(e.x,e.y+8,aimAt(e.x,e.y),sp,false,'n');}
+          if(e.kind==='fighter'&&(e.elite||Math.random()<.68+G.dsi*.04)){if(e.elite)fan(e.x,e.y+8,3,.35,sp);else if(Math.random()<.3)fan(e.x,e.y+8,2,.5,sp*.95);else eshot(e.x,e.y+8,aimAt(e.x,e.y),sp,false,'n');}
           if(e.kind==='heli'){for(let i=0;i<(e.elite?5:3);i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y+6,aimAt(e.x,e.y),sp*1.05,false,'n');},i*120);}
           if(e.kind==='mid'){
             e.pat=(e.pat+1)%3;const X=G.extra||0;
@@ -3142,8 +3182,11 @@ function update(dt){
             else if(e.pat===1)ring(e.x,e.y,14+G.dsi+X*2,sp*.8,e.t);
             else for(let i=0;i<6+X;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y+16,aimAt(e.x,e.y)+rand(-.06,.06),sp*1.2,false,'n');},i*90);
           }
-          if(e.kind==='bomber')fan(e.x,e.y+16,4+Math.min(4,G.dsi),.95,sp*.85);
-          if(e.kind==='turret'||e.kind==='tank'){const n=2+Math.min(2,G.dsi>>1)+(e.elite?1:0);for(let i=0;i<n;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),sp*1.05,false,'n');},i*110);}
+          /* 폭격기는 셋에 하나꼴로 '가운데가 뚫린 탄벽' — 피할 자리가 정해져 있는 읽기 패턴 */
+          if(e.kind==='bomber'){if(Math.random()<.35){const a=aimAt(e.x,e.y);fan(e.x,e.y+16,3,.5,sp*.72,a-.62,'b');fan(e.x,e.y+16,3,.5,sp*.72,a+.62,'b');}else fan(e.x,e.y+16,4+Math.min(4,G.dsi),.95,sp*.72,undefined,'b');}
+          if(e.kind==='spinner'){e.ang=(e.ang||0)+.55;const n=e.elite?3:2;for(let i=0;i<n;i++)eshot(e.x,e.y,e.ang+i*TAU/n,sp*.78,false,'s');}
+          if(e.kind==='miner')mine(e.x,e.y+8);
+          if(e.kind==='turret'||e.kind==='tank'){const n=2+Math.min(2,G.dsi>>1)+(e.elite?1:0),tk=e.kind==='tank';for(let i=0;i<n;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),sp*(tk?.82:1.05),tk,tk?undefined:'n');},i*(tk?170:110));}
           if(e.kind==='ship'){fan(e.x,e.y-16,4,.4,sp*.95);fan(e.x,e.y+16,4,.4,sp*.95);}
           if(e.kind==='orb'&&(G.dsi>=3||e.elite)&&Math.random()<.65)eshot(e.x,e.y,aimAt(e.x,e.y),sp*.9);
           if(e.part&&G.phase==='boss'){
@@ -3151,7 +3194,7 @@ function update(dt){
             else for(let i=0;i<2+(e.parent.form===2?1:0);i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),sp*1.1,false,'n');},i*120);
           }
         }
-        e.fire=({fighter:2.2,bomber:1.5,turret:2.1,tank:2.3,ship:1.7,orb:2.8,part:1.9,heli:1.9,mid:1.35}[e.kind]||99)/G.fireMul*rand(.8,1.25)*(e.elite?.7:1);
+        e.fire=({fighter:2.2,bomber:1.5,turret:2.1,tank:2.3,ship:1.7,orb:2.8,part:1.9,heli:1.9,mid:1.35,spinner:.24,miner:1.7}[e.kind]||99)/G.fireMul*rand(.8,1.25)*(e.elite?.7:1);
       }
     }
     // body collision
@@ -3180,6 +3223,7 @@ function update(dt){
   const pr=3.2;
   for(const b of G.eb){
     b.x+=b.vx*dt*bslow;b.y+=b.vy*dt*bslow;
+    if(b.fuse!=null){b.fuse-=dt;if(b.fuse<=0){b.gone=true;ring(b.x,b.y,8,G.bsp*.75,Math.random()*TAU,false,'s');continue;}}
     if(b.x<-10||b.x>W+10||b.y<-10||b.y>H+10){b.gone=true;continue;}
     if(p.dead||G.intro>0)continue;
     const dx=b.x-p.x,dy=b.y-p.y;
@@ -3514,7 +3558,7 @@ function render(dt){
     for(const b of G.eb){ctx.moveTo(b.x-b.vx*.03,b.y-b.vy*.03);ctx.lineTo(b.x,b.y);}
     ctx.stroke();
   }
-  for(const b of G.eb){const ES=(G.spr.fac[b.f]||G.spr.fac[G.st.fac[0]]).eb,s=ES[b.k||'o'];if(b.k==='n')drawS(s,b.x,b.y,Math.atan2(b.vy,b.vx)-Math.PI/2);else drawS(s,b.x,b.y,0,(G.t*8+b.x)%1<.5?1:1.08);}
+  for(const b of G.eb){const ES=(G.spr.fac[b.f]||G.spr.fac[G.st.fac[0]]).eb,s=ES[b.k||'o'];if(b.k==='n'||b.k==='d')drawS(s,b.x,b.y,Math.atan2(b.vy,b.vx)-Math.PI/2);else if(b.k==='m')drawS(s,b.x,b.y,G.t*2.5,(G.t*6)%1<.5?1:1.14);else drawS(s,b.x,b.y,0,(G.t*8+b.x)%1<.5?1:1.08);}
   // debris (solid)
   ctx.fillStyle='#2A2624';
   for(const q of G.parts)if(q.ty==='debris'){ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.rot);ctx.fillRect(-q.s,-q.s*.5,q.s*2,q.s);ctx.restore();}
@@ -3646,6 +3690,10 @@ function drawEnemy(e){
     ctx.globalCompositeOperation='source-over';
     if(e.hp<e.maxHp&&k!=='bomber'&&k!=='ship')hpBar(e,20,-r-5);
   }
+  if(k==='strafer'){const r=e.vx>0?-Math.PI/2:Math.PI/2;drawS(s,e.x,e.y,r);flash(r);return;}
+  if(k==='spinner'){const r=e.t*2.4;drawS(s,e.x,e.y,r);glowAt(e.x,e.y,.9+.2*Math.sin(G.t*7));flash(r);return;}
+  if(k==='diver'){const r=(e.vx||e.vy)?Math.atan2(e.vy,e.vx)-Math.PI/2:0;drawS(s,e.x,e.y,r);flash(r);return;}
+  if(k==='miner'){const r=e.t*.8;drawS(s,e.x,e.y,r);flash(r);return;}
   if(k==='turret'){
     drawS(s,e.x,e.y);
     if(fac==='human'){ctx.strokeStyle='#15191E';ctx.lineWidth=1.8;ctx.beginPath();for(const o of[-1.8,1.8]){const nx=-Math.sin(e.aim)*o,ny=Math.cos(e.aim)*o;ctx.moveTo(e.x+nx,e.y+ny);ctx.lineTo(e.x+nx+Math.cos(e.aim)*13,e.y+ny+Math.sin(e.aim)*13);}ctx.stroke();}
