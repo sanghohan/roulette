@@ -448,11 +448,25 @@ const CAP_BAG=['P','P','P','B','S','S','M','M','R','L','O','O','F','F'];
 /* ================= SAVE ================= */
 const MAX_SPARE=1;     /* 상점에서 미리 사는 옵션 — MAX_OPTS보다 작아야 캡슐을 주울 이유가 남는다 */
 const SAVE_KEY='aetherwing.save.v1';
+/* 세이브 변조 방지 — 암호화가 아니라 변조 '감지'다. 키가 소스에 있으니 작정하면 뚫리지만,
+   DevTools에서 gold 숫자만 고치는 충동적 조작은 막힌다. 내부 상태는 IIFE 밖에서 못 건드리므로
+   localStorage가 유일한 경로고, 그 하나를 닫으면 실질적으로 충분하다 */
+const SAVE_TAG='QF1:';
+const hashS=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(36);};
+const xorS=s=>{const k='aetherwing';let o='';for(let i=0;i<s.length;i++)o+=String.fromCharCode(s.charCodeAt(i)^k.charCodeAt(i%k.length));return o;};
+/* encodeURIComponent를 먼저 걸어 순수 ASCII로 만든다 — XOR 결과가 latin1을 벗어나 btoa가 터지는 걸 막는다 */
+const encSave=o=>{const j=encodeURIComponent(JSON.stringify(o));return SAVE_TAG+btoa(xorS(hashS(j)+'|'+j));};
+const decSave=r=>{
+  if(r.slice(0,SAVE_TAG.length)!==SAVE_TAG)return JSON.parse(r);   /* 예전 평문 세이브는 그대로 읽어준다 */
+  const p=xorS(atob(r.slice(SAVE_TAG.length))),i=p.indexOf('|'),j=p.slice(i+1);
+  if(i<0||hashS(j)!==p.slice(0,i))throw new Error('save tampered');
+  return JSON.parse(decodeURIComponent(j));
+};
 function defSave(){return{lv:1,xp:0,sp:0,pts:0,stats:{atk:0,arm:0,rate:0,foc:0},skills:{homing:1},equip:['homing',null,null,null],gold:0,tier:0,spare:0,cleared:[],best:{},sel:0,tab:'ops',plane:'falcon',ufo:false,bombUp:0,spdUp:0,bgmVol:6,sfxVol:8,muted:false,v:3,updatedAt:0,endingSeen:false,tclear:{},dsel:{},endless:{best:0,runs:0},seenTiers:[]};}
-function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);const d=defSave();
+function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=decSave(r);const d=defSave();
 if((o.v||1)<3){if(Array.isArray(o.cleared)){o.cleared.splice(3,0,!!o.cleared[2]&&false);}if(o.best){const nb={};for(const k in o.best)nb[+k>=3?+k+1:k]=o.best[k];o.best=nb;}if((o.sel||0)>=3)o.sel++;o.v=3;}if(!o.tclear){o.tclear={};(o.cleared||[]).forEach((c,i)=>{if(c)o.tclear[i]=0;});}if(o.sfx===false&&o.sfxVol===undefined)o.sfxVol=0;if((o.spare||0)>MAX_SPARE){o.gold=(o.gold||0)+1800;o.spare=MAX_SPARE;}return Object.assign(d,o,{stats:Object.assign(d.stats,o.stats||{})});}}catch(e){}return defSave();}
 let S=loadSave();
-function save(){S.updatedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
+function save(){S.updatedAt=Date.now();try{localStorage.setItem(SAVE_KEY,encSave(S));}catch(e){}}
 const xpNeed=lv=>Math.round(48*Math.pow(lv,1.55)+22);
 const slotsOpen=lv=>lv>=10?4:lv>=5?3:2;
 const maxHp=()=>Math.round((22+(S.lv-1)*1.6)*(1+S.stats.arm*.075)*PLANES[S.plane||'falcon'].hp);
@@ -2225,7 +2239,7 @@ function newRun(si,tier,endless){
   const st=endless?endlessStage(si):STAGES[si],mh=maxHp(),T=TIERS[tier];
   G={si,st,t:0,bgY:0,bg:getBg(st.theme),theme:THEMES[st.theme],spr:stageSprites(si,endless?ALL_FAC:null),T,tier,endless:endless?{wave:1,waveEnd:24,waveStart:0,src:si,bosses:0}:null,spawnT:1.5,tt:0,stageLen:stageLen(si),mid:null,ramp:1,deco:makeDeco(st.theme),
     timeline:endless?[]:buildTimeline(si,tier),tl:0,boss:null,phase:'wave',endT:0,intro:1.1,
-    p:{x:W/2,y:H+40,hp:mh,maxHp:mh,inv:2.2,fire:0,mfire:0,trail:[],speedLv:0,missileLv:0,weapon:'normal',wLv:1,opts:S.spare,force:0,dead:false,tilt:0,power:1},
+    p:{x:W/2,y:H+40,hp:mh,maxHp:mh,inv:2.2,fire:0,mfire:0,trail:[],burst:0,speedLv:0,missileLv:0,weapon:'normal',wLv:1,opts:S.spare,force:0,dead:false,tilt:0,power:1},
     bullets:[],eb:[],enemies:[],items:[],parts:[],texts:[],rings:[],decals:[],allies:[],
     forms:{},fid:0,kills:0,xp:0,gold:0,shake:0,flash:0,banner:endless?{t:3.6,title:'무한 공역',sub:'ENDLESS · WAVE 1',story:st.story}:{t:3.6,title:st.name,sub:(st.act===1?'1부 · 독재자 전쟁':'2부 · 외계 침공')+' · '+st.code+' · '+T.name,story:st.story},wing:[],wingT:6,curFac:null,
     /* 기체 전용 스킬은 해당 기체로 출격했을 때만 발동한다 */
@@ -2247,7 +2261,10 @@ function applyDiff(L){
   /* 권장 레벨을 넘기면 적탄도 아프고 체력도 오른다(suppression). 보상만 그대로라 파밍은 여전히 가능 */
   const over=E?0:Math.max(0,S.lv-L),vet=1+Math.min(1.5,over*.04);
   G.vet=vet;
-  G.hpMul=1.3*(1+L*.35)*sup.ehp*(1+G.tier*.15)*(E?1+w*.04:1);
+  /* 스테이지가 오를수록 어려워져야 한다 — 플레이어 화력은 L에 대해 초선형으로 자라는데
+     적 체력이 선형이면 후반이 되레 쉬워진다. 지수 1.5로 맞추고 계수는 QF-01 값을 그대로 둔다.
+     무한 공역은 웨이브로 이미 올라가고 최고 기록도 걸려 있어 기존 곡선을 유지한다 */
+  G.hpMul=(E?1.3*(1+L*.35):1.122*Math.pow(1+L*.35,1.5))*sup.ehp*(1+G.tier*.15)*(E?1+w*.04:1);
   G.dmgMul=(10+L*1.75)*vet*sup.edmg;
   G.fireMul=(1.18+si*.19)*T.fire*(E?1+Math.min(.8,w*.03):1)*R*(1+Math.min(.3,over*.012));
   G.bsp=(158+si*14)*T.bspd*(E?1+Math.min(.35,w*.012):1)*(R>1?1.06:1)*(1+Math.min(.22,over*.009));
@@ -2688,6 +2705,8 @@ function fireMain(x,y,m,opt){
 }
 const FIRE_IV={falcon:.13,raven:.10,hornet:.17,saucer:.12};
 const RATE_CAP=1.8;    /* 연사 스탯은 상한이 없으면 만렙에서 65발/초까지 간다 — 배율을 여기서 끊는다 */
+/* 스트라이커즈식 점사 — 5발 쏘고 한 박자 쉰다. 간격에 비례해 어느 연사 속도에서도 리듬이 같다 */
+const BURST_N=5,BURST_GAP=1.2;
 function optionPos(i){const tr=G.p.trail;return tr[Math.min(tr.length-1,(i+1)*16)];}
 
 /* ================= UPDATE ================= */
@@ -2759,8 +2778,9 @@ function update(dt){
         fireMain(p.x,p.y-14,1);
         for(let i=0;i<p.opts;i++){const o=optionPos(i);fireMain(o.x,o.y-4,.6,true);}
         if(G.cloneT>0)for(const dx of [-36,36])fireMain(clamp(p.x+dx,10,W-10),p.y-10,.4+G.cloneLv*.08,true);
-        const iv=p.weapon==='ripple'?.21:p.weapon==='laser'?.085:FIRE_IV[S.plane]||.11;
-        p.fire=iv/Math.min(RATE_CAP,1+S.stats.rate*.035);
+        const iv=(p.weapon==='ripple'?.21:p.weapon==='laser'?.085:FIRE_IV[S.plane]||.11)/Math.min(RATE_CAP,1+S.stats.rate*.035);
+        p.fire=iv;
+        if(++p.burst>=BURST_N){p.burst=0;p.fire+=iv*BURST_GAP;}
         sfx.shot();
       }
       if(p.missileLv>0){
