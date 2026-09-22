@@ -485,8 +485,9 @@ const allCleared=()=>STAGES.every((_,i)=>S.cleared[i]);
 const ENDLESS_LV=()=>Math.max(10,S.lv);
 function suppression(stLv,pLv){
   const gap=stLv-pLv;
-  /* 권장 레벨을 넘긴 만큼 적 체력도 같이 오른다 — 안 그러면 몇 판 만에 적이 녹아버린다 */
-  if(gap<=0) return {gap,ehp:1+Math.min(1.2,-gap*.06),edmg:1,pdmg:1};
+  /* 과성장 보정 — 권장의 1.5배를 넘긴 만큼만, 상한 +30%. 초반 몇 판 만에 적이 녹는 것만 막고,
+     만렙이 일반 스테이지를 편하게 쓸어버리는 건 페널티가 아니라 보상이다(LV60/L20 → +22%, L32 → +6%) */
+  if(gap<=0) return {gap,ehp:1+Math.min(.3,Math.max(0,pLv/stLv-1.5)*.15),edmg:1,pdmg:1};
   return {gap,ehp:1+.2*gap,edmg:1+.15*gap,pdmg:Math.max(.35,1-.07*gap)};
 }
 function dangerChip(gap){
@@ -2460,7 +2461,7 @@ function newRun(si,tier,endless){
   const st=endless?endlessStage(si):STAGES[si],mh=maxHp(),T=TIERS[tier];
   G={si,st,t:0,bgY:0,bg:getBg(st.theme),theme:THEMES[st.theme],spr:stageSprites(si,endless?ALL_FAC:null),T,tier,endless:endless?{wave:1,waveEnd:24,waveStart:0,src:si,bosses:0}:null,spawnT:1.5,tt:0,stageLen:stageLen(si),mid:null,ramp:1,deco:makeDeco(st.theme),
     timeline:endless?[]:buildTimeline(si,tier),tl:0,boss:null,phase:'wave',endT:0,intro:1.1,
-    p:{x:W/2,y:H+40,hp:mh,maxHp:mh,inv:2.2,fire:0,mfire:0,trail:[],burst:0,speedLv:0,missileLv:0,weapon:'normal',wLv:1,opts:S.spare,force:0,dead:false,tilt:0,power:1},
+    p:{x:W/2,y:H+40,hp:mh,maxHp:mh,inv:2.2,fire:0,mfire:0,trail:[],burst:0,speedLv:0,missileLv:0,weapon:'normal',wLv:1,opts:tier>0?MAX_OPTS:S.spare,force:0,dead:false,tilt:0,power:1},
     bullets:[],eb:[],enemies:[],items:[],parts:[],texts:[],rings:[],decals:[],allies:[],
     forms:{},fid:0,kills:0,xp:0,gold:0,shake:0,flash:0,banner:endless?{t:3.6,title:'무한 공역',sub:'ENDLESS · WAVE 1',story:st.story}:{t:3.6,title:st.name,sub:(st.act===1?'1부 · 독재자 전쟁':'2부 · 외계 침공')+' · '+st.code+' · '+T.name,story:st.story},wing:[],wingT:6,curFac:null,
     /* 기체 전용 스킬은 해당 기체로 출격했을 때만 발동한다 */
@@ -2478,17 +2479,19 @@ function applyDiff(L){
   const si=E?Math.min(8,Math.floor(L/3)):G.si;
   G.lvEff=L;G.sup=sup;G.dsi=si;
   const R=G.ramp||1;
-  /* 권장 레벨을 넘긴 만큼 적이 더 매섭게 나온다 — 과성장해도 무적이 되지 않도록 */
+  /* 과성장 보정은 체력(suppression.ehp)이 주력이다. 적탄 피해·연사·탄속까지 같이 키우면 이중 과세라
+     적이 살아서 쏘기 시작하는 순간 두세 발에 죽는다(LV60 UFO가 QF-08 정예 중간보스도 못 봄). 소폭만 */
   /* 권장 레벨을 넘기면 적탄도 아프고 체력도 오른다(suppression). 보상만 그대로라 파밍은 여전히 가능 */
-  const over=E?0:Math.max(0,S.lv-L),vet=1+Math.min(1.5,over*.04);
+  const over=E?0:Math.max(0,S.lv-L),vet=1+Math.min(.3,over*.012);
   G.vet=vet;
   /* 스테이지가 오를수록 어려워져야 한다 — 플레이어 화력은 L에 대해 초선형으로 자라는데
-     적 체력이 선형이면 후반이 되레 쉬워진다. 지수 1.5로 맞추고 계수는 QF-01 값을 그대로 둔다.
+     적 체력이 선형이면 후반이 되레 쉬워진다. 지수 1.3 — 1.5는 정예·악몽에서 티어 배율과 겹쳐
+     만렙에도 버거웠다(QF-08 정예 6.6배). 계수는 QF-01 값을 그대로 둔다.
      무한 공역은 웨이브로 이미 올라가고 최고 기록도 걸려 있어 기존 곡선을 유지한다 */
-  G.hpMul=(E?1.3*(1+L*.35):1.122*Math.pow(1+L*.35,1.5))*sup.ehp*(1+G.tier*.15)*(E?1+w*.04:1);
+  G.hpMul=(E?1.3*(1+L*.35):1.191*Math.pow(1+L*.35,1.3))*sup.ehp*(1+G.tier*.15)*(E?1+w*.04:1);
   G.dmgMul=(10+L*1.75)*vet*sup.edmg;
-  G.fireMul=(1.18+si*.19)*T.fire*(E?1+Math.min(.8,w*.03):1)*R*(1+Math.min(.3,over*.012));
-  G.bsp=(158+si*14)*T.bspd*(E?1+Math.min(.35,w*.012):1)*(R>1?1.06:1)*(1+Math.min(.22,over*.009));
+  G.fireMul=(1.18+si*.19)*T.fire*(E?1+Math.min(.8,w*.03):1)*R*(1+Math.min(.12,over*.005));
+  G.bsp=(158+si*14)*T.bspd*(E?1+Math.min(.35,w*.012):1)*(R>1?1.06:1)*(1+Math.min(.1,over*.004));
   G.goldVal=(1.6+L*.58)*(1+passLv('magnet')*.08)*T.bonus;
   G.xpMul=T.bonus*.75;
   G.eliteP=E?Math.min(.6,.08+w*.03):Math.min(.6,T.elite+.04+si*.018+(R>1?.04:0));
@@ -3195,6 +3198,7 @@ function update(dt){
           }
         }
         e.fire=({fighter:2.2,bomber:1.5,turret:2.1,tank:2.3,ship:1.7,orb:2.8,part:1.9,heli:1.9,mid:1.35,spinner:.24,miner:1.7}[e.kind]||99)/G.fireMul*rand(.8,1.25)*(e.elite?.7:1);
+        if(e.kind==='spinner')e.fire=Math.max(.13,e.fire);   /* 스파이럴은 읽혀야 한다 — 고티어 fireMul에도 초당 ~15발 상한 */
       }
     }
     // body collision
