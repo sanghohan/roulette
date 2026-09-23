@@ -2885,11 +2885,52 @@ function useBomb(){
         let k=pool[(Math.random()*pool.length)|0],g=0;
         while(used.indexOf(k)>=0&&g++<10)k=pool[(Math.random()*pool.length)|0];
         used.push(k);
-        G.wing.push({x:W*(.24+.26*i),y:H+54+i*44,f:i*.07,bk:k,sc:.5,bomb:true});
+        /* 보스마다 자기 무기: 골든 시타델 함포 · 심해의 왕관 유도탄 · 아이언 베헤모스 철갑탄 · 오버로드 코어 레이저 */
+        const bkKind=STAGES[k].boss,fk=bkKind==='crawler'?'shell':bkKind==='impostor'?'laser':(k===0?'cannon':'missile');
+        G.wing.push({x:W*(.24+.26*i),y:H+90,f:0,bk:k,sc:.5,bomb:true,ph:'in',delay:.15+i*.42,ty:H*(i===1?.64:.58),hold:1.7,fk,vy:0,tr:0});
       }
-      G.texts.push({x:W/2,y:H*.56,s:'지구 연합 일제 사격',c:'#7BD389',t:0,life:1.5,big:true});
+      G.texts.push({x:W/2,y:H*.50,s:'지구 연합 일제 사격',c:'#7BD389',t:0,life:1.6,big:true});
+      G.texts.push({x:W/2,y:H*.50+22,s:used.map(k=>STAGES[k].bossName.split(' · ').pop()).join('  ·  '),c:'#BFF0C8',t:0,life:2.2});
+      sfx.warn();
     }
   }
+}
+/* 폭탄 호응 보스 — 애프터버너 진입 → 자기 무기로 일제 사격 → 노바 피니셔 후 이탈.
+   셋이 똑같이 올라와 똑같은 탄을 뿌리던 걸, 시간차 등장과 보스별 무기·퇴장으로 갈랐다 */
+function updateAllyBoss(w,dt){
+  if(w.delay>0){w.delay-=dt;return;}
+  const short=STAGES[w.bk].bossName.split(' · ').pop();
+  if(w.ph==='in'){
+    const d=w.y-w.ty;w.y-=Math.max(140,d*6)*dt;   /* 애프터버너 — 0.7초 안에 자리 잡는다 */
+    w.tr-=dt;if(w.tr<=0){w.tr=.03;G.parts.push({ty:'trail',x:w.x+rand(-10,10),y:w.y+22,vx:rand(-8,8),vy:60,t:0,life:.35,s:.5});}
+    if(d<6){w.ph='hold';w.t=0;
+      G.parts.push({ty:'flash',x:w.x,y:w.y,vx:0,vy:0,t:0,life:.22,s:2.2});
+      G.rings.push({x:w.x,y:w.y,t:0,life:.45,r:60,c:'#BFF0C8',w:3});
+      G.texts.push({x:w.x,y:w.y-44,s:short,c:'#7BD389',t:0,life:1.1});
+      G.shake=Math.max(G.shake,4);sfx.skready();}
+    return;
+  }
+  if(w.ph==='hold'){
+    w.t+=dt;w.f-=dt;w.x+=Math.sin(w.t*2.6)*9*dt;
+    if(w.f<=0){
+      if(w.fk==='cannon'){w.f=.16;for(const dx of[-30,-15,0,15,30])G.bullets.push({kind:'shot',x:w.x+dx,y:w.y-18,vx:dx*2.2,vy:-640,r:4,m:1.6,pierce:1,opt:true});
+        G.parts.push({ty:'flash',x:w.x,y:w.y-20,vx:0,vy:0,t:0,life:.08,s:.9});}
+      else if(w.fk==='missile'){w.f=.55;fireHoming(w.x,w.y-10,4,1.5);}
+      else if(w.fk==='shell'){w.f=.34;for(const dx of[-22,0,22])G.bullets.push({kind:'shell',x:w.x+dx,y:w.y-16,vx:dx*1.4,vy:-520,r:5,m:2.6,pierce:0,opt:true});
+        G.shake=Math.max(G.shake,2);sfx.shot();}
+      else {w.f=.085;for(const dx of[-9,9])G.bullets.push({kind:'laser',x:w.x+dx,y:w.y-14,vx:0,vy:-800,r:3,len:26,m:1.0,pierce:99,opt:true});}
+    }
+    if(w.t>=w.hold){w.ph='out';w.vy=-120;
+      /* 피니셔 — 노바 한 방. 이탈을 '사라짐'이 아니라 '마무리'로 만든다 */
+      areaDamage(w.x,w.y-30,150,3.2);clearBullets(w.x,w.y-30,160);explode(w.x,w.y-30,18);
+      G.rings.push({x:w.x,y:w.y-30,t:0,life:.55,r:150,c:'#7BD389',w:6});
+      G.rings.push({x:w.x,y:w.y-30,t:0,life:.8,r:220,c:'rgba(191,240,200,.7)',w:2});
+      G.flash=Math.max(G.flash,.18);G.shake=Math.max(G.shake,9);sfx.boom();}
+    return;
+  }
+  /* out */
+  w.vy-=1500*dt;w.y+=w.vy*dt;
+  w.tr-=dt;if(w.tr<=0){w.tr=.025;G.parts.push({ty:'trail',x:w.x+rand(-8,8),y:w.y+24,vx:0,vy:90,t:0,life:.4,s:.6});}
 }
 function fireHoming(x,y,n,m){
   sfx.missile();
@@ -3053,12 +3094,10 @@ function update(dt){
     }
   }
   for(const w of G.wing){
-    w.y-=(w.bomb?112:w.bk!=null?150:260)*dt;w.f-=dt;
+    if(w.bomb){updateAllyBoss(w,dt);continue;}
+    w.y-=(w.bk!=null?150:260)*dt;w.f-=dt;
     if(w.f<=0&&w.y<H-40&&w.y>24){
-      if(w.bomb){
-        w.f=.12;
-        for(const dx of [-32,-16,0,16,32])G.bullets.push({kind:'shot',x:w.x+dx,y:w.y-18,vx:dx*2.1,vy:-620,r:4,m:1.6,pierce:1,opt:true});
-      }else if(w.bk!=null){
+      if(w.bk!=null){
         w.f=.2;
         for(const dx of [-16,0,16])G.bullets.push({kind:'shot',x:w.x+dx,y:w.y-18,vx:dx*1.6,vy:-580,r:4,m:1.15,pierce:0,opt:true});
       }else{
@@ -3581,8 +3620,13 @@ function render(dt){
   for(const w of G.wing){
     if(w.bk!=null){
       const sp=allyBossSpr(w.bk);
-      if(sp){drawFlames([[-18,16],[18,16]],w.x,w.y,0,1.1,G.t,w.x);drawS(sp,w.x,w.y,0,w.sc||.44);
-        ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.35;drawS(SPR.fx.blue,w.x,w.y+10,0,1.1);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+      if(w.bomb&&w.delay>0)continue;
+      if(sp){const boost=w.bomb&&w.ph!=='hold';
+        drawFlames([[-18,16],[18,16]],w.x,w.y,0,boost?1.9:1.1,G.t,w.x);drawS(sp,w.x,w.y,0,w.sc||.44);
+        ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.35;drawS(SPR.fx.blue,w.x,w.y+10,0,1.1);
+        if(w.bomb&&w.ph==='hold'){ctx.globalAlpha=.55+.25*Math.sin(G.t*9);ctx.strokeStyle='#7BD389';ctx.lineWidth=1.6;
+          for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(w.x,w.y,40,G.t*2.4+i*TAU/3,G.t*2.4+i*TAU/3+TAU*.2);ctx.stroke();}}
+        ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
         continue;}
     }
     drawFlames([[0,15.5]],w.x,w.y,0,1,G.t,w.x);drawS(SPR.allyJet,w.x,w.y);
