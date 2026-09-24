@@ -1,4 +1,3 @@
-<meta charset="utf-8">
 <title>퀀텀 파이터</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -197,9 +196,7 @@ h3{font-family:var(--disp);font-weight:400;font-size:1.15em;margin:0;letter-spac
 .sb .k{position:absolute;top:2px;left:5px;font-family:var(--num);font-size:.72em;color:var(--mute);z-index:1}
 .sb .l{font-size:.64em;position:relative;z-index:1;white-space:nowrap}
 .sb .cd{position:absolute;inset:0;background:conic-gradient(rgba(6,14,28,.78) calc(var(--p,0)*1turn),transparent 0);z-index:0}
-.sb .t{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--num);font-weight:700;font-size:1.25em;z-index:2;text-shadow:0 1px 2px #000;color:var(--amber)}
-/* 쿨타임 숫자는 아이콘 위에 겹쳐 찍힌다 — 둘 다 크림색이면 서로 뭉개져서, 숫자가 뜨는 동안만 아이콘·이름을 죽인다 */
-.sb:has(.t:not(:empty)) svg,.sb:has(.t:not(:empty)) .l{opacity:.22}
+.sb .t{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--num);font-weight:700;font-size:1.25em;z-index:2;text-shadow:0 1px 2px #000}
 .sb.ready{box-shadow:inset 0 0 0 2px var(--amber)}
 .sb.live{box-shadow:inset 0 0 0 2px var(--cyan)}
 .sb.pass{background:rgba(16,36,67,.5);color:var(--green)}
@@ -393,12 +390,10 @@ const STAGES=[
  {act:2,code:'QF-08',name:'생체 성운',lv:20,theme:'bio',fac:['demon','grey'],boss:'demon',bossFac:'demon',bossName:'심연의 군주 아비스',story:'대기권 밖, 모선으로 가는 길을 마계의 군주가 막아선다.',desc:'떠다니는 눈과 불꽃 구체가 빈틈없이 몰려듭니다.',pool:['orbs','orbs','rush','sine','swoop','bomber','helis']},
  {act:2,code:'QF-09',name:'에테르 핵',lv:23,theme:'core',fac:['grey','reptile','demon'],boss:'ark',bossFac:'ark',bossName:'그레이 집합의식 · 에테르 아크',story:'모선의 핵이 열리자 모든 침공을 지휘하던 집합의식이 모습을 드러낸다. 지구의 운명이 걸린 최종 작전.',desc:'세 세력의 정예가 모선을 호위합니다. 최종 작전입니다.',pool:['orbs','bomber','rush','sine','swoop','turret','vee','helis']},
 ];
-const RATE_CAP=1.8;    /* 연사 스탯은 상한이 없으면 만렙에서 65발/초까지 간다 — 배율을 여기서 끊는다.
-                          STAT_DEF 설명이 정의 시점에 읽으므로 선언은 반드시 그보다 위에 */
 const STAT_DEF=[
  {id:'atk',name:'화력',ds:'주포·스킬 피해 +7%'},
  {id:'arm',name:'장갑',ds:'최대 내구도 +7.5%'},
- {id:'rate',name:'연사',ds:`주포 연사 속도 +3.5% (배율 최대 ×${RATE_CAP})`},
+ {id:'rate',name:'연사',ds:'주포 연사 속도 +3.5%'},
  {id:'foc',name:'집중',ds:'치명타 +0.6% · 재사용 대기 −1.2%'},
 ];
 const SKILLS={
@@ -409,7 +404,7 @@ const SKILLS={
  laser:{name:'섬광 레이저',type:'active',req:4,cd:14,only:'saucer',d:l=>`${(1.6+l*.3).toFixed(1)}초 관통 광선 · 틱당 ${70+l*15}%`},
  warp:{name:'공간 왜곡',type:'active',req:5,cd:15,only:'saucer',d:l=>`전방 ${120+l*20}px 도약 · 경로의 적탄 소거 · ${(.5+l*.1).toFixed(1)}초 무적`},
  crit:{name:'약점 포착',type:'passive',req:5,d:l=>`치명타 확률 +${l*6}% (치명타 2배)`},
- drones:{name:'호위 드론',type:'active',req:6,cd:22,d:l=>`드론 2기 ${6+l*2}초 · 발당 ${32+l*8}%`},
+ drones:{name:'호위 드론',type:'active',req:6,cd:22,d:l=>`드론 2기 ${6+l*2}초 · 발당 ${40+l*10}%`},
  nano:{name:'나노 수복',type:'passive',req:7,d:l=>`초당 최대 내구도 ${(.3+l*.25).toFixed(2)}% 회복`},
  chrono:{name:'시간 왜곡',type:'active',req:9,cd:22,only:'saucer',d:l=>`${3+l}초간 적과 적탄 감속`},
  clone:{name:'분신술',type:'active',req:10,cd:24,only:'saucer',d:l=>`분신 2기 ${(4+l*.8).toFixed(1)}초 · 주포 ${40+l*8}% 위력`},
@@ -449,27 +444,12 @@ const CAPS={
 const CAP_BAG=['P','P','P','B','S','S','M','M','R','L','O','O','F','F'];
 
 /* ================= SAVE ================= */
-const MAX_SPARE=1;     /* 상점에서 미리 사는 옵션 — MAX_OPTS보다 작아야 캡슐을 주울 이유가 남는다 */
 const SAVE_KEY='aetherwing.save.v1';
-/* 세이브 변조 방지 — 암호화가 아니라 변조 '감지'다. 키가 소스에 있으니 작정하면 뚫리지만,
-   DevTools에서 gold 숫자만 고치는 충동적 조작은 막힌다. 내부 상태는 IIFE 밖에서 못 건드리므로
-   localStorage가 유일한 경로고, 그 하나를 닫으면 실질적으로 충분하다 */
-const SAVE_TAG='QF1:';
-const hashS=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(36);};
-const xorS=s=>{const k='aetherwing';let o='';for(let i=0;i<s.length;i++)o+=String.fromCharCode(s.charCodeAt(i)^k.charCodeAt(i%k.length));return o;};
-/* encodeURIComponent를 먼저 걸어 순수 ASCII로 만든다 — XOR 결과가 latin1을 벗어나 btoa가 터지는 걸 막는다 */
-const encSave=o=>{const j=encodeURIComponent(JSON.stringify(o));return SAVE_TAG+btoa(xorS(hashS(j)+'|'+j));};
-const decSave=r=>{
-  if(r.slice(0,SAVE_TAG.length)!==SAVE_TAG)return JSON.parse(r);   /* 예전 평문 세이브는 그대로 읽어준다 */
-  const p=xorS(atob(r.slice(SAVE_TAG.length))),i=p.indexOf('|'),j=p.slice(i+1);
-  if(i<0||hashS(j)!==p.slice(0,i))throw new Error('save tampered');
-  return JSON.parse(decodeURIComponent(j));
-};
-function defSave(){return{lv:1,xp:0,sp:0,pts:0,stats:{atk:0,arm:0,rate:0,foc:0},skills:{homing:1},equip:['homing',null,null,null],gold:0,tier:0,spare:0,cleared:[],best:{},sel:0,tab:'ops',plane:'falcon',ufo:false,bombUp:0,spdUp:0,bgmVol:6,sfxVol:8,muted:false,v:3,updatedAt:0,endingSeen:false,tclear:{},dsel:{},endless:{best:0,runs:0},seenTiers:[]};}
-function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=decSave(r);const d=defSave();
-if((o.v||1)<3){if(Array.isArray(o.cleared)){o.cleared.splice(3,0,!!o.cleared[2]&&false);}if(o.best){const nb={};for(const k in o.best)nb[+k>=3?+k+1:k]=o.best[k];o.best=nb;}if((o.sel||0)>=3)o.sel++;o.v=3;}if(!o.tclear){o.tclear={};(o.cleared||[]).forEach((c,i)=>{if(c)o.tclear[i]=0;});}if(o.sfx===false&&o.sfxVol===undefined)o.sfxVol=0;if((o.spare||0)>MAX_SPARE){o.gold=(o.gold||0)+1800;o.spare=MAX_SPARE;}return Object.assign(d,o,{stats:Object.assign(d.stats,o.stats||{})});}}catch(e){}return defSave();}
+function defSave(){return{lv:1,xp:0,sp:0,pts:0,stats:{atk:0,arm:0,rate:0,foc:0},skills:{homing:1},equip:['homing',null,null,null],gold:0,tier:0,spare:0,cleared:[],best:{},sel:0,tab:'ops',plane:'falcon',ufo:false,bombUp:0,spdUp:0,owned:[],bgmVol:6,sfxVol:8,muted:false,v:3,updatedAt:0,endingSeen:false,tclear:{},dsel:{},endless:{best:0,runs:0},seenTiers:[]};}
+function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);const d=defSave();
+if((o.v||1)<3){if(Array.isArray(o.cleared)){o.cleared.splice(3,0,!!o.cleared[2]&&false);}if(o.best){const nb={};for(const k in o.best)nb[+k>=3?+k+1:k]=o.best[k];o.best=nb;}if((o.sel||0)>=3)o.sel++;o.v=3;}if(!o.tclear){o.tclear={};(o.cleared||[]).forEach((c,i)=>{if(c)o.tclear[i]=0;});}if(o.sfx===false&&o.sfxVol===undefined)o.sfxVol=0;return Object.assign(d,o,{stats:Object.assign(d.stats,o.stats||{})});}}catch(e){}return defSave();}
 let S=loadSave();
-function save(){S.updatedAt=Date.now();try{localStorage.setItem(SAVE_KEY,encSave(S));}catch(e){}}
+function save(){S.updatedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
 const xpNeed=lv=>Math.round(48*Math.pow(lv,1.55)+22);
 const slotsOpen=lv=>lv>=10?4:lv>=5?3:2;
 const maxHp=()=>Math.round((22+(S.lv-1)*1.6)*(1+S.stats.arm*.075)*PLANES[S.plane||'falcon'].hp);
@@ -485,9 +465,7 @@ const allCleared=()=>STAGES.every((_,i)=>S.cleared[i]);
 const ENDLESS_LV=()=>Math.max(10,S.lv);
 function suppression(stLv,pLv){
   const gap=stLv-pLv;
-  /* 과성장 보정 — 권장의 1.5배를 넘긴 만큼만, 상한 +30%. 초반 몇 판 만에 적이 녹는 것만 막고,
-     만렙이 일반 스테이지를 편하게 쓸어버리는 건 페널티가 아니라 보상이다(LV60/L20 → +22%, L32 → +6%) */
-  if(gap<=0) return {gap,ehp:1+Math.min(.3,Math.max(0,pLv/stLv-1.5)*.15),edmg:1,pdmg:1};
+  if(gap<=0) return {gap,ehp:1,edmg:1,pdmg:1};
   return {gap,ehp:1+.2*gap,edmg:1+.15*gap,pdmg:Math.max(.35,1-.07*gap)};
 }
 function dangerChip(gap){
@@ -844,12 +822,6 @@ const sfx={
   guard(){if(!AU.ok()||AU.throttle('guard',.05))return;const t=AU.ctx.currentTime;
     if(AU.shot('gd',t,{gain:.95,rate:1+Math.random()*.1,dest:AU.sfxG}))return;
     AU.noise(.05,.3,0,t,null,4800,1.2);AU.tone(1760,.16,'triangle',.09,880,t);AU.tone(2640,.1,'sine',.05,1320,t);},
-  /* 방벽이 시간을 다하고 흩어질 때 — 날카로운 파열음 뒤로 파편이 잘게 튄다 */
-  shatter(){if(!AU.ok()||AU.throttle('shat',.25))return;const t=AU.ctx.currentTime;
-    AU.noise(.06,.38,0,t,null,5000,1.8);AU.noise(.28,.14,0,t+.02,null,3000);
-    AU.tone(1900,.08,'triangle',.055,700,t);
-    for(let i=0;i<9;i++){const d=.03+Math.random()*.32;
-      AU.tone(1800+Math.random()*3400,.05+Math.random()*.05,'triangle',.05*(1-d),null,t+d);}},
   click(){if(AU.ok())AU.tone(820,.035,'triangle',.045,560);},
 };
 /* ---- metal sequencer: every track is generated from a seed, so it is stable across plays ---- */
@@ -1106,9 +1078,8 @@ function grainCanvas(){if(!GRAIN){const n=mk(96,96),q=n.getContext('2d'),im=q.cr
 function gritty(s,amt){
   const c=mk(s.img.width,s.img.height),g=c.getContext('2d');
   g.drawImage(s.img,0,0);
-  /* 채도를 과하게 밀면 캐노피 유리·금속 같은 저채도 재질이 원색으로 뭉개져 유닛이 단색 덩어리가 된다 */
-  g.globalCompositeOperation='saturation';g.globalAlpha=amt==null?.28:amt*.7;g.fillStyle='#FF2E00';g.fillRect(0,0,c.width,c.height);
-  g.globalCompositeOperation='overlay';g.globalAlpha=.2;g.fillStyle='#AFAFAF';g.fillRect(0,0,c.width,c.height);
+  g.globalCompositeOperation='saturation';g.globalAlpha=amt==null?.48:amt*1.3;g.fillStyle='#FF2E00';g.fillRect(0,0,c.width,c.height);
+  g.globalCompositeOperation='overlay';g.globalAlpha=.13;g.fillStyle='#AFAFAF';g.fillRect(0,0,c.width,c.height);
   g.globalAlpha=1;g.globalCompositeOperation='destination-in';g.drawImage(s.img,0,0);
   return{img:c,w:s.w,h:s.h};
 }
@@ -1116,55 +1087,15 @@ function gritty(s,amt){
 function outlined(s,px){
   const ratio=s.img.width/s.w,pd=Math.ceil((px||1.5)*2.1*ratio);
   const W2=s.img.width+pd*2,H2=s.img.height+pd*2;
-  const dark=tint(s,'rgba(4,7,13,.95)').img,lite=tint(s,'rgba(230,243,255,.5)').img;
+  const dark=tint(s,'rgba(4,7,13,.95)').img,lite=tint(s,'rgba(214,228,246,.34)').img;
   const c=mk(W2,H2),g=c.getContext('2d');
   const ring=(img,rad)=>{for(let i=0;i<10;i++){const a=i/10*TAU;g.drawImage(img,pd+Math.cos(a)*rad,pd+Math.sin(a)*rad);}};
-  ring(dark,(px||1.5)*2.0*ratio);
-  /* 빛은 좌상단 한 방향에서만 온다 — 사방 균일한 흰 테두리는 어떤 실루엣이든 납작하게 만든다 */
-  const lr=(px||1.5)*.95*ratio;
-  for(const [dx,dy] of[[-1,-1],[0,-1],[-1,0],[-1,1]])g.drawImage(lite,pd+dx*lr,pd+dy*lr);
+  ring(dark,(px||1.5)*2.0*ratio);ring(lite,(px||1.5)*.8*ratio);
   g.drawImage(s.img,pd,pd);
   const lw=s.w+pd*2/ratio,lh=s.h+pd*2/ratio;
   return{img:c,w:lw,h:lh};
 }
-/* 좌상단 광원과 표면 디테일을 공통 경로에서 입힌다 — 스프라이트를 하나하나 다시 그리지 않고
-   모든 적기·보스·파츠가 같은 광원을 공유하게 만드는 게 목적이다 */
-function modeled(s){
-  const W=s.img.width,H=s.img.height,c=mk(W,H),g=c.getContext('2d');
-  g.drawImage(s.img,0,0);
-  g.globalCompositeOperation='source-atop';
-  const G=g.createLinearGradient(0,0,W*.85,H);
-  G.addColorStop(0,'rgba(255,250,232,.26)');G.addColorStop(.4,'rgba(255,255,255,0)');
-  G.addColorStop(.6,'rgba(0,4,14,.12)');G.addColorStop(1,'rgba(0,4,14,.4)');
-  g.fillStyle=G;g.fillRect(0,0,W,H);
-  /* 패널 라인 — 단색 면을 끊어야 기계로 읽힌다 */
-  g.strokeStyle='rgba(0,6,16,.26)';g.lineWidth=Math.max(1,W/60);
-  for(let i=1;i<4;i++){const y=H*i/4;g.beginPath();g.moveTo(-2,y);g.lineTo(W+2,y+H*.045);g.stroke();}
-  g.strokeStyle='rgba(255,255,255,.10)';
-  for(let i=1;i<4;i++){const y=H*i/4;g.beginPath();g.moveTo(-2,y-g.lineWidth);g.lineTo(W+2,y+H*.045-g.lineWidth);g.stroke();}
-  return{img:c,w:s.w,h:s.h};
-}
-/* 스프라이트 안의 밝은 픽셀만 뽑아 블룸으로 되쏜다 — 캐노피·눈·엔진·경고등이 저절로 발광해서
-   유닛을 하나하나 다시 그리지 않고도 재질 대비가 생긴다. outlined 뒤에 걸어야 빛이 외곽으로 번진다 */
-function emissive(s,amt,thr){
-  const W=s.img.width,H=s.img.height,T=thr==null?.56:thr;
-  const src=mk(W,H),sg=src.getContext('2d');
-  sg.drawImage(s.img,0,0);
-  const d=sg.getImageData(0,0,W,H),a=d.data;
-  for(let i=0;i<a.length;i+=4){
-    const l=(a[i]*.299+a[i+1]*.587+a[i+2]*.114)/255;
-    a[i+3]=Math.round(a[i+3]*(l>T?(l-T)/(1-T):0));
-  }
-  sg.putImageData(d,0,0);
-  const c=mk(W,H),g=c.getContext('2d');
-  g.drawImage(s.img,0,0);
-  g.globalCompositeOperation='lighter';g.globalAlpha=amt==null?.9:amt;
-  g.filter=`blur(${Math.max(1.2,W/24).toFixed(1)}px)`;g.drawImage(src,0,0);
-  g.filter='none';g.globalAlpha=.7;g.drawImage(src,0,0);   /* 중심부 코어 */
-  g.globalAlpha=1;g.globalCompositeOperation='source-over';
-  return{img:c,w:s.w,h:s.h};
-}
-function armor(s,px){return emissive(outlined(modeled(gritty(s)),px));}
+function armor(s,px){return outlined(gritty(s),px);}
 /* wash a sprite with a colour without touching its silhouette */
 function wash(s,color,alpha){
   const c=mk(s.img.width,s.img.height),g=c.getContext('2d');
@@ -1261,12 +1192,30 @@ const PLANES={
       fins:{x:3.6,y:10,len:10,w:2,cant:2.8},intake:{x:4.2,y:-7,w:2,h:9},missiles:[10,15,20],
       noz:[[-2.7,23.4,2.2],[2.7,23.4,2.2]],canopy:[-13,2.4,5.6]},
     flames:[[-2.7,24],[2.7,24]],guns:[[-5,-12],[5,-12]]},
+  wyvern:{name:'와이번',role:'고기동 돌격기 · 자금 설계',req:26,cost:28000,
+    charge:'연쇄 화망',chargeD:'관통 화살탄 7발을 좁은 부채꼴로 연사',bolt:'#9CFF6B',
+    spd:1.18,hp:1.05,dmg:1.22,chg:.88,
+    spec:{len:47,span:46,fw:8.8,c:'#8FA08C',a:'#9CFF6B',glass:'#D8FFC0',stripe:'rgba(156,255,107,.5)',
+      body:[[0,0],[.06,.24],[.2,.46],[.4,.56],[.66,.56],[.88,.5],[1,.42]],
+      wing:{x0:4,y0:-5,rc:20,x1:23,sw:15,tc:4},canard:{x0:3.6,y0:-16,rc:5,x1:11,sw:3,tc:2},
+      fins:{x:3.4,y:10,len:10,w:1.8,cant:2.6},intake:{x:3.8,y:-8,w:1.9,h:8.5},missiles:[11,16],
+      noz:[[-2.6,23,2.1],[2.6,23,2.1]],canopy:[-12,2.2,5]},
+    flames:[[-2.6,23.6],[2.6,23.6]],guns:[[-5,-12],[5,-12]]},
+  leviathan:{name:'리바이어던',role:'초중장갑 포격기 · 자금 설계',req:36,cost:62000,
+    charge:'궤도 포격',chargeD:'대구경 철갑탄 4발을 내리꽂아 광역 관통 피해',bolt:'#FFC24A',
+    spd:.8,hp:1.72,dmg:1.42,chg:1.15,
+    spec:{len:50,span:54,fw:11,c:'#55606B',a:'#FFC24A',glass:'#5CE1E6',stripe:'rgba(255,194,74,.5)',
+      body:[[0,0],[.08,.28],[.22,.48],[.42,.58],[.72,.58],[.92,.54],[1,.48]],
+      wing:{x0:5,y0:-4,rc:26,x1:27,sw:21,tc:3.5},canard:{x0:4.4,y0:-16,rc:6,x1:11,sw:3.4,tc:2.2},
+      fins:{x:3.8,y:11,len:11,w:2.2,cant:3},intake:{x:4.6,y:-7,w:2.2,h:9.5},missiles:[9,14,19,24],
+      noz:[[-3.4,24,2.5],[0,24.6,2.2],[3.4,24,2.5]],canopy:[-14,2.6,6]},
+    flames:[[-3.4,24.6],[0,25.2],[3.4,24.6]],guns:[[-6,-13],[6,-13]]},
   saucer:{name:'리버스엔지니어드 UFO',role:'미확인 비행체 · 반중력 추진',req:1,hidden:true,spd:1.32,hp:.78,dmg:1.38,chg:.68,
     charge:'중력 붕괴',chargeD:'전방에 특이점을 생성해 탄막을 삼키고 광역 폭발',bolt:'#9CFF6B',ufo:true,
     spec:{r:26,hull:'#C3CBD2',hull2:'#767F8A',rim:'#2A313A',dome:'#8CF2D6',glow:'#7CFF6B'},
     flames:[],guns:[[-8,-4],[8,-4]]},
 };
-const PLANE_ORDER=['falcon','raven','hornet','saucer'];
+const PLANE_ORDER=['falcon','raven','hornet','wyvern','leviathan','saucer'];
 
 const EPAL=[
  {r:'#7C8A94',k:'#3B444C',y:'#FF4A3D',w:'#E8EEF3',g:'#55606A',h:'#A9B6C0'},
@@ -1313,18 +1262,6 @@ function ebSprite(r,col){return hd(r*4.4,r*4.4,g=>{
   g.beginPath();g.arc(0,0,r,0,TAU);g.fillStyle=rad(g,-r*.15,-r*.2,0,r,[[0,'#FFFFFF'],[.34,'#FFFFFF'],[.55,shade(col,.45)],[.88,col],[1,shade(col,-.3)]]);g.fill();
   g.beginPath();g.arc(-r*.16,-r*.2,r*.34,0,TAU);g.fillStyle='#FFFFFF';g.fill();
 },3);}
-/* 탄 모양이 곧 발사자 표식이다 — 니들/대구경/펠릿/다트/지뢰. 색은 세력, 모양은 종류 */
-function ebDart(col){return hd(12,36,g=>{
-  g.fillStyle=rad(g,0,0,1,15,[[0,rgba(col,.5)],[1,rgba(col,0)]]);g.save();g.scale(.4,1);g.beginPath();g.arc(0,0,15,0,TAU);g.restore();g.fill();
-  g.beginPath();g.ellipse(0,0,2.4,12,0,0,TAU);g.fillStyle='rgba(6,2,10,.95)';g.fill();
-  g.beginPath();g.ellipse(0,0,1.5,10.5,0,0,TAU);g.fillStyle=lin(g,0,10,0,-10,[[0,rgba(col,.2)],[.5,col],[1,'#FFFFFF']]);g.fill();
-  g.beginPath();g.ellipse(0,-6,.8,3,0,0,TAU);g.fillStyle='#FFFFFF';g.fill();});}
-function ebMine(col){return hd(26,26,g=>{
-  g.fillStyle=rad(g,0,0,4,12,[[0,rgba(col,.45)],[1,rgba(col,0)]]);g.beginPath();g.arc(0,0,12,0,TAU);g.fill();
-  g.fillStyle=shade(col,-.55);for(let i=0;i<6;i++){const a=i*TAU/6;poly(g,[[Math.cos(a)*5,Math.sin(a)*5],[Math.cos(a+.35)*5,Math.sin(a+.35)*5],[Math.cos(a+.17)*8.6,Math.sin(a+.17)*8.6]]);g.fill();}
-  g.beginPath();g.arc(0,0,5.6,0,TAU);g.fillStyle=rad(g,-1.5,-1.8,0,5.6,[[0,'#3A3444'],[.6,'#12101A'],[1,'#050308']]);g.fill();
-  g.strokeStyle=rgba(col,.9);g.lineWidth=.9;g.beginPath();g.arc(0,0,5.6,0,TAU);g.stroke();
-  g.beginPath();g.arc(0,0,1.7,0,TAU);g.fillStyle='#FFFFFF';g.fill();});}
 function ebNeedle(col){return hd(14,26,g=>{
   g.fillStyle=rad(g,0,0,1,12,[[0,'rgba(0,0,0,.5)'],[1,'rgba(0,0,0,0)']]);g.save();g.scale(.62,1);g.beginPath();g.arc(0,0,12,0,TAU);g.restore();g.fill();
   g.fillStyle=rad(g,0,0,1,10,[[0,rgba(col,.6)],[1,rgba(col,0)]]);g.save();g.scale(.55,1);g.beginPath();g.arc(0,0,10,0,TAU);g.restore();g.fill();
@@ -1648,93 +1585,6 @@ function walkerBody(p,fac){return hd(22,22,g=>{
   if(fac==='reptile'){g.save();hexPath(g,8,0);g.clip();scales(g,16,16,'rgba(0,0,0,.3)');g.restore();}
   g.beginPath();g.arc(0,1,3,0,TAU);g.fillStyle=rad(g,0,1,0,3,[[0,'#FFFFFF'],[.4,p.y],[1,shade(p.y,-.5)]]);g.fill();
 });}
-/* 렙틸리언 비행체 — 예전엔 삼각형 한 장이었다. drawJet의 실제 기체 구조(동체 스플라인·주익·
-   미익·수직핀·노즐) 위에 등줄기 능선과 세로동공을 얹어, 기계가 아닌 생체 병기로 읽히게 한다 */
-const reptSpec=(p,o)=>Object.assign({
-  len:32,span:30,fw:7.4,c:p.r,a:p.y,glass:'#D8F27A',
-  body:[[0,0],[.07,.32],[.2,.58],[.45,.7],[.75,.6],[1,.32]],
-  wing:{x0:2.6,y0:-4,rc:15,x1:15,sw:13,tc:2.2},
-  tail:{x0:2.4,y0:10,rc:5,x1:7.5,sw:3,tc:2},
-  fins:{x:2,y:7,len:8,w:1.5,cant:2.2},
-  noz:[[-2.6,15,1.5],[2.6,15,1.5]],canopy:[-6.5,1.6,3.2]
-},o||{});
-function reptCraft(p,spec,W,H){return hd(W||36,H||34,g=>{
-  g.rotate(Math.PI);
-  drawJet(g,spec);
-  const L=spec.len/2;
-  /* 등줄기 능선 */
-  for(let i=0;i<5;i++){const y=-L+6+i*3.2;
-    g.fillStyle=rgba(p.h,.42);poly(g,[[0,y],[1.7,y+1.7],[0,y+3.2],[-1.7,y+1.7]]);g.fill();}
-  /* 세로동공 — 세력 표식 */
-  g.beginPath();g.ellipse(0,-L*.42,3.3,2.4,0,0,TAU);
-  g.fillStyle=rad(g,0,-L*.42,0,3.3,[[0,'#FFF6C0'],[.45,p.y],[1,shade(p.y,-.65)]]);g.fill();
-  g.fillStyle='#0A0602';g.beginPath();g.ellipse(0,-L*.42,.6,2.1,0,0,TAU);g.fill();
-  /* 날개 끝 갈고리 */
-  g.fillStyle=shade(p.k,.14);
-  const W2=spec.wing;
-  for(const sd of[-1,1]){poly(g,[[sd*W2.x1,W2.y0+W2.sw],[sd*(W2.x1+2.8),W2.y0+W2.sw+4.4],[sd*(W2.x1-.6),W2.y0+W2.sw+tcOf(spec)]]);g.fill();}
-});}
-const tcOf=sp=>sp.wing.tc+1.2;
-function reptFighter(p){return reptCraft(p,reptSpec(p),36,34);}
-function reptDartNew(p){return reptCraft(p,reptSpec(p,{
-  len:26,span:20,fw:5.6,
-  wing:{x0:2,y0:0,rc:9,x1:9.5,sw:8,tc:1.6},
-  tail:{x0:1.8,y0:8,rc:3.4,x1:5,sw:2,tc:1.6},
-  noz:[[0,12,1.7]],canopy:[-5,1.2,2.6]}),28,30);}
-function reptBomberNew(p){return reptCraft(p,reptSpec(p,{
-  len:30,span:46,fw:9,
-  wing:{x0:3.4,y0:-3,rc:16,x1:23,sw:15,tc:3},
-  tail:{x0:3,y0:10,rc:5,x1:9,sw:3.4,tc:2.4},
-  noz:[[-4.4,14,1.7],[4.4,14,1.7]],canopy:[-6,1.8,3.4]}),50,34);}
-/* 마계 비행체 — 박쥐 날개(극단적 후퇴각)에 두개골 프로우. 날개 가시와 뿔로 실루엣을 깨뜨려
-   같은 delta 계열인 렙틸리언과 한눈에 구분되게 한다 */
-const demonSpec=(p,o)=>Object.assign({
-  len:30,span:38,fw:6.4,c:p.r,a:p.y,glass:'#FF9A3C',
-  body:[[0,0],[.06,.36],[.22,.64],[.5,.72],[.8,.55],[1,.28]],
-  wing:{x0:2.4,y0:-1,rc:16,x1:19,sw:16,tc:1.6},
-  tail:{x0:2,y0:11,rc:4,x1:6,sw:4,tc:1.4},
-  noz:[[-2.2,14.5,1.6],[2.2,14.5,1.6]],canopy:[-5.5,1.4,3]
-},o||{});
-function demonCraft(p,spec,W,H){return hd(W||44,H||34,g=>{
-  g.rotate(Math.PI);drawJet(g,spec);
-  const L=spec.len/2,Wg=spec.wing;
-  g.fillStyle=shade(p.k,.22);
-  for(const sd of[-1,1])for(const t of[.38,.68,1]){const x=sd*(Wg.x0+(Wg.x1-Wg.x0)*t),y=Wg.y0+Wg.sw*t;
-    poly(g,[[x-sd*1.3,y],[x+sd*.5,y+5.6],[x+sd*1.3,y+.2]]);g.fill();}
-  for(const sd of[-1,1]){g.beginPath();g.arc(sd*1.9,-L*.5,1.6,0,TAU);g.fillStyle='#120404';g.fill();
-    g.beginPath();g.arc(sd*1.9,-L*.5,.85,0,TAU);g.fillStyle=rad(g,sd*1.9,-L*.5,0,.85,[[0,'#FFE08A'],[1,p.y]]);g.fill();}
-  g.fillStyle=shade(p.k,.1);
-  for(const sd of[-1,1]){poly(g,[[sd*2.2,-L+2.5],[sd*4.8,-L-3.6],[sd*3.6,-L+3.4]]);g.fill();}
-});}
-function demonFighter(p){return demonCraft(p,demonSpec(p),44,34);}
-function demonRush(p){return demonCraft(p,demonSpec(p,{len:24,span:22,fw:5.2,
-  wing:{x0:2,y0:1,rc:9,x1:11,sw:9,tc:1.4},tail:{x0:1.6,y0:8,rc:3,x1:4.6,sw:3,tc:1.2},
-  noz:[[0,11.5,1.8]],canopy:[-4.5,1.1,2.4]}),28,28);}
-function demonBomber(p){return demonCraft(p,demonSpec(p,{len:28,span:54,fw:8.2,
-  wing:{x0:3.4,y0:-2,rc:17,x1:27,sw:18,tc:2.4},tail:{x0:3,y0:9,rc:5,x1:8,sw:4,tc:2},
-  noz:[[-4,13.5,1.8],[4,13.5,1.8]],canopy:[-5.5,1.8,3.2]}),58,34);}
-
-/* 그레이 요격기 — 원반 한 장 대신 납작한 렌즈형 동체에 만타 날개. 하부 반중력 링과 돔이
-   세력 표식. 폭격기는 원래의 대형 원반을 유지한다(모선 계열의 정체성) */
-const greySpec=(p,o)=>Object.assign({
-  len:26,span:34,fw:8.4,c:p.r,a:p.y,glass:'#9CF2E6',
-  body:[[0,0],[.1,.5],[.3,.82],[.55,.92],[.85,.72],[1,.4]],
-  wing:{x0:3.8,y0:-2,rc:12,x1:17,sw:6,tc:5},
-  noz:[[0,12,2.4]],canopy:[-3,2,3.6]
-},o||{});
-function greyCraft(p,spec,W,H){return hd(W||40,H||32,g=>{
-  g.rotate(Math.PI);drawJet(g,spec);
-  const L=spec.len/2,R=spec.span*.3;
-  g.strokeStyle=rgba(p.y,.85);g.lineWidth=1.1;
-  g.beginPath();g.ellipse(0,1,R,3.2,0,0,TAU);g.stroke();
-  for(let i=0;i<6;i++){const a=i/6*TAU,x=Math.cos(a)*R,y=1+Math.sin(a)*3.2;
-    g.fillStyle=rad(g,x,y,0,1.6,[[0,'#FFFFFF'],[.5,p.y],[1,rgba(p.y,0)]]);g.beginPath();g.arc(x,y,1.6,0,TAU);g.fill();}
-  g.beginPath();g.ellipse(0,-L*.3,3.6,2.6,0,0,TAU);
-  g.fillStyle=rad(g,-1,-L*.3-1,0,3.8,[[0,'#FFFFFF'],[.35,'#9CF2E6'],[1,'#1C5A60']]);g.fill();
-});}
-function greyFighter(p){return greyCraft(p,greySpec(p),40,32);}
-function greyRush(p){return greyCraft(p,greySpec(p,{len:20,span:22,fw:6,
-  wing:{x0:3,y0:-1,rc:8,x1:11,sw:4,tc:3.6},noz:[[0,9,2]],canopy:[-2,1.6,2.8]}),26,26);}
 function reptTri(p,s){s=s||1;return hd(34*s,32*s,g=>{
   g.scale(s,s);
   const P=[[0,15],[15,-11],[-15,-11]];
@@ -2049,9 +1899,9 @@ function reconOrb(p){return hd(24,24,g=>{
 const FAC_BUILD={
   human:(p,si)=>({fighter:hd(32,34,g=>{g.rotate(Math.PI);drawJet(g,ENEMY_JET_UNUSED(p));}),rush:droneVariant(p,si||0),bomber:bomberVariant(p,si||0),heli:heliVariant(p,si||0),orb:reconOrb(p),turret:turretBase(p,26),walker:tankBody(p),walkerTop:tankTurret(p),ship:shipBody(p),shipTop:tankTurret(p,true),
     carrier:hd(32,34,g=>{g.rotate(Math.PI);drawJet(g,Object.assign(ENEMY_JET_UNUSED({r:'#C8322B',y:'#FFE08A'}),{stripe:'rgba(255,224,138,.8)'}));})}),
-  grey:p=>({fighter:greyFighter(p),rush:greyRush(p),bomber:saucer(p,28,{seg:16,dome:.3}),heli:ringDrone(p),orb:hd(22,22,g=>{g.fillStyle=rad(g,0,0,1,10,[[0,'#FFFFFF'],[.3,p.y],[.6,rgba(p.y2,.6)],[1,rgba(p.y2,0)]]);g.beginPath();g.arc(0,0,10,0,TAU);g.fill();g.strokeStyle=rgba('#FFFFFF',.7);g.lineWidth=.6;g.beginPath();g.ellipse(0,0,9,3,.5,0,TAU);g.stroke();}),turret:greyPod(p),walker:walkerBody(p,'grey'),ship:greyBarge(p),carrier:greyCarrier(p)}),
-  reptile:p=>({fighter:reptFighter(p),rush:reptDartNew(p),bomber:reptBomberNew(p),heli:hd(26,26,g=>{for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4;g.strokeStyle=shade(p.k,.2);g.lineWidth=1.6;g.beginPath();g.moveTo(Math.cos(a)*6,Math.sin(a)*6);g.quadraticCurveTo(Math.cos(a+.3)*11,Math.sin(a+.3)*11,Math.cos(a+.1)*12,Math.sin(a+.1)*12);g.stroke();}g.drawImage(hive(p).img,-13,-13,26,26);}),orb:reptEgg(p),turret:hive(p),walker:walkerBody(p,'reptile'),ship:reptBarge(p),carrier:reptCarrier(p)}),
-  demon:p=>({fighter:demonFighter(p),rush:demonRush(p),bomber:demonBomber(p),heli:floatEye(p),orb:fireOrb(p),turret:spire(p),walker:walkerBody(p,'demon'),ship:demonBarge(p),carrier:demonCarrier(p)}),
+  grey:p=>({fighter:saucer(p,13,{pilot:true}),rush:probe(p),bomber:saucer(p,28,{seg:16,dome:.3}),heli:ringDrone(p),orb:hd(22,22,g=>{g.fillStyle=rad(g,0,0,1,10,[[0,'#FFFFFF'],[.3,p.y],[.6,rgba(p.y2,.6)],[1,rgba(p.y2,0)]]);g.beginPath();g.arc(0,0,10,0,TAU);g.fill();g.strokeStyle=rgba('#FFFFFF',.7);g.lineWidth=.6;g.beginPath();g.ellipse(0,0,9,3,.5,0,TAU);g.stroke();}),turret:greyPod(p),walker:walkerBody(p,'grey'),ship:greyBarge(p),carrier:greyCarrier(p)}),
+  reptile:p=>({fighter:reptTri(p),rush:reptDart(p),bomber:reptCrescent(p),heli:hd(26,26,g=>{for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4;g.strokeStyle=shade(p.k,.2);g.lineWidth=1.6;g.beginPath();g.moveTo(Math.cos(a)*6,Math.sin(a)*6);g.quadraticCurveTo(Math.cos(a+.3)*11,Math.sin(a+.3)*11,Math.cos(a+.1)*12,Math.sin(a+.1)*12);g.stroke();}g.drawImage(hive(p).img,-13,-13,26,26);}),orb:reptEgg(p),turret:hive(p),walker:walkerBody(p,'reptile'),ship:reptBarge(p),carrier:reptCarrier(p)}),
+  demon:p=>({fighter:batShip(p),rush:skull(p),bomber:demonWing(p),heli:floatEye(p),orb:fireOrb(p),turret:spire(p),walker:walkerBody(p,'demon'),ship:demonBarge(p),carrier:demonCarrier(p)}),
 };
 const stageSprCache={};
 function ensureFac(o,si,f){
@@ -2060,8 +1910,7 @@ function ensureFac(o,si,f){
     const p=f==='human'?Object.assign({},EPAL[si],{eb:FAC.human.eb}):FAC[f],b=FAC_BUILD[f](p,si),m={};
     if(!b.carrier)b.carrier=saucer(p,13,{c:'#E0B040',glass:'#FFE08A',pilot:f==='grey'});
     for(const k in b){m[k]=armor(b[k],k==='orb'||k==='rush'?1.1:1.4);if(k.endsWith('Top'))continue;m[k+'W']=tint(m[k],'#FFFFFF');m[k+'Sh']=tint(m[k],'#000000');}
-    m.eb={o:ebSprite(5.1,p.eb[0]),b:ebSprite(7.4,p.eb[1]),n:ebNeedle(p.eb[2]),s:ebSprite(3.6,p.eb[2]),d:ebDart(p.eb[0]),m:ebMine(p.eb[1])};
-    for(const [nk,src] of [['strafer','fighter'],['spinner','turret'],['diver','rush'],['miner','orb']]){m[nk]=m[src];m[nk+'W']=m[src+'W'];m[nk+'Sh']=m[src+'Sh'];}
+    m.eb={o:ebSprite(5.1,p.eb[0]),b:ebSprite(7.4,p.eb[1]),n:ebNeedle(p.eb[2])};
     o.fac[f]=m;
   }
 }
@@ -2263,9 +2112,6 @@ function getBg(theme){
   }
   if(T.land==='downtown'){
     const blk=62,rw=12;
-    /* 강 — 완벽한 격자만 있으면 도시가 아니라 바둑판이다. 세로로 이어 붙어야 하니 주기는 정수 */
-    const RIV_W=19,rvx=y=>54+Math.sin(y/ch*TAU*2)*30;
-    const inRiver=(x,w,y)=>x+w>rvx(y)-RIV_W&&x<rvx(y)+RIV_W;
     const roofs=['#2A303A','#323946','#262B33','#3A4150','#2E3440'];
     const winC=['rgba(255,214,120,.95)','rgba(255,240,200,.9)','rgba(140,210,255,.85)'];
     const neon=['#FF3D9A','#39E6FF','#B45CFF','#FFD24A','#3DFF9A'];
@@ -2274,70 +2120,33 @@ function getBg(theme){
       const x0=bx+rw/2+1,y0=by+rw/2+1,sz=blk-rw-2;
       if(bx>=124&&bx<186)continue;
       g.fillStyle='#232830';g.fillRect(x0,y0,sz,sz);
-      if(rr()<.075&&!inRiver(x0,sz,y0+sz/2)){g.fillStyle='#1C2A1E';g.fillRect(x0+2,y0+2,sz-4,sz-4);for(let k=0;k<25;k++)tree(x0+4+rr()*(sz-8),y0+4+rr()*(sz-8),.45+rr()*.35,2);
+      if(rr()<.1){g.fillStyle='#1C2A1E';g.fillRect(x0+2,y0+2,sz-4,sz-4);for(let k=0;k<25;k++)tree(x0+4+rr()*(sz-8),y0+4+rr()*(sz-8),.45+rr()*.35,2);
         g.globalCompositeOperation='lighter';for(let k=0;k<4;k++){const lx=x0+4+rr()*(sz-8),ly=y0+4+rr()*(sz-8);g.fillStyle=rad(g,lx,ly,0,4,[[0,'rgba(255,200,120,.5)'],[1,'rgba(255,160,60,0)']]);g.fillRect(lx-4,ly-4,8,8);}g.globalCompositeOperation='source-over';continue;}
       const n=1+((rr()*3)|0);
       for(let k=0;k<n;k++){
-        const w=12+rr()*(sz/(n>1?1.8:1.2)-12),d=12+rr()*(sz/(n>1?1.8:1.2)-12),x=x0+1+rr()*(sz-w-2),y=y0+1+rr()*(sz-d-2),h=(8+rr()*26)*(rr()<.14?1.9:1);
-        if(inRiver(x,w,y))continue;
+        const w=12+rr()*(sz/(n>1?1.8:1.2)-12),d=12+rr()*(sz/(n>1?1.8:1.2)-12),x=x0+1+rr()*(sz-w-2),y=y0+1+rr()*(sz-d-2),h=8+rr()*26;
         const roof=roofs[(rr()*roofs.length)|0];
         bldg(x,y,w,d,h,roof);
         const wh=Math.min(3.5,h*.28),wc=winC[(rr()*winC.length)|0];
         place(y,d+wh,dy=>{g.globalCompositeOperation='lighter';for(let wx=x+1;wx<x+w-1;wx+=1.6){if(rr()<.55){g.fillStyle=wc;g.fillRect(wx,y+dy+d+.5,.8,wh-1);}}
           if(rr()<.5){g.fillStyle='rgba(255,60,60,.9)';g.fillRect(x+w-1.4,y+dy+.4,1,1);}
-          if(rr()<.42){const nc=neon[(rr()*neon.length)|0],nx=x+w*.15,ny=y+dy+d*.4,nw=w*.7;g.fillStyle=rgba(nc,.25);g.fillRect(nx-2,ny-2,nw+4,5);g.fillStyle=rgba(nc,.95);g.fillRect(nx,ny,nw,1);}
+          if(rr()<.3){const nc=neon[(rr()*neon.length)|0],nx=x+w*.15,ny=y+dy+d*.4,nw=w*.7;g.fillStyle=rgba(nc,.25);g.fillRect(nx-2,ny-2,nw+4,5);g.fillStyle=rgba(nc,.95);g.fillRect(nx,ny,nw,1);}
           g.globalCompositeOperation='source-over';});
         if(w>16&&d>16&&rr()<.35)helipad(x+w/2,y+d/2,Math.min(w,d)*.26);
       }
     }
     g.fillStyle='#101318';for(let y=0;y<ch;y+=blk)g.fillRect(0,y-rw/2,cw,rw);for(let x=0;x<cw;x+=blk)g.fillRect(x-rw/2,0,rw,ch);
-    g.save();g.beginPath();
-    for(let y=0;y<=ch;y+=8)g.lineTo(rvx(y)-RIV_W,y);
-    for(let y=ch;y>=0;y-=8)g.lineTo(rvx(y)+RIV_W,y);
-    g.closePath();
-    /* 물은 주변 도로(#101318)보다 밝아야 강으로 읽힌다 — 어둡게 두면 그냥 빈 땅으로 보인다 */
-    g.fillStyle=lin(g,0,0,cw,ch,[[0,'#0A1A2A'],[1,'#0D2436']]);g.fill();
-    g.save();g.clip();
-    g.globalCompositeOperation='lighter';
-    for(let n=0;n<220;n++){const y=rr()*ch,x=rvx(y)+(rr()-.5)*RIV_W*1.9,w=2+rr()*9;
-      g.fillStyle=`rgba(${110+(rr()*140|0)},${160+(rr()*90|0)},255,.26)`;g.fillRect(x,y,w,.7);}
-    /* 강변 네온이 수면에 길게 번진다 */
-    for(let n=0;n<26;n++){const y=rr()*ch,x=rvx(y)+(rr()<.5?-1:1)*RIV_W*(.55+rr()*.4),c=neon[(rr()*neon.length)|0];
-      g.fillStyle=rad(g,x,y,0,10,[[0,rgba(c,.5)],[1,rgba(c,0)]]);g.fillRect(x-10,y-10,20,20);
-      g.fillStyle=rgba(c,.4);g.fillRect(x-1,y-9,2,18);}
-    g.globalCompositeOperation='source-over';g.restore();
-    /* 호안 — 경계가 없으면 물이 번져 보인다 */
-    g.strokeStyle='rgba(150,190,225,.22)';g.lineWidth=.7;g.stroke();
-    g.restore();
-    for(let y=0;y<ch;y+=blk){const rc=rvx(y);
-      g.fillStyle='#161B23';g.fillRect(rc-RIV_W-7,y-rw/2,RIV_W*2+14,rw);
-      g.fillStyle='rgba(255,205,120,.3)';g.fillRect(rc-RIV_W-7,y-rw/2+1,RIV_W*2+14,.5);g.fillRect(rc-RIV_W-7,y+rw/2-1.5,RIV_W*2+14,.5);}
     g.fillStyle='#0E1116';g.fillRect(124,0,62,ch);
     g.fillStyle='rgba(255,255,255,.25)';for(let y=0;y<ch;y+=12)for(const lx of[137,146,164,173])g.fillRect(lx,y,.5,6);
     g.fillStyle='rgba(255,210,60,.5)';g.fillRect(154.6,0,.5,ch);g.fillRect(155.6,0,.5,ch);
     g.globalCompositeOperation='lighter';
-    for(let y=0;y<ch;y+=24)for(const lx of[126,184]){g.fillStyle=rad(g,lx,y,0,5,[[0,'rgba(255,190,110,.32)'],[1,'rgba(255,150,60,0)']]);g.fillRect(lx-5,y-5,10,10);}
-    for(let y=0;y<ch;y+=blk)for(let x=0;x<cw;x+=31){g.fillStyle=rad(g,x,y,0,4,[[0,'rgba(255,190,110,.2)'],[1,'rgba(255,150,60,0)']]);g.fillRect(x-4,y-4,8,8);}
+    for(let y=0;y<ch;y+=24)for(const lx of[126,184]){g.fillStyle=rad(g,lx,y,0,7,[[0,'rgba(255,190,110,.55)'],[1,'rgba(255,150,60,0)']]);g.fillRect(lx-7,y-7,14,14);}
+    for(let y=0;y<ch;y+=blk)for(let x=0;x<cw;x+=31){g.fillStyle=rad(g,x,y,0,5,[[0,'rgba(255,190,110,.35)'],[1,'rgba(255,150,60,0)']]);g.fillRect(x-5,y-5,10,10);}
     for(let n=0;n<260;n++){const dn=rr()<.5,lx=dn?[140,149][(rr()*2)|0]:[161,170][(rr()*2)|0],y=rr()*ch;
       if(dn){g.fillStyle='rgba(255,40,40,.9)';g.fillRect(lx,y,.8,.8);g.fillRect(lx+1.6,y,.8,.8);g.fillStyle='rgba(255,60,60,.12)';g.fillRect(lx-.5,y-6,3.4,6);}
       else{g.fillStyle='rgba(255,255,230,.95)';g.fillRect(lx,y,.8,.8);g.fillRect(lx+1.6,y,.8,.8);g.fillStyle='rgba(255,250,210,.14)';g.fillRect(lx-.8,y-9,4,9);}}
     for(let n=0;n<260;n++){const horiz=rr()<.5;const y=horiz?Math.round(rr()*ch/blk)*blk+(rr()<.5?-2.5:2):rr()*ch,x=horiz?rr()*cw:Math.round(rr()*cw/blk)*blk+(rr()<.5?-2.5:2);if(x>120&&x<190)continue;g.fillStyle=rr()<.5?'rgba(255,60,60,.8)':'rgba(255,250,220,.85)';g.fillRect(x,y,.8,.8);}
     g.globalCompositeOperation='source-over';
-    g.globalCompositeOperation='source-over';
-    /* 이미 두들겨 맞은 도심 — 불타는 건물과 바람에 눕는 연기 기둥 */
-    const fires=[];
-    for(let n=0;n<9;n++){const fx=10+rr()*(cw-20),fy=rr()*ch;
-      if(fx>112&&fx<198)continue; if(Math.abs(fx-rvx(fy))<RIV_W+8)continue; fires.push([fx,fy]);}
-    for(const [fx,fy] of fires)place(fy,96,dy=>{const Y=fy+dy;
-      for(let k=1;k<=30;k++){const t=k/30,sx=fx+t*32+(rr()-.5)*10,sy=Y-t*78,r=5+t*18;
-        const a=(.085*(1-t*.5)).toFixed(3),warm=t<.32;
-        g.fillStyle=rad(g,sx,sy,0,r,warm?[[0,`rgba(168,112,70,${a})`],[1,'rgba(168,112,70,0)']]
-                                        :[[0,`rgba(122,116,110,${a})`],[1,'rgba(122,116,110,0)']]);
-        g.fillRect(sx-r,sy-r,r*2,r*2);}});
-    g.globalCompositeOperation='lighter';
-    for(const [fx,fy] of fires)place(fy,34,dy=>{const Y=fy+dy;
-      g.fillStyle=rad(g,fx,Y,0,24,[[0,'rgba(255,186,88,.5)'],[.45,'rgba(255,108,28,.26)'],[1,'rgba(255,60,0,0)']]);g.fillRect(fx-24,Y-24,48,48);
-      g.fillStyle=rad(g,fx,Y,0,7,[[0,'rgba(255,246,214,.95)'],[1,'rgba(255,150,40,0)']]);g.fillRect(fx-7,Y-7,14,14);});
   }
   if(T.land==='lava'){
     g.globalCompositeOperation='lighter';
@@ -2345,28 +2154,7 @@ function getBg(theme){
     g.globalCompositeOperation='source-over';
     for(let n=0;n<160;n++){const x=rr()*cw,y=rr()*ch;if(at(x,y)>.45){const s=1.5+rr()*3;place(y,s,dy=>{g.fillStyle='rgba(20,10,8,.6)';g.beginPath();g.arc(x+.8,y+dy+.8,s,0,TAU);g.fill();g.fillStyle=rad(g,x-s*.3,y+dy-s*.3,.2,s,[[0,'#7A5A4E'],[1,'#2E1E1A']]);g.beginPath();g.arc(x,y+dy,s,0,TAU);g.fill();});}}
   }
-  if(T.land==='clouds'){
-    /* 성층권 — 지형이 없으니 구름 자체가 지형이다. 덩어리·그림자·비행운 세 겹으로 고도감을 만든다 */
-    for(let n=0;n<26;n++){const x=rr()*cw,y=rr()*ch,r=26+rr()*52;
-      place(y,r+10,dy=>{g.fillStyle=rad(g,x+r*.22,y+dy+r*.28,r*.2,r,[[0,'rgba(104,136,176,.13)'],[1,'rgba(104,136,176,0)']]);g.fillRect(x-r,y+dy-r,r*2,r*2);});}
-    for(let n=0;n<40;n++){const x=rr()*cw,y=rr()*ch,r=22+rr()*54;
-      place(y,r+8,dy=>{g.fillStyle=rad(g,x-r*.22,y+dy-r*.26,r*.12,r,[[0,'rgba(255,255,255,.26)'],[.5,'rgba(228,240,252,.12)'],[1,'rgba(206,224,244,0)']]);g.fillRect(x-r,y+dy-r,r*2,r*2);});}
-    g.globalCompositeOperation='lighter';
-    for(let n=0;n<16;n++){const x=rr()*cw,y=rr()*ch,len=50+rr()*140,a=(rr()-.5)*.45;
-      place(y,len+8,dy=>{for(let k=0;k<len;k+=2){const t=k/len;
-        g.fillStyle=`rgba(255,255,255,${(.13*(1-t)).toFixed(3)})`;
-        g.fillRect(x+Math.sin(a)*k,y+dy-k,1.3+t*1.8,1.3);}});}
-    g.globalCompositeOperation='source-over';
-  }
   if(T.land==='space'){
-    /* 생체 성운 — 별 배경 위에 떠다니는 생체 덩어리. 별보다 먼저 깔아 별이 위로 반짝이게 한다 */
-    for(let n=0;n<30;n++){const x=rr()*cw,y=rr()*ch,r=11+rr()*27;
-      place(y,r+10,dy=>{const Y=y+dy;
-        g.fillStyle=rad(g,x-r*.3,Y-r*.3,r*.14,r,[[0,'rgba(198,98,152,.3)'],[.5,'rgba(112,40,104,.2)'],[1,'rgba(48,12,56,0)']]);
-        g.fillRect(x-r,Y-r,r*2,r*2);
-        g.strokeStyle='rgba(255,152,202,.2)';g.lineWidth=.7;
-        for(let k=0;k<5;k++){const a=rr()*TAU;g.beginPath();g.moveTo(x,Y);
-          g.quadraticCurveTo(x+Math.cos(a)*r*.55,Y+Math.sin(a)*r*.55,x+Math.cos(a+.6)*r*.95,Y+Math.sin(a+.6)*r*.95);g.stroke();}});}
     g.globalCompositeOperation='lighter';
     for(let n=0;n<60;n++){const x=rr()*cw,y=rr()*ch,r=6+rr()*18;place(y,r,dy=>{g.fillStyle=rad(g,x,y+dy,0,r,[[0,'rgba(255,120,200,.12)'],[1,'rgba(120,40,160,0)']]);g.fillRect(x-r,y+dy-r,r*2,r*2);});}
     for(let n=0;n<700;n++){const x=rr()*cw,y=rr()*ch,s=rr();g.fillStyle=s>.93?'rgba(255,255,255,.95)':s>.6?'rgba(190,200,240,.6)':'rgba(120,130,170,.5)';g.fillRect(x,y,s>.93?1:.5,s>.93?1:.5);}
@@ -2388,14 +2176,6 @@ function getBg(theme){
     conduit(60);conduit(300);
     g.fillStyle='rgba(92,225,230,.9)';for(let y=0;y<ch;y+=16){g.fillRect(160,y,1.2,1.2);g.fillRect(199,y,1.2,1.2);}
     g.fillStyle='rgba(255,90,165,.8)';for(let y=8;y<ch;y+=32)g.fillRect(179.4,y,1.2,1.2);
-    /* 모선 핵 — 패널만 있으면 바닥 타일이다. 격자를 타고 흐르는 도관과 노드로 '살아있는 기계'를 만든다 */
-    for(let n=0;n<34;n++){const vert=rr()<.5,c=rr()<.35?'#7CF2FF':'#9C7CFF';
-      const x=Math.round(rr()*cw/cell)*cell,y=Math.round(rr()*ch/cell)*cell,len=cell*(3+((rr()*8)|0));
-      place(y,len+6,dy=>{
-        g.fillStyle=rgba(c,.09);if(vert)g.fillRect(x-2.5,y+dy,5,len);else g.fillRect(x,y+dy-2.5,len,5);
-        g.fillStyle=rgba(c,.55);if(vert)g.fillRect(x-.5,y+dy,1,len);else g.fillRect(x,y+dy-.5,len,1);
-        for(let k=0;k<=len;k+=cell){const nx=vert?x:x+k,ny=vert?y+dy+k:y+dy;
-          g.fillStyle=rad(g,nx,ny,0,4.5,[[0,rgba(c,.7)],[1,rgba(c,0)]]);g.fillRect(nx-4.5,ny-4.5,9,9);}});}
     g.globalCompositeOperation='source-over';
   }
   if(T.grade){g.fillStyle=T.grade;g.fillRect(0,0,cw,ch);}
@@ -2434,19 +2214,11 @@ const EBASE={
  orb:{hp:14,r:9,xp:1.2,gold:0},
  carrier:{hp:26,r:11,xp:2,gold:0},
  heli:{hp:20,r:12,xp:1.8,gold:0},
- /* 새 종류 — 이동과 공격이 서로 다르다. 전부 조준 단발이던 판에 '위치 선점'을 강제하는 패턴을 섞는다 */
- strafer:{hp:14,r:10,xp:1.4,gold:0},   /* 측면 횡단 + 수직 탄막 */
- spinner:{hp:28,r:11,xp:2.2,gold:0},   /* 정지 후 회전 스파이럴 */
- diver:{hp:9,r:9,xp:1.1,gold:0},       /* 급강하 후 상승 이탈, 바닥에서 3점사 */
- miner:{hp:18,r:10,xp:1.6,gold:0},     /* 느리게 표류하며 지뢰 투하 */
  part:{hp:0,r:10,xp:4,gold:6},
  mid:{hp:840,r:30,xp:16,gold:70,hw:50,hh:22},
 };
 const MIDNAME={human:'중형 폭격기',grey:'대형 비행접시',reptile:'초승달 포함',demon:'마계 전령'};
 const stageLen=si=>136+si*5;
-/* 새 종류는 2스테이지부터 단계적으로. 1스테이지는 기본 조작을 익히는 곳으로 남긴다 */
-[[1,'strafers'],[2,'divers'],[3,'spinners'],[3,'strafers'],[4,'miners'],[4,'divers'],[5,'spinners'],[5,'strafers'],
- [6,'divers'],[6,'miners'],[7,'spinners'],[7,'strafers'],[8,'divers'],[8,'spinners'],[8,'miners']].forEach(([i,f])=>STAGES[i].pool.push(f));
 const equipped=id=>S.equip.includes(id);
 const passLv=id=>equipped(id)?(S.skills[id]||0):0;
 const syn=id=>G&&G.syn.has(id);
@@ -2455,13 +2227,13 @@ const plane=()=>PLANES[S.plane]||PLANES.falcon;
 function activeSynergies(){const s=new Set();SYNERGY.forEach(x=>{if(x.req.every(equipped))s.add(x.id);});return s;}
 
 const ALL_FAC=['human','grey','reptile','demon'];
-function endlessStage(src){return Object.assign({},STAGES[src],{code:'∞',name:'무한 공역',act:2,fac:ALL_FAC,story:'끝없이 몰려오는 적. 몇 웨이브까지 버틸 수 있을까?',pool:['vee','sine','swoop','helis','rush','bomber','turret','tanks','orbs','strafers','divers','spinners','miners']});}
+function endlessStage(src){return Object.assign({},STAGES[src],{code:'∞',name:'무한 공역',act:2,fac:ALL_FAC,story:'끝없이 몰려오는 적. 몇 웨이브까지 버틸 수 있을까?',pool:['vee','sine','swoop','helis','rush','bomber','turret','tanks','orbs']});}
 function newRun(si,tier,endless){
   tier=endless?0:(tier||0);
   const st=endless?endlessStage(si):STAGES[si],mh=maxHp(),T=TIERS[tier];
   G={si,st,t:0,bgY:0,bg:getBg(st.theme),theme:THEMES[st.theme],spr:stageSprites(si,endless?ALL_FAC:null),T,tier,endless:endless?{wave:1,waveEnd:24,waveStart:0,src:si,bosses:0}:null,spawnT:1.5,tt:0,stageLen:stageLen(si),mid:null,ramp:1,deco:makeDeco(st.theme),
     timeline:endless?[]:buildTimeline(si,tier),tl:0,boss:null,phase:'wave',endT:0,intro:1.1,
-    p:{x:W/2,y:H+40,hp:mh,maxHp:mh,inv:2.2,fire:0,mfire:0,trail:[],burst:0,speedLv:0,missileLv:0,weapon:'normal',wLv:1,opts:tier>0?MAX_OPTS:S.spare,force:0,dead:false,tilt:0,power:1},
+    p:{x:W/2,y:H+40,hp:mh,maxHp:mh,inv:2.2,fire:0,mfire:0,trail:[],speedLv:0,missileLv:0,weapon:'normal',wLv:1,opts:S.spare,optBase:S.spare,force:0,dead:false,tilt:0,power:1},
     bullets:[],eb:[],enemies:[],items:[],parts:[],texts:[],rings:[],decals:[],allies:[],
     forms:{},fid:0,kills:0,xp:0,gold:0,shake:0,flash:0,banner:endless?{t:3.6,title:'무한 공역',sub:'ENDLESS · WAVE 1',story:st.story}:{t:3.6,title:st.name,sub:(st.act===1?'1부 · 독재자 전쟁':'2부 · 외계 침공')+' · '+st.code+' · '+T.name,story:st.story},wing:[],wingT:6,curFac:null,
     /* 기체 전용 스킬은 해당 기체로 출격했을 때만 발동한다 */
@@ -2479,19 +2251,14 @@ function applyDiff(L){
   const si=E?Math.min(8,Math.floor(L/3)):G.si;
   G.lvEff=L;G.sup=sup;G.dsi=si;
   const R=G.ramp||1;
-  /* 과성장 보정은 체력(suppression.ehp)이 주력이다. 적탄 피해·연사·탄속까지 같이 키우면 이중 과세라
-     적이 살아서 쏘기 시작하는 순간 두세 발에 죽는다(LV60 UFO가 QF-08 정예 중간보스도 못 봄). 소폭만 */
-  /* 권장 레벨을 넘기면 적탄도 아프고 체력도 오른다(suppression). 보상만 그대로라 파밍은 여전히 가능 */
-  const over=E?0:Math.max(0,S.lv-L),vet=1+Math.min(.3,over*.012);
+  /* 권장 레벨을 넘긴 만큼 적이 더 매섭게 나온다 — 과성장해도 무적이 되지 않도록 */
+  /* 권장 레벨을 넘겨도 적탄은 계속 아프다. 단 적 체력·보상은 그대로라 저난도 파밍은 유지된다 */
+  const over=E?0:Math.max(0,S.lv-L),vet=1+Math.min(1.5,over*.04);
   G.vet=vet;
-  /* 스테이지가 오를수록 어려워져야 한다 — 플레이어 화력은 L에 대해 초선형으로 자라는데
-     적 체력이 선형이면 후반이 되레 쉬워진다. 지수 1.3 — 1.5는 정예·악몽에서 티어 배율과 겹쳐
-     만렙에도 버거웠다(QF-08 정예 6.6배). 계수는 QF-01 값을 그대로 둔다.
-     무한 공역은 웨이브로 이미 올라가고 최고 기록도 걸려 있어 기존 곡선을 유지한다 */
-  G.hpMul=(E?1.3*(1+L*.35):1.191*Math.pow(1+L*.35,1.3))*sup.ehp*(1+G.tier*.15)*(E?1+w*.04:1);
+  G.hpMul=1.3*(1+L*.35)*sup.ehp*(1+G.tier*.15)*(E?1+w*.04:1);
   G.dmgMul=(10+L*1.75)*vet*sup.edmg;
-  G.fireMul=(1.18+si*.19)*T.fire*(E?1+Math.min(.8,w*.03):1)*R*(1+Math.min(.12,over*.005));
-  G.bsp=(158+si*14)*T.bspd*(E?1+Math.min(.35,w*.012):1)*(R>1?1.06:1)*(1+Math.min(.1,over*.004));
+  G.fireMul=(1.18+si*.19)*T.fire*(E?1+Math.min(.8,w*.03):1)*R*(1+Math.min(.3,over*.012));
+  G.bsp=(158+si*14)*T.bspd*(E?1+Math.min(.35,w*.012):1)*(R>1?1.06:1)*(1+Math.min(.22,over*.009));
   G.goldVal=(1.6+L*.58)*(1+passLv('magnet')*.08)*T.bonus;
   G.xpMul=T.bonus*.75;
   G.eliteP=E?Math.min(.6,.08+w*.03):Math.min(.6,T.elite+.04+si*.018+(R>1?.04:0));
@@ -2554,10 +2321,6 @@ function spawnFormation(f){
   else if(f==='orbs'){const cx=rand(100,W-100);const no=7+X*2;for(let i=0;i<no;i++)add('orb',cx,-60,{path:'orb',cx,cy:-60,ang:i*TAU/no,av:2.2,rad:46,fire:rand(2,5)});}
   else if(f==='helis'){const n=Math.min(5,3+(si>=3?1:0)+X);for(let i=0;i<n;i++){const x=W*(i+1)/(n+1)+rand(-20,20);add('heli',x,-30-i*20,{path:'heli',ty:rand(90,210),cx:x,fire:rand(1.2,2.2)});}}
   else if(f==='carrier'){const x=rand(90,W-90);add('carrier',x,-20,{path:'carrier',cx:x});}
-  else if(f==='strafers'){const L=Math.random()<.5,y=rand(90,230);for(let i=0;i<3+X;i++)add('strafer',L?-30-i*46:W+30+i*46,y+i*10,{path:'strafe',vx:(L?1:-1)*(150+si*7)});F.drop=Math.random()<.5;}
-  else if(f==='spinners'){const n=2+(X>=2?1:0);for(let i=0;i<n;i++){const tx=W*(i+1)/(n+1);add('spinner',tx,-30,{path:'hold',tx,ty:rand(110,200),stay:6+si*.3,fire:1});}}
-  else if(f==='divers'){for(let i=0;i<4+X;i++)add('diver',rand(40,W-40),-24-i*40,{path:'dive',tx:G.p.x,ty:Math.min(H*.7,G.p.y-20),vx:0,vy:60});F.drop=false;}
-  else if(f==='miners'){const cx=rand(80,W-80);for(let i=0;i<2+(X>0?1:0);i++){const mx=cx+(i-.5)*70;add('miner',mx,-30-i*40,{path:'drift',sp:42+si*2,cx:mx,amp:36,ph:i*1.7,fire:1.2});}}
   G.forms[fid]=F;
 }
 let MID_ART=null;
@@ -2582,13 +2345,16 @@ function onEnemyGone(e,killed){
   F.alive--;if(killed){F.killed++;F.x=e.x;F.y=e.y;}
   if(F.alive<=0){if(F.drop&&F.killed===F.total&&Math.random()<.5)dropCap(F.x,F.y);delete G.forms[e.fid];}
 }
+/* 옵션 보유 한도는 스테이지에 따라 열린다 — QF-07(인덱스 6)부터 2개까지.
+   단 상점에서 산 '예비 옵션'은 한도보다 많아도 뺏지 않는다 */
+const optCap=()=>Math.max(G.p&&G.p.optBase||0,(G.endless?G.endless.src:G.si)>=6?2:1);
 /* 지금 기체에 모자란 것 위주로 캡슐을 고른다 */
 function needCap(){
   const p=G.p,w=[];
   const add=(t,n)=>{for(let i=0;i<n;i++)w.push(t);};
   add('S',p.speedLv<=0?8:p.speedLv===1?6:p.speedLv<=3?3:p.speedLv<5?1:0);
   add('P',p.power<2?6:p.power<4?4:0);
-  add('O',p.opts<MAX_OPTS&&Math.random()<.35?1:0);   /* 옵션은 가방 최소 가중치로도 너무 잦아서 확률로 한 번 더 거른다 */
+  add('O',p.opts<optCap()?3:0);
   add('B',G.bombs<=1?3:G.bombs<3?2:0);
   add('F',p.force<=0?3:0);
   add('M',p.missileLv<2?2:0);
@@ -2621,16 +2387,12 @@ function dropGold(x,y,n){
 }
 /* ---------- combat helpers ---------- */
 const aimAt=(x,y)=>Math.atan2(G.p.y-y,G.p.x-x);
-const EB_R={b:5,m:5.5,d:3.2,s:2.6},EB_D={b:1.3,m:1.35,s:.85,d:1.05};   /* 탄 종류별 판정·피해 */
 function eshot(x,y,a,sp,big,k){
   if(G.eb.length>700)return;
-  const kk=big?'b':(k||'o');
-  G.eb.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:EB_R[kk]||3.5,dmg:G.dmgMul*(EB_D[kk]||1),k:kk,f:G.curFac||G.st.fac[0]});
+  G.eb.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:big?5:3.5,dmg:G.dmgMul*(big?1.3:1),k:big?'b':(k||'o'),f:G.curFac||G.st.fac[0]});
 }
-function fan(x,y,n,spread,sp,base,k){const a0=base??aimAt(x,y);for(let i=0;i<n;i++)eshot(x,y,a0+(n>1?(i/(n-1)-.5)*spread:0),sp,false,k);}
-function ring(x,y,n,sp,off,big,k){for(let i=0;i<n;i++)eshot(x,y,off+i*TAU/n,sp,big,k);}
-/* 지뢰 — 지면과 같이 천천히 내려오다 도화선이 다 타면 링으로 터진다. 영역 봉쇄용 */
-function mine(x,y){if(G.eb.length>700)return;G.eb.push({x,y,vx:0,vy:BG_SPEED*.6,r:EB_R.m,dmg:G.dmgMul*EB_D.m,k:'m',f:G.curFac||G.st.fac[0],fuse:1.6+Math.random()*.6});}
+function fan(x,y,n,spread,sp,base){const a0=base??aimAt(x,y);for(let i=0;i<n;i++)eshot(x,y,a0+(n>1?(i/(n-1)-.5)*spread:0),sp);}
+function ring(x,y,n,sp,off,big){for(let i=0;i<n;i++)eshot(x,y,off+i*TAU/n,sp,big);}
 function dmgRoll(m,kind){
   let d=9*(1+S.stats.atk*.07)*(1+(S.lv-1)*.025)*(1+S.tier*.1)*plane().dmg*G.sup.pdmg*m;
   let c=.05+S.stats.foc*.006+passLv('crit')*.06;
@@ -2666,8 +2428,9 @@ function isHit(e,x,y,br,hl){
   const rr=e.r+br;return(e.x-x)**2+(e.y-y)**2<rr*rr;
 }
 function killEnemy(e){
-  if(e.boss||e.kind==='mid')G.hitStop=Math.max(G.hitStop||0,.12);
-  else if(e.maxHp>=60)G.hitStop=Math.max(G.hitStop||0,.035);
+  /* 히트스톱은 보스·중간보스 격파에만. 일반 적에도 걸었더니 후반에 매 격추마다
+     35ms씩 멈춰 게임이 끊겼다(적 체력이 커지면 거의 모든 적이 조건을 넘긴다) */
+  if(e.boss||e.kind==='mid')G.hitStop=Math.max(G.hitStop||0,.10);
   e.dead=true;
   const st=G.st;
   if(e.boss){
@@ -2724,7 +2487,7 @@ function hitPlayer(dmg){
   const p=G.p;
   if(p.dead||p.inv>0||G.barrier>0||G.bombT>0||G.phase==='clear')return;
   if(p.force>0){p.force--;p.forceT=FORCE_LIFE;p.inv=.5;sfx.guard();G.rings.push({x:p.x,y:p.y,t:0,life:.3,r:26,c:'#F2E8CF'});return;}
-  p.hp-=dmg;p.inv=1.1;G.shake=Math.max(G.shake,9);G.flash=.24;G.hitStop=.075;sfx.hurt();
+  p.hp-=dmg;p.inv=1.1;G.shake=Math.max(G.shake,9);G.flash=.24;G.hitStop=.05;sfx.hurt();
   if(p.power>1){p.power--;G.texts.push({x:p.x,y:p.y-38,s:'POWER DOWN',c:'#FF5A3C',t:0,life:.8});}
   else if(p.opts>0){p.opts--;G.texts.push({x:p.x,y:p.y-38,s:'OPTION LOST',c:'#FFB627',t:0,life:.8});}
   else if(p.wLv>1)p.wLv=1;
@@ -2732,7 +2495,6 @@ function hitPlayer(dmg){
   if(p.hp<=0){p.hp=0;p.dead=true;explode(p.x,p.y,40);sfx.big();G.shake=16;G.phase='dead';G.endT=2.2;}
 }
 const FORCE_LIFE=15;   /* 방어막 1회분이 유지되는 시간(초) */
-const MAX_OPTS=2;      /* 따라다니는 옵션 최대 개수 */
 function applyCap(type){
   const p=G.p;sfx.cap();let label=CAPS[type].n;
   /* 상위 단계일수록 여러 개를 모아야 오른다 — 초반만 버티면 풀파워가 되던 문제 */
@@ -2745,7 +2507,7 @@ function applyCap(type){
       else part('P',n,'POWER '+(p.power+1));
     }else{G.gold+=G.goldVal*5;label='BONUS';}
   }
-  if(type==='B'){if(G.bombs<4)G.bombs++;else G.gold+=G.goldVal*5;}
+  if(type==='B'){if(G.bombs<5)G.bombs++;else G.gold+=G.goldVal*5;}
   if(type==='S'){
     if(p.speedLv<5){const n=p.speedLv>=3?2:1;
       if(need('S',n)){p.speedLv++;label='SPEED '+p.speedLv;}else part('S',n,'SPEED '+(p.speedLv+1));
@@ -2763,7 +2525,7 @@ function applyCap(type){
     else{G.gold+=G.goldVal*5;label='BONUS';}
   }
   if(type==='O'){
-    if(p.opts<MAX_OPTS){const n=p.opts+1;
+    if(p.opts<optCap()){const n=p.opts+1;
       if(need('O',n)){p.opts++;label='OPTION '+p.opts;}else part('O',n,'OPTION '+(p.opts+1));
     }else{G.gold+=G.goldVal*5;label='BONUS';}
   }
@@ -2825,6 +2587,14 @@ function useCharge(){
     for(let i=0;i<9;i++){const a=(i/8-.5)*1.3;G.bullets.push({kind:'shell',x:p.x,y:p.y-14,vx:Math.sin(a)*430,vy:-Math.cos(a)*430,r:6,m:3.4*pw,pierce:1});}
   }else if(S.plane==='raven'){
     G.bullets.push({kind:'lance',x:p.x,y:p.y-40,vx:0,vy:-470,r:10,len:74,m:10*pw,pierce:999});
+  }else if(S.plane==='wyvern'){
+    /* 연쇄 화망 — 관통 화살탄을 좁은 부채꼴로 */
+    for(let i=0;i<7;i++){const a=(i/6-.5)*.62;
+      G.bullets.push({kind:'needle',x:p.x+(i-3)*5,y:p.y-16,vx:Math.sin(a)*640,vy:-Math.cos(a)*640,r:5,m:2.2*pw,pierce:3});}
+  }else if(S.plane==='leviathan'){
+    /* 궤도 포격 — 대구경 철갑탄 4발 */
+    for(let i=0;i<4;i++){const a=(i/3-.5)*.5;
+      G.bullets.push({kind:'shell',x:p.x+(i-1.5)*13,y:p.y-14,vx:Math.sin(a)*400,vy:-Math.cos(a)*400,r:8,m:6.2*pw,pierce:2});}
   }else if(S.plane==='saucer'){
     const ty=Math.max(90,p.y-210),fuse=.62;
     G.bullets.push({kind:'cbomb',void:true,x:p.x,y:p.y-18,vx:0,vy:(ty-p.y)/fuse,r:0,m:17*pw,pierce:0,fuse,t:0,nohit:true,rad:96,pull:120});
@@ -2885,52 +2655,11 @@ function useBomb(){
         let k=pool[(Math.random()*pool.length)|0],g=0;
         while(used.indexOf(k)>=0&&g++<10)k=pool[(Math.random()*pool.length)|0];
         used.push(k);
-        /* 보스마다 자기 무기: 골든 시타델 함포 · 심해의 왕관 유도탄 · 아이언 베헤모스 철갑탄 · 오버로드 코어 레이저 */
-        const bkKind=STAGES[k].boss,fk=bkKind==='crawler'?'shell':bkKind==='impostor'?'laser':(k===0?'cannon':'missile');
-        G.wing.push({x:W*(.24+.26*i),y:H+90,f:0,bk:k,sc:.5,bomb:true,ph:'in',delay:.15+i*.42,ty:H*(i===1?.64:.58),hold:1.7,fk,vy:0,tr:0});
+        G.wing.push({x:W*(.24+.26*i),y:H+54+i*44,f:i*.07,bk:k,sc:.5,bomb:true});
       }
-      G.texts.push({x:W/2,y:H*.50,s:'지구 연합 일제 사격',c:'#7BD389',t:0,life:1.6,big:true});
-      G.texts.push({x:W/2,y:H*.50+22,s:used.map(k=>STAGES[k].bossName.split(' · ').pop()).join('  ·  '),c:'#BFF0C8',t:0,life:2.2});
-      sfx.warn();
+      G.texts.push({x:W/2,y:H*.56,s:'지구 연합 일제 사격',c:'#7BD389',t:0,life:1.5,big:true});
     }
   }
-}
-/* 폭탄 호응 보스 — 애프터버너 진입 → 자기 무기로 일제 사격 → 노바 피니셔 후 이탈.
-   셋이 똑같이 올라와 똑같은 탄을 뿌리던 걸, 시간차 등장과 보스별 무기·퇴장으로 갈랐다 */
-function updateAllyBoss(w,dt){
-  if(w.delay>0){w.delay-=dt;return;}
-  const short=STAGES[w.bk].bossName.split(' · ').pop();
-  if(w.ph==='in'){
-    const d=w.y-w.ty;w.y-=Math.max(140,d*6)*dt;   /* 애프터버너 — 0.7초 안에 자리 잡는다 */
-    w.tr-=dt;if(w.tr<=0){w.tr=.03;G.parts.push({ty:'trail',x:w.x+rand(-10,10),y:w.y+22,vx:rand(-8,8),vy:60,t:0,life:.35,s:.5});}
-    if(d<6){w.ph='hold';w.t=0;
-      G.parts.push({ty:'flash',x:w.x,y:w.y,vx:0,vy:0,t:0,life:.22,s:2.2});
-      G.rings.push({x:w.x,y:w.y,t:0,life:.45,r:60,c:'#BFF0C8',w:3});
-      G.texts.push({x:w.x,y:w.y-44,s:short,c:'#7BD389',t:0,life:1.1});
-      G.shake=Math.max(G.shake,4);sfx.skready();}
-    return;
-  }
-  if(w.ph==='hold'){
-    w.t+=dt;w.f-=dt;w.x+=Math.sin(w.t*2.6)*9*dt;
-    if(w.f<=0){
-      if(w.fk==='cannon'){w.f=.16;for(const dx of[-30,-15,0,15,30])G.bullets.push({kind:'shot',x:w.x+dx,y:w.y-18,vx:dx*2.2,vy:-640,r:4,m:1.6,pierce:1,opt:true});
-        G.parts.push({ty:'flash',x:w.x,y:w.y-20,vx:0,vy:0,t:0,life:.08,s:.9});}
-      else if(w.fk==='missile'){w.f=.55;fireHoming(w.x,w.y-10,4,1.5);}
-      else if(w.fk==='shell'){w.f=.34;for(const dx of[-22,0,22])G.bullets.push({kind:'shell',x:w.x+dx,y:w.y-16,vx:dx*1.4,vy:-520,r:5,m:2.6,pierce:0,opt:true});
-        G.shake=Math.max(G.shake,2);sfx.shot();}
-      else {w.f=.085;for(const dx of[-9,9])G.bullets.push({kind:'laser',x:w.x+dx,y:w.y-14,vx:0,vy:-800,r:3,len:26,m:1.0,pierce:99,opt:true});}
-    }
-    if(w.t>=w.hold){w.ph='out';w.vy=-120;
-      /* 피니셔 — 노바 한 방. 이탈을 '사라짐'이 아니라 '마무리'로 만든다 */
-      areaDamage(w.x,w.y-30,150,3.2);clearBullets(w.x,w.y-30,160);explode(w.x,w.y-30,18);
-      G.rings.push({x:w.x,y:w.y-30,t:0,life:.55,r:150,c:'#7BD389',w:6});
-      G.rings.push({x:w.x,y:w.y-30,t:0,life:.8,r:220,c:'rgba(191,240,200,.7)',w:2});
-      G.flash=Math.max(G.flash,.18);G.shake=Math.max(G.shake,9);sfx.boom();}
-    return;
-  }
-  /* out */
-  w.vy-=1500*dt;w.y+=w.vy*dt;
-  w.tr-=dt;if(w.tr<=0){w.tr=.025;G.parts.push({ty:'trail',x:w.x+rand(-8,8),y:w.y+24,vx:0,vy:90,t:0,life:.4,s:.6});}
 }
 function fireHoming(x,y,n,m){
   sfx.missile();
@@ -2955,6 +2684,15 @@ function planeShot(x,y,m,opt){
   }else if(S.plane==='raven'){
     const n=[2,3,4,4][pw-1];for(let i=0;i<n;i++)shot((i-(n-1)/2)*5,0,1.05,700,3.5,'needle');
     if(pw===4){shot(-11,-.05,.8,700,3.5,'needle');shot(11,.05,.8,700,3.5,'needle');}
+  }else if(S.plane==='wyvern'){
+    const n=[3,4,5,6][pw-1];
+    for(let i=0;i<n;i++)shot((i-(n-1)/2)*5,(i-(n-1)/2)*.06,1.0,720,3.6,'needle');
+    if(pw>=3){shot(-14,-.3,.7,660,3.6,'needle');shot(14,.3,.7,660,3.6,'needle');}
+  }else if(S.plane==='leviathan'){
+    shot(-6,0,1.75,500,5.5,'heavy');shot(6,0,1.75,500,5.5,'heavy');
+    if(pw>=2){shot(0,0,1.5,500,5.5,'heavy');}
+    if(pw>=3){shot(-13,-.16,.8);shot(13,.16,.8);}
+    if(pw>=4){shot(-18,-.32,.8);shot(18,.32,.8);}
   }else if(S.plane==='hornet'){
     shot(-5,0,1.6,520,5,'heavy');shot(5,0,1.6,520,5,'heavy');
     if(pw>=2){shot(-11,-.15,.7);shot(11,.15,.7);}
@@ -2970,15 +2708,13 @@ function fireMain(x,y,m,opt){
   const p=G.p,pw=opt?1:p.power;
   if(p.weapon==='normal')planeShot(x,y,m,opt);
   else if(p.weapon==='ripple'){
-    G.bullets.push({kind:'ripple',x,y,vx:0,vy:-380,r:5,grow:(p.wLv===2?32:20)+pw*2,m:m*(p.wLv===2?1.6:1.3)*(1+(pw-1)*.13),pierce:1+passLv('pierce'),t:0});
+    G.bullets.push({kind:'ripple',x,y,vx:0,vy:-380,r:5,grow:(p.wLv===2?46:30)+pw*3,m:m*(p.wLv===2?1.6:1.3)*(1+(pw-1)*.13),pierce:1+passLv('pierce'),t:0});
   }else{
     G.bullets.push({kind:'laser',x,y:y-8,vx:0,vy:-780,r:3,len:26,m:m*(p.wLv===2?.72:.55)*(1+(pw-1)*.13),pierce:99});
     if(pw>=3){G.bullets.push({kind:'laser',x:x-7,y,vx:0,vy:-780,r:2,len:18,m:m*.3,pierce:99});G.bullets.push({kind:'laser',x:x+7,y,vx:0,vy:-780,r:2,len:18,m:m*.3,pierce:99});}
   }
 }
-const FIRE_IV={falcon:.13,raven:.10,hornet:.17,saucer:.12};
-/* 스트라이커즈식 점사 — 5발 쏘고 한 박자 쉰다. 간격에 비례해 어느 연사 속도에서도 리듬이 같다 */
-const BURST_N=5,BURST_GAP=1.2;
+const FIRE_IV={falcon:.11,raven:.085,hornet:.15,saucer:.1};
 function optionPos(i){const tr=G.p.trail;return tr[Math.min(tr.length-1,(i+1)*16)];}
 
 /* ================= UPDATE ================= */
@@ -3050,9 +2786,8 @@ function update(dt){
         fireMain(p.x,p.y-14,1);
         for(let i=0;i<p.opts;i++){const o=optionPos(i);fireMain(o.x,o.y-4,.6,true);}
         if(G.cloneT>0)for(const dx of [-36,36])fireMain(clamp(p.x+dx,10,W-10),p.y-10,.4+G.cloneLv*.08,true);
-        const iv=(p.weapon==='ripple'?.21:p.weapon==='laser'?.085:FIRE_IV[S.plane]||.11)/Math.min(RATE_CAP,1+S.stats.rate*.035);
-        p.fire=iv;
-        if(++p.burst>=BURST_N){p.burst=0;p.fire+=iv*BURST_GAP;}
+        const iv=p.weapon==='ripple'?.21:p.weapon==='laser'?.085:FIRE_IV[S.plane]||.11;
+        p.fire=iv/(1+S.stats.rate*.035);
         sfx.shot();
       }
       if(p.missileLv>0){
@@ -3071,8 +2806,7 @@ function update(dt){
   }
   // skills / bomb timers
   for(const s of G.sk)if(s&&s.cd>0){s.cd=Math.max(0,s.cd-dt);if(s.cd<=0)sfx.skready();}
-  if(G.barrier>0){G.barrier=Math.max(0,G.barrier-dt);if(G.barrier<=0)sfx.shatter();}
-  G.chrono=Math.max(0,G.chrono-dt);
+  G.barrier=Math.max(0,G.barrier-dt);G.chrono=Math.max(0,G.chrono-dt);
   G.grav=Math.max(0,G.grav-dt);G.cloneT=Math.max(0,G.cloneT-dt);
   if(G.warpFx){G.warpFx.t+=dt;if(G.warpFx.t>.3)G.warpFx=null;}
   if(G.bombT>0){
@@ -3094,10 +2828,12 @@ function update(dt){
     }
   }
   for(const w of G.wing){
-    if(w.bomb){updateAllyBoss(w,dt);continue;}
-    w.y-=(w.bk!=null?150:260)*dt;w.f-=dt;
+    w.y-=(w.bomb?112:w.bk!=null?150:260)*dt;w.f-=dt;
     if(w.f<=0&&w.y<H-40&&w.y>24){
-      if(w.bk!=null){
+      if(w.bomb){
+        w.f=.12;
+        for(const dx of [-32,-16,0,16,32])G.bullets.push({kind:'shot',x:w.x+dx,y:w.y-18,vx:dx*2.1,vy:-620,r:4,m:1.6,pierce:1,opt:true});
+      }else if(w.bk!=null){
         w.f=.2;
         for(const dx of [-16,0,16])G.bullets.push({kind:'shot',x:w.x+dx,y:w.y-18,vx:dx*1.6,vy:-580,r:4,m:1.15,pierce:0,opt:true});
       }else{
@@ -3122,8 +2858,8 @@ function update(dt){
   if(G.drones>0&&!p.dead){
     G.drones-=dt;G.droneAng+=dt*3;G.droneFire-=dt;
     if(G.droneFire<=0){
-      G.droneFire=.22;
-      for(let k=0;k<2;k++){const a=G.droneAng+k*Math.PI,dx=p.x+Math.cos(a)*30,dy=p.y+Math.sin(a)*16;const t=nearestEnemy(dx,dy);const an=t?Math.atan2(t.y-dy,t.x-dx):-Math.PI/2;G.bullets.push({kind:'dshot',x:dx,y:dy,vx:Math.cos(an)*540,vy:Math.sin(an)*540,r:3,m:.32+G.droneLv*.08,pierce:0});}
+      G.droneFire=.16;
+      for(let k=0;k<2;k++){const a=G.droneAng+k*Math.PI,dx=p.x+Math.cos(a)*30,dy=p.y+Math.sin(a)*16;const t=nearestEnemy(dx,dy);const an=t?Math.atan2(t.y-dy,t.x-dx):-Math.PI/2;G.bullets.push({kind:'dshot',x:dx,y:dy,vx:Math.cos(an)*540,vy:Math.sin(an)*540,r:3,m:.4+G.droneLv*.1,pierce:0});}
     }
     if(syn('swarm')){G.swarmT-=dt;if(G.swarmT<=0){G.swarmT=1.1;for(let k=0;k<2;k++){const a=G.droneAng+k*Math.PI;fireHoming(p.x+Math.cos(a)*30,p.y+Math.sin(a)*16,1,1.2);}}}
   }
@@ -3188,17 +2924,6 @@ function update(dt){
       case 'ship':e.y+=(BG_SPEED*.8)*dt;e.x+=e.vx*d;if(Math.random()<.4)G.parts.push({ty:'foam',x:e.x+rand(-4,4),y:e.y+34,vx:rand(-14,14),vy:0,t:0,life:1.1,s:rand(.3,.5)});break;
       case 'heli':if(e.t<7){e.y+=(e.ty-e.y)*Math.min(1,d*1.4);e.cx+=clamp(G.p.x-e.cx,-30,30)*d*.5;e.x=e.cx+Math.sin(e.t*1.3)*18;}else{e.y+=80*d;e.x+=Math.sin(e.t)*30*d;}break;
       case 'carrier':e.y+=58*d;e.x=e.cx+Math.sin(e.t*2.6)*60;break;
-      /* 횡단하며 수직 탄막을 흘린다 — 조준 사격이 아니라 '서 있으면 맞는' 위치 선점 강제 */
-      case 'strafe':e.x+=e.vx*d;e.y+=Math.sin(e.t*2.2)*14*d;
-        e.cur=(e.cur||0)-d;if(e.cur<=0&&e.y>10&&e.x>10&&e.x<W-10){e.cur=.38/Math.min(1.6,G.fireMul);eshot(e.x,e.y+6,Math.PI/2,G.bsp*.9,false,'d');}break;
-      case 'hold':if(e.t<2.2){e.y+=(e.ty-e.y)*Math.min(1,d*1.6);e.x+=(e.tx-e.x)*Math.min(1,d*1.6);}else if(e.t>e.stay)e.y-=140*d;break;
-      /* 출현 시점의 플레이어 위치로 급강하 → 바닥에서 3점사 → 상승 이탈 */
-      case 'dive':{const ax=e.tx-e.x,ay=e.ty-e.y,L=Math.hypot(ax,ay)||1;
-        if(!e.pull){e.vx+=(ax/L)*560*d;e.vy+=(ay/L)*560*d;const v=Math.hypot(e.vx,e.vy),vm=250+G.dsi*12;if(v>vm){e.vx*=vm/v;e.vy*=vm/v;}
-          if(L<28||e.y>e.ty){e.pull=true;for(let i=0;i<3;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),G.bsp*1.1,false,'d');},i*90);}}
-        else{e.vy-=900*d;e.vx*=1-d*1.2;}
-        e.x+=e.vx*d;e.y+=e.vy*d;break;}
-      case 'drift':e.y+=e.sp*d;e.x=e.cx+Math.sin(e.t*.9+e.ph)*e.amp;break;
       case 'mid':
         if(e.t<2.2)e.y+=(150-e.y)*Math.min(1,d*1.6);
         else if(e.t<26){e.x=W/2+Math.sin((e.t-2.2)*.55)*95;e.y=150+Math.sin(e.t*1.1)*18;}
@@ -3216,7 +2941,7 @@ function update(dt){
       if(e.fire<=0){
         const onScr=e.y>20&&e.y<H*.72&&e.x>0&&e.x<W;const sp=G.bsp;
         if(onScr||(e.part&&e.entered)){
-          if(e.kind==='fighter'&&(e.elite||Math.random()<.68+G.dsi*.04)){if(e.elite)fan(e.x,e.y+8,3,.35,sp);else if(Math.random()<.3)fan(e.x,e.y+8,2,.5,sp*.95);else eshot(e.x,e.y+8,aimAt(e.x,e.y),sp,false,'n');}
+          if(e.kind==='fighter'&&(e.elite||Math.random()<.68+G.dsi*.04)){if(e.elite)fan(e.x,e.y+8,3,.35,sp);else eshot(e.x,e.y+8,aimAt(e.x,e.y),sp,false,'n');}
           if(e.kind==='heli'){for(let i=0;i<(e.elite?5:3);i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y+6,aimAt(e.x,e.y),sp*1.05,false,'n');},i*120);}
           if(e.kind==='mid'){
             e.pat=(e.pat+1)%3;const X=G.extra||0;
@@ -3224,11 +2949,8 @@ function update(dt){
             else if(e.pat===1)ring(e.x,e.y,14+G.dsi+X*2,sp*.8,e.t);
             else for(let i=0;i<6+X;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y+16,aimAt(e.x,e.y)+rand(-.06,.06),sp*1.2,false,'n');},i*90);
           }
-          /* 폭격기는 셋에 하나꼴로 '가운데가 뚫린 탄벽' — 피할 자리가 정해져 있는 읽기 패턴 */
-          if(e.kind==='bomber'){if(Math.random()<.35){const a=aimAt(e.x,e.y);fan(e.x,e.y+16,3,.5,sp*.72,a-.62,'b');fan(e.x,e.y+16,3,.5,sp*.72,a+.62,'b');}else fan(e.x,e.y+16,4+Math.min(4,G.dsi),.95,sp*.72,undefined,'b');}
-          if(e.kind==='spinner'){e.ang=(e.ang||0)+.55;const n=e.elite?3:2;for(let i=0;i<n;i++)eshot(e.x,e.y,e.ang+i*TAU/n,sp*.78,false,'s');}
-          if(e.kind==='miner')mine(e.x,e.y+8);
-          if(e.kind==='turret'||e.kind==='tank'){const n=2+Math.min(2,G.dsi>>1)+(e.elite?1:0),tk=e.kind==='tank';for(let i=0;i<n;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),sp*(tk?.82:1.05),tk,tk?undefined:'n');},i*(tk?170:110));}
+          if(e.kind==='bomber')fan(e.x,e.y+16,4+Math.min(4,G.dsi),.95,sp*.85);
+          if(e.kind==='turret'||e.kind==='tank'){const n=2+Math.min(2,G.dsi>>1)+(e.elite?1:0);for(let i=0;i<n;i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),sp*1.05,false,'n');},i*110);}
           if(e.kind==='ship'){fan(e.x,e.y-16,4,.4,sp*.95);fan(e.x,e.y+16,4,.4,sp*.95);}
           if(e.kind==='orb'&&(G.dsi>=3||e.elite)&&Math.random()<.65)eshot(e.x,e.y,aimAt(e.x,e.y),sp*.9);
           if(e.part&&G.phase==='boss'){
@@ -3236,8 +2958,7 @@ function update(dt){
             else for(let i=0;i<2+(e.parent.form===2?1:0);i++)setTimeout(()=>{if(G&&!e.dead)eshot(e.x,e.y,aimAt(e.x,e.y),sp*1.1,false,'n');},i*120);
           }
         }
-        e.fire=({fighter:2.2,bomber:1.5,turret:2.1,tank:2.3,ship:1.7,orb:2.8,part:1.9,heli:1.9,mid:1.35,spinner:.24,miner:1.7}[e.kind]||99)/G.fireMul*rand(.8,1.25)*(e.elite?.7:1);
-        if(e.kind==='spinner')e.fire=Math.max(.13,e.fire);   /* 스파이럴은 읽혀야 한다 — 고티어 fireMul에도 초당 ~15발 상한 */
+        e.fire=({fighter:2.2,bomber:1.5,turret:2.1,tank:2.3,ship:1.7,orb:2.8,part:1.9,heli:1.9,mid:1.35}[e.kind]||99)/G.fireMul*rand(.8,1.25)*(e.elite?.7:1);
       }
     }
     // body collision
@@ -3266,7 +2987,6 @@ function update(dt){
   const pr=3.2;
   for(const b of G.eb){
     b.x+=b.vx*dt*bslow;b.y+=b.vy*dt*bslow;
-    if(b.fuse!=null){b.fuse-=dt;if(b.fuse<=0){b.gone=true;ring(b.x,b.y,8,G.bsp*.75,Math.random()*TAU,false,'s');continue;}}
     if(b.x<-10||b.x>W+10||b.y<-10||b.y>H+10){b.gone=true;continue;}
     if(p.dead||G.intro>0)continue;
     const dx=b.x-p.x,dy=b.y-p.y;
@@ -3601,7 +3321,7 @@ function render(dt){
     for(const b of G.eb){ctx.moveTo(b.x-b.vx*.03,b.y-b.vy*.03);ctx.lineTo(b.x,b.y);}
     ctx.stroke();
   }
-  for(const b of G.eb){const ES=(G.spr.fac[b.f]||G.spr.fac[G.st.fac[0]]).eb,s=ES[b.k||'o'];if(b.k==='n'||b.k==='d')drawS(s,b.x,b.y,Math.atan2(b.vy,b.vx)-Math.PI/2);else if(b.k==='m')drawS(s,b.x,b.y,G.t*2.5,(G.t*6)%1<.5?1:1.14);else drawS(s,b.x,b.y,0,(G.t*8+b.x)%1<.5?1:1.08);}
+  for(const b of G.eb){const ES=(G.spr.fac[b.f]||G.spr.fac[G.st.fac[0]]).eb,s=ES[b.k||'o'];if(b.k==='n')drawS(s,b.x,b.y,Math.atan2(b.vy,b.vx)-Math.PI/2);else drawS(s,b.x,b.y,0,(G.t*8+b.x)%1<.5?1:1.08);}
   // debris (solid)
   ctx.fillStyle='#2A2624';
   for(const q of G.parts)if(q.ty==='debris'){ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.rot);ctx.fillRect(-q.s,-q.s*.5,q.s*2,q.s);ctx.restore();}
@@ -3620,13 +3340,8 @@ function render(dt){
   for(const w of G.wing){
     if(w.bk!=null){
       const sp=allyBossSpr(w.bk);
-      if(w.bomb&&w.delay>0)continue;
-      if(sp){const boost=w.bomb&&w.ph!=='hold';
-        drawFlames([[-18,16],[18,16]],w.x,w.y,0,boost?1.9:1.1,G.t,w.x);drawS(sp,w.x,w.y,0,w.sc||.44);
-        ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.35;drawS(SPR.fx.blue,w.x,w.y+10,0,1.1);
-        if(w.bomb&&w.ph==='hold'){ctx.globalAlpha=.55+.25*Math.sin(G.t*9);ctx.strokeStyle='#7BD389';ctx.lineWidth=1.6;
-          for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(w.x,w.y,40,G.t*2.4+i*TAU/3,G.t*2.4+i*TAU/3+TAU*.2);ctx.stroke();}}
-        ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+      if(sp){drawFlames([[-18,16],[18,16]],w.x,w.y,0,1.1,G.t,w.x);drawS(sp,w.x,w.y,0,w.sc||.44);
+        ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.35;drawS(SPR.fx.blue,w.x,w.y+10,0,1.1);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
         continue;}
     }
     drawFlames([[0,15.5]],w.x,w.y,0,1,G.t,w.x);drawS(SPR.allyJet,w.x,w.y);
@@ -3738,10 +3453,6 @@ function drawEnemy(e){
     ctx.globalCompositeOperation='source-over';
     if(e.hp<e.maxHp&&k!=='bomber'&&k!=='ship')hpBar(e,20,-r-5);
   }
-  if(k==='strafer'){const r=e.vx>0?-Math.PI/2:Math.PI/2;drawS(s,e.x,e.y,r);flash(r);return;}
-  if(k==='spinner'){const r=e.t*2.4;drawS(s,e.x,e.y,r);glowAt(e.x,e.y,.9+.2*Math.sin(G.t*7));flash(r);return;}
-  if(k==='diver'){const r=(e.vx||e.vy)?Math.atan2(e.vy,e.vx)-Math.PI/2:0;drawS(s,e.x,e.y,r);flash(r);return;}
-  if(k==='miner'){const r=e.t*.8;drawS(s,e.x,e.y,r);flash(r);return;}
   if(k==='turret'){
     drawS(s,e.x,e.y);
     if(fac==='human'){ctx.strokeStyle='#15191E';ctx.lineWidth=1.8;ctx.beginPath();for(const o of[-1.8,1.8]){const nx=-Math.sin(e.aim)*o,ny=Math.cos(e.aim)*o;ctx.moveTo(e.x+nx,e.y+ny);ctx.lineTo(e.x+nx+Math.cos(e.aim)*13,e.y+ny+Math.sin(e.aim)*13);}ctx.stroke();}
@@ -3990,7 +3701,7 @@ function renderHeader(){
   document.querySelectorAll('.tab').forEach(t=>{
     t.setAttribute('aria-selected',t.dataset.tab===S.tab);
     const label={ops:'작전',pilot:'파일럿',skill:'스킬',shop:'기체'}[t.dataset.tab];
-    const dot=(t.dataset.tab==='ops'&&availableTiers().some(x=>!(S.seenTiers||[]).includes(x)))||(t.dataset.tab==='pilot'&&S.pts>0)||(t.dataset.tab==='skill'&&S.sp>0&&SK_ORDER.some(id=>skillShown(id)&&SKILLS[id].req<=S.lv&&(S.skills[id]||0)<5))||(t.dataset.tab==='shop'&&PLANE_ORDER.some(id=>(!PLANES[id].hidden||S.ufo)&&PLANES[id].req<=S.lv&&!(S.seenPlanes||[]).includes(id)));
+    const dot=(t.dataset.tab==='ops'&&availableTiers().some(x=>!(S.seenTiers||[]).includes(x)))||(t.dataset.tab==='pilot'&&S.pts>0)||(t.dataset.tab==='skill'&&S.sp>0&&SK_ORDER.some(id=>skillShown(id)&&SKILLS[id].req<=S.lv&&(S.skills[id]||0)<7))||(t.dataset.tab==='shop'&&PLANE_ORDER.some(id=>(!PLANES[id].hidden||S.ufo)&&PLANES[id].req<=S.lv&&!(S.seenPlanes||[]).includes(id)));
     t.innerHTML=label+(dot?'<span class="dot" aria-label="사용 가능한 포인트"></span>':'');
   });
 }
@@ -4081,7 +3792,7 @@ function pilotHTML(){
   h+=`</div><div class="sec"><h3>기체 성능</h3><div class="derived">
     <div><span>최대 내구도</span><b>${mh}</b></div>
     <div><span>탄당 피해</span><b>${base.toFixed(1)}</b></div>
-    <div><span>연사 배율</span><b>×${Math.min(RATE_CAP,1+S.stats.rate*.035).toFixed(2)}${1+S.stats.rate*.035>=RATE_CAP?' 최대':''}</b></div>
+    <div><span>연사 배율</span><b>×${(1+S.stats.rate*.035).toFixed(2)}</b></div>
     <div><span>치명타</span><b>${(5+S.stats.foc*.6+passLv('crit')*6).toFixed(1)}%</b></div>
     <div><span>재사용 대기 감소</span><b>${(Math.min(.4,S.stats.foc*.012)*100).toFixed(0)}%</b></div>
     <div><span>스킬 슬롯</span><b>${slotsOpen(S.lv)} / 4</b></div>
@@ -4121,12 +3832,12 @@ function skillHTML(){
   SK_ORDER.forEach(id=>{
     if(!skillShown(id))return;
     const k=SKILLS[id],lv=S.skills[id]||0,lock=S.lv<k.req,eq=equipped(id);
-    const pips=Array.from({length:5},(_,n)=>`<i class="${n<lv?'f':''}"></i>`).join('');
+    const pips=Array.from({length:7},(_,n)=>`<i class="${n<lv?'f':''}"></i>`).join('');
     let acts='';
     const onlyName = k.only ? (PLANES[k.only] ? PLANES[k.only].name : k.only) : '';
     if(lock)acts=`<span class="chip c-lock">LV ${k.req} 필요</span>`;
     else{
-      acts+=`<button class="btn sm" data-act="learn" data-id="${id}" ${S.sp>0&&lv<5?'':'disabled'}>${lv===0?'습득':lv>=5?'MAX':'강화'}</button>`;
+      acts+=`<button class="btn sm" data-act="learn" data-id="${id}" ${S.sp>0&&lv<7?'':'disabled'}>${lv===0?'습득':lv>=7?'MAX':'강화'}</button>`;
       if(lv>0)acts+=`<button class="btn ghost sm" data-act="equip" data-id="${id}">${eq?'해제':'장착'}</button>`;
     }
     h+=`<div class="sk ${k.type==='passive'?'pass':''} ${lock?'locked':''}">
@@ -4139,10 +3850,10 @@ function skillHTML(){
   return h+'</div></div>';
 }
 const tierCost=()=>Math.round(120*Math.pow(1.55,S.tier));
-const spareCost=()=>1500;
-const bombCost=()=>[300,900,2400][S.bombUp];
-const spdCost=()=>[350,800,1700,3200,5600][S.spdUp||0];
-const SPD_MAX=5;
+const spareCost=()=>[500,1800,5200][S.spare];
+const bombCost=()=>[300,900,2400,5200][S.bombUp];
+const spdCost=()=>[350,800,1700,3200,5600,9000,13500,19000][S.spdUp||0];
+const SPD_MAX=8;   /* QF-07 이후 난이도에 맞춰 상한을 열었다 (+40%) */
 const planeThumbs={};
 function planeThumb(id){
   if(planeThumbs[id])return planeThumbs[id];
@@ -4157,14 +3868,16 @@ function volHTML(){
 function shopHTML(){
   const shown=PLANE_ORDER.filter(id=>!PLANES[id].hidden||S.ufo);
   S.seenPlanes=shown.filter(id=>PLANES[id].req<=S.lv);
-  const tNext=S.tier<10;
+  const tNext=S.tier<15;
   let h=`<div class="sec"><div class="sec-h"><h3>출격 기체</h3><span class="mini">레벨에 따라 개방</span></div><div class="planes">`;
   for(const id of shown){
     const P=PLANES[id],lock=S.lv<P.req,on=S.plane===id;
-    h+=`<button class="pl ${on?'on':''}" data-act="plane" data-id="${id}" ${lock?'disabled':''} aria-pressed="${on}">
+    const own=!P.cost||(S.owned||[]).includes(id),buyable=P.cost&&!own&&!lock&&S.gold>=P.cost;
+    /* 자금으로 설계하는 신형기는 구매 전까지 선택할 수 없다 */
+    h+=`<button class="pl ${on?'on':''}" data-act="${own?'plane':'buyplane'}" data-id="${id}" ${lock||(!own&&!buyable)?'disabled':''} aria-pressed="${on}">
       <img src="${planeThumb(id)}" alt="">
       <span class="pn">${P.name}</span>
-      <span class="pr">${lock?`LV ${P.req} 개방`:P.role}</span>
+      <span class="pr">${lock?`LV ${P.req} 개방`:own?P.role:`설계 $${P.cost.toLocaleString()}`}</span>
     </button>`;
   }
   const P=plane();
@@ -4173,17 +3886,17 @@ function shopHTML(){
       <p><b>차지 샷 · ${P.charge}</b> ${P.chargeD}</p>
     </div></div>
   <div class="sec"><h3>정비</h3>
-    <div class="shop"><div><div class="sn">주포 강화 <span class="num" style="color:var(--amber)">${S.tier} / 10</span></div></div>
+    <div class="shop"><div><div class="sn">주포 강화 <span class="num" style="color:var(--amber)">${S.tier} / 15</span></div></div>
       <button class="btn sm" data-act="tier" ${tNext&&S.gold>=tierCost()?'':'disabled'}>${tNext?`<span class="num">$${tierCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">단계당 주포 피해 +10% · 탄도는 출격 중 P 캡슐로 강화</div></div>
-    <div class="shop"><div><div class="sn">폭탄 적재 <span class="num" style="color:var(--amber)">${1+S.bombUp} / 4</span></div></div>
-      <button class="btn sm" data-act="bombup" ${S.bombUp<3&&S.gold>=bombCost()?'':'disabled'}>${S.bombUp<3?`<span class="num">$${bombCost().toLocaleString()}</span>`:'MAX'}</button>
+    <div class="shop"><div><div class="sn">폭탄 적재 <span class="num" style="color:var(--amber)">${1+S.bombUp} / 5</span></div></div>
+      <button class="btn sm" data-act="bombup" ${S.bombUp<4&&S.gold>=bombCost()?'':'disabled'}>${S.bombUp<4?`<span class="num">$${bombCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">출격 시 가지고 나가는 폭탄 수</div></div>
     <div class="shop"><div><div class="sn">추진기 강화 <span class="num" style="color:var(--amber)">${S.spdUp||0} / ${SPD_MAX}</span></div></div>
       <button class="btn sm" data-act="spdup" ${(S.spdUp||0)<SPD_MAX&&S.gold>=spdCost()?'':'disabled'}>${(S.spdUp||0)<SPD_MAX?`<span class="num">$${spdCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">기본 이동 속도 +5% (현재 +${((S.spdUp||0)*5)}% · 출격 중 S 캡슐과 별도로 적용)</div></div>
-    <div class="shop"><div><div class="sn">예비 옵션 <span class="num" style="color:var(--amber)">${S.spare} / ${MAX_SPARE}</span></div></div>
-      <button class="btn sm" data-act="spare" ${S.spare<MAX_SPARE&&S.gold>=spareCost()?'':'disabled'}>${S.spare<MAX_SPARE?`<span class="num">$${spareCost().toLocaleString()}</span>`:'MAX'}</button>
+    <div class="shop"><div><div class="sn">예비 옵션 <span class="num" style="color:var(--amber)">${S.spare} / 3</span></div></div>
+      <button class="btn sm" data-act="spare" ${S.spare<3&&S.gold>=spareCost()?'':'disabled'}>${S.spare<3?`<span class="num">$${spareCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">따라다니며 함께 사격하는 옵션을 처음부터 달고 출격</div></div>
   </div>
   <div class="sec"><h3>캡슐 도감</h3><div class="derived">
@@ -4318,7 +4031,7 @@ frame.addEventListener('click',e=>{
     else if(S.gold<respecCost())toast(`$${(respecCost()-S.gold).toLocaleString()} 부족합니다`);
     else{S.gold-=respecCost();S.pts+=spent;for(const k in S.stats)S.stats[k]=0;save();renderHangar();toast(`스탯 포인트 ${spent} 반환`);}
   }
-  else if(a==='learn'){const id=t.dataset.id;if(S.sp>0&&(S.skills[id]||0)<5&&S.lv>=SKILLS[id].req){S.skills[id]=(S.skills[id]||0)+1;S.sp--;save();keepScroll();toast(`${SKILLS[id].name} LV ${S.skills[id]}`);}}
+  else if(a==='learn'){const id=t.dataset.id;if(S.sp>0&&(S.skills[id]||0)<7&&S.lv>=SKILLS[id].req){S.skills[id]=(S.skills[id]||0)+1;S.sp--;save();keepScroll();toast(`${SKILLS[id].name} LV ${S.skills[id]}`);}}
   else if(a==='equip'){
     const id=t.dataset.id,idx=S.equip.indexOf(id);
     if(idx>=0){S.equip[idx]=null;}
@@ -4328,12 +4041,17 @@ frame.addEventListener('click',e=>{
     save();keepScroll();
   }
   else if(a==='unequip'){S.equip[+t.dataset.i]=null;save();keepScroll();}
-  else if(a==='tier'){if(S.tier<10&&S.gold>=tierCost()){S.gold-=tierCost();S.tier++;save();keepScroll();toast(`주포 ${S.tier}단계`);}}
-  else if(a==='spare'){if(S.spare<MAX_SPARE&&S.gold>=spareCost()){S.gold-=spareCost();S.spare++;save();keepScroll();}}
+  else if(a==='tier'){if(S.tier<15&&S.gold>=tierCost()){S.gold-=tierCost();S.tier++;save();keepScroll();toast(`주포 ${S.tier}단계`);}}
+  else if(a==='spare'){if(S.spare<3&&S.gold>=spareCost()){S.gold-=spareCost();S.spare++;save();keepScroll();}}
   else if(a==='vol'){const k=t.dataset.k;S[k]=clamp(S[k]+(+t.dataset.d),0,10);save();AU.applyVol();if(k==='sfxVol')sfx.cap();refreshVol();}
   else if(a==='mute'){S.muted=!S.muted;save();AU.applyVol();refreshVol();updateMuteBtn();}
-  else if(a==='plane'){const id=t.dataset.id;if(PLANES[id].req<=S.lv){S.plane=id;fixEquip();save();keepScroll();sfx.click();}}
-  else if(a==='bombup'){if(S.bombUp<3&&S.gold>=bombCost()){S.gold-=bombCost();S.bombUp++;save();keepScroll();toast(`출격 폭탄 ${1+S.bombUp}개`);}}
+  else if(a==='plane'){const id=t.dataset.id,P=PLANES[id];
+    if(P.req<=S.lv&&(!P.cost||(S.owned||[]).includes(id))){S.plane=id;fixEquip();save();keepScroll();sfx.click();}}
+  else if(a==='buyplane'){const id=t.dataset.id,P=PLANES[id];
+    if(P.cost&&P.req<=S.lv&&!(S.owned||[]).includes(id)&&S.gold>=P.cost){
+      S.gold-=P.cost;(S.owned=S.owned||[]).push(id);S.plane=id;fixEquip();save();renderHangar();
+      sfx.ready();toast(`${P.name} 설계 완료 — 출격 가능`);}}
+  else if(a==='bombup'){if(S.bombUp<4&&S.gold>=bombCost()){S.gold-=bombCost();S.bombUp++;save();keepScroll();toast(`출격 폭탄 ${1+S.bombUp}개`);}}
   else if(a==='spdup'){if((S.spdUp||0)<SPD_MAX&&S.gold>=spdCost()){S.gold-=spdCost();S.spdUp=(S.spdUp||0)+1;save();keepScroll();toast(`기본 속도 +${S.spdUp*5}%`);}}
   else if(a==='wipe'){if(!wipeArm){wipeArm=true;keepScroll();}else{wipeArm=false;S=defSave();save();renderHangar();toast('진행을 초기화했습니다');}}
   else if(a==='pause'){pause();}
