@@ -1,3 +1,13 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#060E1C">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="퀀텀 파이터 — 웹 종스크롤 슈팅">
 <title>퀀텀 파이터</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +25,7 @@
 html{height:100%;box-sizing:border-box;background:var(--ground)}
 *,*::before,*::after{box-sizing:inherit}
 [hidden]{display:none!important}
-body{height:100%;margin:0;background:var(--ground);color:var(--cream);font-family:var(--body);overflow:hidden;padding-inline:16px;padding-block:8px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+body{height:100%;margin:0;background:var(--ground);color:var(--cream);font-family:var(--body);overflow:hidden;padding-inline:max(16px,env(safe-area-inset-left)) max(16px,env(safe-area-inset-right));padding-block:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-bottom));touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 #app{height:100%;display:flex;align-items:center;justify-content:center}
 #frame{position:relative;background:var(--ink);overflow:hidden;font-size:calc(var(--u)*13);line-height:1.45;box-shadow:0 0 0 1px #1B3152,0 24px 70px rgba(0,0,0,.65)}
 #vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 60% at 50% 52%,rgba(0,0,10,0) 55%,rgba(0,4,14,.5) 100%)}
@@ -2757,8 +2767,14 @@ function update(dt){
     if(keys.has('ArrowRight')||keys.has('KeyD'))mx++;
     if(keys.has('ArrowUp')||keys.has('KeyW'))my--;
     if(keys.has('ArrowDown')||keys.has('KeyS'))my++;
-    const sp=(165+p.speedLv*46)*(1+(S.spdUp||0)*.05)*pl.spd*(keys.has('ShiftLeft')||keys.has('ShiftRight')?.5:1);
     if(mx&&my){mx*=.7071;my*=.7071;}
+    /* 아날로그 스틱은 키보드와 합산하되, 합쳐도 크기 1을 넘지 않는다 */
+    if(PAD.x||PAD.y){
+      mx+=PAD.x;my+=PAD.y;
+      const m=Math.hypot(mx,my);if(m>1){mx/=m;my/=m;}
+    }
+    const slow=keys.has('ShiftLeft')||keys.has('ShiftRight')||PAD.slow;
+    const sp=(165+p.speedLv*46)*(1+(S.spdUp||0)*.05)*pl.spd*(slow?.5:1);
     const ox=p.x,oy=p.y;
     p.x+=mx*sp*dt;p.y+=my*sp*dt;
     if(drag){
@@ -3603,7 +3619,7 @@ function drawPlayer(){
   if(G.charge>=1){ctx.globalCompositeOperation='lighter';ctx.strokeStyle=`rgba(255,182,39,${.4+.3*Math.sin(G.t*10)})`;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,24,G.t*4,G.t*4+TAU*.75);ctx.stroke();ctx.globalCompositeOperation='source-over';}
   if(p.force>0){ctx.globalCompositeOperation='lighter';ctx.strokeStyle='rgba(200,230,255,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,26+Math.sin(G.t*8),0,TAU);ctx.stroke();ctx.fillStyle='rgba(120,180,255,.07)';ctx.fill();ctx.globalCompositeOperation='source-over';}
   if(G.barrier>0){ctx.globalCompositeOperation='lighter';ctx.strokeStyle='rgba(92,225,230,.9)';ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3+G.t*2;ctx[i?'lineTo':'moveTo'](p.x+Math.cos(a)*32,p.y+Math.sin(a)*32);}ctx.closePath();ctx.stroke();ctx.fillStyle='rgba(92,225,230,.12)';ctx.fill();ctx.globalCompositeOperation='source-over';}
-  if(keys.has('ShiftLeft')||keys.has('ShiftRight')){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p.x,p.y,3,0,TAU);ctx.fill();ctx.fillStyle='#E4572E';ctx.beginPath();ctx.arc(p.x,p.y,2,0,TAU);ctx.fill();}
+  if(keys.has('ShiftLeft')||keys.has('ShiftRight')||PAD.slow){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p.x,p.y,3,0,TAU);ctx.fill();ctx.fillStyle='#E4572E';ctx.beginPath();ctx.arc(p.x,p.y,2,0,TAU);ctx.fill();}
 }
 function wrapText(t,maxW){const out=[];let line='';for(const ch of t){const test=line+ch;if(ctx.measureText(test).width>maxW&&line){out.push(line);line=ch.trim()?ch:'';}else line=test;}if(line)out.push(line);return out;}
 function txt(s,x,y,font,col,align){ctx.font=font;ctx.textAlign=align||'left';ctx.fillStyle='rgba(6,14,28,.85)';ctx.fillText(s,x+1,y+1);ctx.fillStyle=col;ctx.fillText(s,x,y);}
@@ -3904,6 +3920,8 @@ function shopHTML(){
   </div><p class="note">편대를 전멸시키거나 붉은 기체를 격추하면 캡슐이 나옵니다. <b>피격당하면 파워가 1단계 내려가고</b>(파워 1이면 옵션이 하나 사라집니다) 캡슐 효과는 해당 출격 동안만 유지됩니다. 금괴는 반짝일 때 먹으면 2배입니다.</p></div>
   <div class="sec"><h3>설정</h3>
     <div class="shop" style="grid-template-columns:1fr">${volHTML()}</div>
+    <div class="shop"><div>세이브 백업<div class="ds">앱 데이터를 지우면 진행도가 사라집니다. 파일로 내보내 두세요</div></div>
+      <div style="display:flex;gap:6px"><button class="btn ghost sm" data-act="sv-out">내보내기</button><button class="btn ghost sm" data-act="sv-in">불러오기</button></div></div>
     <div class="shop"><div>진행 초기화<div class="ds">레벨·스킬·자금이 모두 지워집니다</div></div><button class="btn ghost sm" data-act="wipe">${wipeArm?'한 번 더 눌러 확정':'초기화'}</button></div>
     <button class="btn ghost sm" data-act="title">타이틀로</button>
   </div>`;
@@ -4053,6 +4071,34 @@ frame.addEventListener('click',e=>{
       sfx.ready();toast(`${P.name} 설계 완료 — 출격 가능`);}}
   else if(a==='bombup'){if(S.bombUp<4&&S.gold>=bombCost()){S.gold-=bombCost();S.bombUp++;save();keepScroll();toast(`출격 폭탄 ${1+S.bombUp}개`);}}
   else if(a==='spdup'){if((S.spdUp||0)<SPD_MAX&&S.gold>=spdCost()){S.gold-=spdCost();S.spdUp=(S.spdUp||0)+1;save();keepScroll();toast(`기본 속도 +${S.spdUp*5}%`);}}
+  else if(a==='sv-out'){
+    try{
+      const blob=new Blob([JSON.stringify(S)],{type:'application/json'});
+      const u=URL.createObjectURL(blob),el=document.createElement('a');
+      el.href=u;el.download='quantumfighter-save-'+new Date().toISOString().slice(0,10)+'.json';
+      document.body.appendChild(el);el.click();el.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
+      toast('세이브를 내보냈습니다');
+    }catch(e){toast('내보내기에 실패했습니다');}
+  }
+  else if(a==='sv-in'){
+    const f=document.createElement('input');f.type='file';f.accept='application/json,.json';
+    f.onchange=()=>{
+      const file=f.files&&f.files[0];if(!file)return;
+      const r=new FileReader();
+      r.onload=()=>{
+        try{
+          const o=JSON.parse(r.result);
+          if(!o||typeof o!=='object'||typeof o.lv!=='number')throw 0;
+          const d=defSave();
+          S=Object.assign(d,o,{stats:Object.assign(d.stats,o.stats||{})});
+          if(!PLANES[S.plane])S.plane='falcon';
+          fixEquip();save();renderHangar();toast(`불러왔습니다 — LV ${S.lv}`);
+        }catch(e){toast('세이브 파일을 읽을 수 없습니다');}
+      };
+      r.readAsText(file);
+    };
+    f.click();
+  }
   else if(a==='wipe'){if(!wipeArm){wipeArm=true;keepScroll();}else{wipeArm=false;S=defSave();save();renderHangar();toast('진행을 초기화했습니다');}}
   else if(a==='pause'){pause();}
   else if(a==='resume'){resume();}
@@ -4071,6 +4117,62 @@ skillbar.addEventListener('pointerdown',e=>{
 });
 pauseBtn.addEventListener('click',()=>pause());
 addEventListener('pointerdown',()=>AU.init(),true);
+
+/* ================= 게임패드 (웹·안드로이드 공통) =================
+   표준 매핑 기준. 스틱/D-pad = 이동, A = 차지, B = 폭탄,
+   X·Y·LB·RB = 스킬 1~4, 트리거 = 정밀 이동, Start = 일시정지 */
+var PAD={x:0,y:0,slow:false,on:false};
+const PAD_PREV={};
+const PAD_DEAD=.22;
+function padAxis(v){return Math.abs(v)<PAD_DEAD?0:(v-Math.sign(v)*PAD_DEAD)/(1-PAD_DEAD);}
+function pollPad(){
+  const gps=navigator.getGamepads?navigator.getGamepads():[];
+  let g=null;
+  for(const q of gps)if(q&&q.connected){g=q;break;}
+  if(!g){PAD.x=PAD.y=0;PAD.slow=false;PAD.on=false;return;}
+  PAD.on=true;
+  const b=g.buttons,ax=g.axes||[];
+  let x=padAxis(ax[0]||0),y=padAxis(ax[1]||0);
+  /* D-pad (12~15)도 같은 벡터로 */
+  const down=i=>!!(b[i]&&(b[i].pressed||b[i].value>.5));
+  if(down(14))x-=1;if(down(15))x+=1;if(down(12))y-=1;if(down(13))y+=1;
+  const m=Math.hypot(x,y);if(m>1){x/=m;y/=m;}
+  PAD.x=x;PAD.y=y;
+  PAD.slow=down(6)||down(7);
+  /* 눌린 순간에만 반응하도록 엣지 검출 */
+  const edge=i=>{const now=down(i),was=PAD_PREV[i];PAD_PREV[i]=now;return now&&!was;};
+  if(mode==='play'){
+    if(edge(0))useCharge();
+    if(edge(1))useBomb();
+    if(edge(2))useSkill(0);
+    if(edge(3))useSkill(1);
+    if(edge(4))useSkill(2);
+    if(edge(5))useSkill(3);
+    if(edge(9)||edge(8))pause();
+  }else{
+    /* 메뉴에서는 A로 확인, B로 뒤로 */
+    for(let i=0;i<=9;i++)edge(i);
+    if(down(0)&&!PAD.aHeld){PAD.aHeld=true;
+      const btn=document.querySelector('#scr-'+(mode==='title'?'title':mode)+' .btn:not([disabled])');
+      if(btn)btn.click();
+    }else if(!down(0))PAD.aHeld=false;
+    if(down(1)&&!PAD.bHeld){PAD.bHeld=true;goBack();}else if(!down(1))PAD.bHeld=false;
+  }
+}
+addEventListener('gamepadconnected',()=>toast('게임패드 연결됨'));
+
+/* ================= 안드로이드 뒤로가기 · 브라우저 뒤로가기 ================= */
+function goBack(){
+  if(mode==='play'){pause();return true;}
+  if(mode==='pause'){resume();return true;}
+  if(mode==='hangar'||mode==='result'||mode==='ending'){show('title');return true;}
+  return false;   /* 타이틀에서는 앱 종료에 맡긴다 */
+}
+try{history.pushState({aw:1},'');}catch(e){}
+addEventListener('popstate',()=>{
+  goBack();
+  try{history.pushState({aw:1},'');}catch(e){}   /* 스택을 다시 채워 이탈을 막는다 */
+});
 const UFO_SEQ=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight'];
 let ufoIdx=0,ufoTaps=0,ufoTapT=0;
 function unlockUfo(){
@@ -4127,6 +4229,7 @@ let last=performance.now();
 function loop(now){
   const dt=Math.min(.033,(now-last)/1000);last=now;
   try{
+    pollPad();
     /* 히트스톱: 피격·대형 격파 순간 화면을 짧게 멈춰 타격감을 준다 */
     if(mode==='play'&&G){
       if(G.hitStop>0)G.hitStop-=dt;
