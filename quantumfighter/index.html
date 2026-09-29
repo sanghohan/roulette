@@ -828,14 +828,17 @@ const sfx={
     [784,1047,1319].forEach((f,i)=>AU.tone(f,.13,'triangle',.075,null,t+i*.055));
     AU.noise(.03,.1,0,t,null,6000);},
   gold(){if(AU.ok()&&!AU.throttle('gold',.05))AU.tone(1568,.07,'triangle',.05,2200);},
-  ready(){if(AU.ok()&&!AU.throttle('ready',.5)){const t=AU.ctx.currentTime;AU.tone(1245,.11,'triangle',.06,1660,t);AU.noise(.03,.07,0,t,null,7000);}},
+  /* 차지 완료 — 스킬 복귀음과 구분되게 3음 상행, 전투음에 묻히지 않을 정도로만 키웠다 */
+  ready(){if(AU.ok()&&!AU.throttle('ready',.5)){const t=AU.ctx.currentTime;
+    AU.tone(1245,.10,'triangle',.085,1660,t);AU.tone(1865,.09,'triangle',.07,null,t+.07);
+    AU.tone(2490,.12,'sine',.055,null,t+.14);AU.noise(.03,.08,0,t,null,7000);}},
   SK:{homing:'skHom',barrier:'skBar',laser:'skLas',drones:'skDrn',chrono:'skChr',nova:'skNov'},
   skill(id){if(!AU.ok())return;const t=AU.ctx.currentTime;
     const k=id&&this.SK[id];
     if(k&&AU.shot(k,t,{gain:id==='nova'?.95:.8,dest:AU.sfxG}))return;
     AU.noise(.05,.25,0,t,null,4000,1);AU.tone(330,.32,'sawtooth',.16,1400,t);AU.tone(660,.26,'square',.05,1800,t);},
   skready(){if(!AU.ok()||AU.throttle('skr',.2))return;const t=AU.ctx.currentTime;
-    AU.tone(1046,.09,'triangle',.05,null,t);AU.tone(1568,.12,'triangle',.045,null,t+.06);AU.noise(.03,.05,0,t,null,7000);},
+    AU.tone(1046,.09,'triangle',.075,null,t);AU.tone(1568,.12,'triangle',.07,null,t+.06);AU.noise(.03,.055,0,t,null,7000);},
   charge(){if(!AU.ok())return;const t=AU.ctx.currentTime;AU.tone(210,.36,'sawtooth',.12,960,t);AU.noise(.4,.2,0,t,null,2600);},
   bomb(){if(!AU.ok())return;const t=AU.ctx.currentTime;
     if(AU.shot('explB',t,{gain:1,rate:.82,dest:AU.sfxG})){AU.shot('explB',t+.06,{gain:.55,rate:1.3,dest:AU.sfxG});return;}
@@ -2267,7 +2270,7 @@ function newRun(si,tier,endless){
     /* 기체 전용 스킬은 해당 기체로 출격했을 때만 발동한다 */
     sk:S.equip.map((id,i)=>id&&i<slotsOpen(S.lv)&&S.skills[id]&&(!SKILLS[id].only||SKILLS[id].only===S.plane)?{id,lv:S.skills[id],cd:0}:null),
     laser:0,laserTick:0,chrono:0,barrier:0,drones:0,droneFire:0,swarmT:0,droneAng:0,grav:0,cloneT:0,cloneLv:0,warpFx:null,hitStop:0,over:0,overLv:0,smoke:0,strike:null,
-    charge:0,chargeReady:false,bombs:1+S.bombUp,bombT:0,bombTick:0,bombK:'falcon',collectAll:false,
+    charge:0,chargeReady:false,rdy:null,bombs:1+S.bombUp,bombT:0,bombTick:0,bombK:'falcon',collectAll:false,
     syn:activeSynergies(),
   };
   applyDiff(endless?ENDLESS_LV():tierLv(si,tier));
@@ -2583,6 +2586,12 @@ function areaDamage(x,y,r,m){
   for(const e of G.enemies){if(e.dead)continue;const rr=r+(e.hw||e.r);if((e.x-x)**2+(e.y-y)**2<rr*rr)hurtEnemy(e,m);}
 }
 
+/* 쿨타임이 돌아온 순간 기체가 한 번 반짝인다 — 소리만으론 전투 중에 놓치기 쉽다 */
+function readyFlash(c,big){
+  if(!G||G.p.dead)return;
+  G.rdy={t:0,life:big?.5:.4,c,big:!!big,a0:Math.random()*TAU};
+}
+
 /* ---------- skills, charge, bomb ---------- */
 function useSkill(i){
   if(mode!=='play'||!G)return;
@@ -2867,12 +2876,12 @@ function update(dt){
         }
       }
       if(G.charge<1){G.charge=Math.min(1,G.charge+dt/(6.6*pl.chg)*(1+S.stats.foc*.008));}
-      else if(!G.chargeReady){G.chargeReady=true;sfx.ready();}
+      else if(!G.chargeReady){G.chargeReady=true;sfx.ready();readyFlash('#FFB627',true);}
     }
     const nl=passLv('nano');if(nl)p.hp=Math.min(p.maxHp,p.hp+p.maxHp*(.003+nl*.0025)*dt);
   }
   // skills / bomb timers
-  for(const s of G.sk)if(s&&s.cd>0){s.cd=Math.max(0,s.cd-dt);if(s.cd<=0)sfx.skready();}
+  for(const s of G.sk)if(s&&s.cd>0){s.cd=Math.max(0,s.cd-dt);if(s.cd<=0){sfx.skready();readyFlash('#5CE1E6',false);}}
   G.barrier=Math.max(0,G.barrier-dt);G.chrono=Math.max(0,G.chrono-dt);
   G.grav=Math.max(0,G.grav-dt);G.cloneT=Math.max(0,G.cloneT-dt);
   G.over=Math.max(0,G.over-dt);G.smoke=Math.max(0,G.smoke-dt);
@@ -2902,6 +2911,7 @@ function update(dt){
     if(!lane.length&&K.t>.6)G.strike=null;
   }
   if(G.warpFx){G.warpFx.t+=dt;if(G.warpFx.t>.3)G.warpFx=null;}
+  if(G.rdy){G.rdy.t+=dt;if(G.rdy.t>=G.rdy.life)G.rdy=null;}
   if(G.bombT>0){
     const B=BOMBS[G.bombK]||BOMBS.falcon;
     G.bombT-=dt;G.bombTick-=dt;G.eb.length=0;
@@ -2969,7 +2979,8 @@ function update(dt){
     if(b.kind==='missile'){if(!b.seek){b.vx*=1-dt*2;b.vy-=200*dt;}if(Math.random()<.6)G.parts.push({ty:'trail',x:b.x,y:b.y,vx:rand(-5,5),vy:rand(0,10),t:0,life:.45,s:.24});}
     if(b.kind==='ripple')b.r=Math.min(b.grow,b.r+dt*90);
     if(b.kind==='shell'&&Math.random()<.7)G.parts.push({ty:'blue',x:b.x,y:b.y+4,vx:rand(-10,10),vy:30,t:0,life:.25,s:.9});
-    if(b.kind==='lance')clearBullets(b.x,b.y,34);
+    /* 랜스가 지나는 자리의 적탄만 부순다 — 34px 은 화면을 빨아들이는 수준이었다 */
+    if(b.kind==='lance')clearBullets(b.x,b.y,13);
     b.x+=b.vx*dt;b.y+=b.vy*dt;
     if(b.void){
       const pr=b.pull||0;
@@ -3692,6 +3703,20 @@ function drawPlayer(){
       drawS(SPR.planes[S.plane].s,p.x,p.y,0,sx,1);
     }
     if(p.fire>.06&&G.phase!=='clear'){ctx.globalCompositeOperation='lighter';for(const [gx,gy] of P.guns)drawS(SPR.fx.spark,p.x+gx*sx,p.y+gy,0,.9);ctx.globalCompositeOperation='source-over';}
+  }
+  if(G.rdy){
+    const k=Math.min(1,G.rdy.t/G.rdy.life),c=G.rdy.c,big=G.rdy.big;
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    ctx.globalAlpha=(1-k)*.5;drawS(SPR.planes[S.plane].w,p.x,p.y,0,sx,1);
+    ctx.globalAlpha=(1-k)*.85;ctx.strokeStyle=c;ctx.lineWidth=2.4*(1-k*.55);
+    ctx.beginPath();ctx.arc(p.x,p.y,11+k*(big?30:22),0,TAU);ctx.stroke();
+    ctx.fillStyle=c;
+    const n=big?8:6;
+    for(let i=0;i<n;i++){
+      const a=G.rdy.a0+i*TAU/n,d=13+k*(big?26:19),r=Math.max(.4,(1-k)*(big?2.6:2));
+      ctx.beginPath();ctx.arc(p.x+Math.cos(a)*d,p.y+Math.sin(a)*d,r,0,TAU);ctx.fill();
+    }
+    ctx.restore();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
   }
   if(G.charge>=1){ctx.globalCompositeOperation='lighter';ctx.strokeStyle=`rgba(255,182,39,${.4+.3*Math.sin(G.t*10)})`;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,24,G.t*4,G.t*4+TAU*.75);ctx.stroke();ctx.globalCompositeOperation='source-over';}
   if(p.force>0){ctx.globalCompositeOperation='lighter';ctx.strokeStyle='rgba(200,230,255,.55)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,26+Math.sin(G.t*8),0,TAU);ctx.stroke();ctx.fillStyle='rgba(120,180,255,.07)';ctx.fill();ctx.globalCompositeOperation='source-over';}
