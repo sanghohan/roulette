@@ -230,7 +230,7 @@ const data={
 };
 
 /* ---------- 유틸 ---------- */
-function fmt(t){const ms=typeof t==='number'?t:new Date(t).getTime();
+function fmt(t){if(!t)return '';const ms=typeof t==='number'?t:new Date(t).getTime();
   if(!Number.isFinite(ms))return '';
   const d=new Date(ms),p=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
