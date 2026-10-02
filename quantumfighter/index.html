@@ -2439,7 +2439,9 @@ function eshot(x,y,a,sp,big,k){
 function fan(x,y,n,spread,sp,base){const a0=base??aimAt(x,y);for(let i=0;i<n;i++)eshot(x,y,a0+(n>1?(i/(n-1)-.5)*spread:0),sp);}
 function ring(x,y,n,sp,off,big){for(let i=0;i<n;i++)eshot(x,y,off+i*TAU/n,sp,big);}
 function dmgRoll(m,kind){
-  let d=9*(1+S.stats.atk*.07)*(1+(S.lv-1)*.025)*(1+S.tier*.1)*plane().dmg*G.sup.pdmg*m;
+  /* 스탯 공격력과 상점 주포 티어를 곱으로 쌓으면 양쪽을 다 올렸을 때 폭주한다.
+     둘 다 '총의 위력'이라 더하기로 묶는다 — 계수를 올려 중반 체감은 그대로 두고, 둘 다 몰아준 끝단만 깎는다 */
+  let d=9*(1+S.stats.atk*.10+S.tier*.145)*(1+(S.lv-1)*.025)*plane().dmg*G.sup.pdmg*m;
   let c=.05+S.stats.foc*.006+passLv('crit')*.06;
   if(G.chrono>0&&syn('deadeye'))c+=.35;
   if(kind==='homing'&&syn('hunter')){c+=.4;d*=1.25;}
@@ -3905,7 +3907,7 @@ function pilotHTML(){
   const mh=maxHp();
   let h=`<div class="pts"><div><h3>스탯 포인트</h3><div class="mini" style="text-transform:none;letter-spacing:.02em">레벨업마다 3포인트</div></div><b>${S.pts}</b></div><div class="sec">`;
   STAT_DEF.forEach(d=>{h+=`<div class="stat"><div><div class="nm">${d.name}</div><div class="ds">${d.ds}</div></div><div class="v">${S.stats[d.id]}</div><button class="plus" data-act="stat" data-id="${d.id}" ${S.pts>0?'':'disabled'} aria-label="${d.name} 올리기">+</button></div>`;});
-  const base=8*(1+S.stats.atk*.07)*(1+(S.lv-1)*.025)*(1+S.tier*.1);
+  const base=8*(1+S.stats.atk*.10+S.tier*.145)*(1+(S.lv-1)*.025);
   h+=`</div><div class="sec"><h3>기체 성능</h3><div class="derived">
     <div><span>최대 내구도</span><b>${mh}</b></div>
     <div><span>탄당 피해</span><b>${base.toFixed(1)}</b></div>
@@ -4045,7 +4047,9 @@ function finishRun(win){
   if(E){/* endless: keep everything */}
   else if(win){xp+=(50+L*30)*T.bonus;if(firstClear)gold+=(70+L*26)*(1+tier*.5);}
   else{xp*=.6;gold*=.6;}
-  const over=S.lv-L,xpMul=E?1:(over>2?Math.max(.25,1-(over-2)*.15):1);
+  /* 권장 레벨을 넘길수록 경험치가 줄어든다. 전엔 2레벨 초과부터·바닥 25% 였는데
+     그 정도로는 과성장이 안 잡혀서(측정상 전 구간 +7 고정) 더 일찍·더 깊게 깎는다 */
+  const over=S.lv-L,xpMul=E?1:(over>1?Math.max(.25,1-(over-1)*.15):1);
   xp=Math.round(xp*xpMul);gold=Math.round(gold);
   const oldLv=S.lv,firstStage=!E&&win&&!S.cleared[si];
   const gained=addXp(xp);S.gold+=gold;
