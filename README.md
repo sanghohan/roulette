@@ -14,6 +14,7 @@ quantumfighter/index.html # 🛸 퀀텀 파이터 (종스크롤 슈팅 게임)
 pension/index.html    # 💰 연금복권720+ 번호 생성기 (자동·반자동·수동)
 pingpong/index.html   # 🏓 탁구 커뮤니티
 privacy/index.html    # 개인정보처리방침
+privacy/nowplayingcd/ # Now Playing CD(안드로이드 앱) 개인정보처리방침 — 플레이 스토어 등록용
 backend/              # 탁구 백엔드 (docs/탁구백엔드-배포가이드.md 참고)
 docs/                 # 설정/배포 문서
 ```
