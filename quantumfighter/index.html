@@ -2371,10 +2371,14 @@ function allyBossSpr(i){
 const BOSS_STAM=[1.10,1.22,1.38,1.58,1.82,2.05,2.30,2.80,3.40];
 function spawnBoss(){
   const bsi=G.endless?(G.dsi||0):G.si, stam=BOSS_STAM[Math.max(0,Math.min(8,bsi))];
-  const kind=G.st.boss,hp=(kind==='ark'?2450:1900)*G.hpMul*(1+.45*G.tier)*stam*(G.endless?1+G.endless.bosses*.25:1),box=BOSS_BOX[kind];
+  const kind=G.st.boss,box=BOSS_BOX[kind];
+  /* 포탑(파츠)이 피격 대상에서 빠지면서 사라진 내구를 본체로 옮긴다 —
+     파츠는 각각 본체의 10% 였고, 살아 있는 동안 본체 피해를 0.56배로 깎고 있었다 */
+  const np=BOSS_PARTS[kind].length;
+  const hp=(kind==='ark'?2450:1900)*G.hpMul*(1+.45*G.tier)*stam*(1+np*.105)*(G.endless?1+G.endless.bosses*.25:1);
   const b={kind:'boss',bk:kind,boss:true,x:W/2,y:-90,t:0,hp,maxHp:hp,r:30,hw:box[0],hh:box[1],flash:0,path:'boss',cur:null,patT:1.6,ang:0,fid:0,ground:kind==='crawler',form:1,mk:(!G.endless&&BOSS_MK[G.si])||kind,parts:[],fac:G.st.bossFac==='ark'?'grey':G.st.bossFac,minT:6};
   for(const [dx,dy] of BOSS_PARTS[kind]){
-    const php=hp*.1;
+    const php=1;
     const pt={kind:'part',part:true,fac:b.fac,parent:b,dx,dy,x:b.x+dx,y:b.y+dy,t:0,hp:php,maxHp:php,r:10,flash:0,fire:rand(1,2.5),path:'part',ground:b.ground,entered:false,aim:Math.PI/2};
     b.parts.push(pt);G.enemies.push(pt);
   }
@@ -2443,7 +2447,7 @@ function dmgRoll(m,kind){
 }
 function hurtEnemy(e,m,kind){
   if(e.hp<=0||e.dead)return;
-  if(e.boss&&e.parts.some(q=>!q.dead))m*=.56;
+  if(e.part)return;             /* 보이지 않는 발사 지점은 때릴 수 없다 */
   if((e.boss||e.part)&&!e.entered)return;
   const r=dmgRoll(m,kind);e.hp-=r.d;e.flash=Math.max(e.flash||0,.085);
   e.hitS=Math.min(1,(e.hitS||0)+.45+Math.min(.55,r.d/Math.max(10,e.maxHp*.14)));
@@ -2580,7 +2584,7 @@ function applyCap(type){
 }
 function nearestEnemy(x,y){
   let best=null,bd=1e9;
-  for(const e of G.enemies){if(e.dead||e.y<-10||e.y>H||(e.boss||e.part)&&!e.entered)continue;const d=(e.x-x)**2+(e.y-y)**2;if(d<bd){bd=d;best=e;}}
+  for(const e of G.enemies){if(e.dead||e.part||e.y<-10||e.y>H||e.boss&&!e.entered)continue;const d=(e.x-x)**2+(e.y-y)**2;if(d<bd){bd=d;best=e;}}
   return best;
 }
 function clearBullets(x,y,r){G.eb=G.eb.filter(b=>(b.x-x)**2+(b.y-y)**2>r*r);}
@@ -2769,7 +2773,8 @@ function fireMain(x,y,m,opt){
      리플·레이저까지 그대로 복제하니 옵션 3개가 본체보다 세졌다 */
   if(opt||p.weapon==='normal')planeShot(x,y,m,opt);
   else if(p.weapon==='ripple'){
-    G.bullets.push({kind:'ripple',x,y,vx:0,vy:-380,r:5,grow:(p.wLv===2?46:30)+pw*3,m:m*(p.wLv===2?1.6:1.3)*(1+(pw-1)*.13),pierce:1+passLv('pierce'),t:0});
+    /* 음파(리플)는 퍼지는 반경이 넓어 군집 소탕이 과했다 — 반경 절반, 위력 -12% */
+    G.bullets.push({kind:'ripple',x,y,vx:0,vy:-380,r:4,grow:(p.wLv===2?23:15)+pw*1.5,m:m*(p.wLv===2?1.41:1.14)*(1+(pw-1)*.13),pierce:1+passLv('pierce'),t:0});
   }else{
     G.bullets.push({kind:'laser',x,y:y-8,vx:0,vy:-780,r:3,len:26,m:m*(p.wLv===2?.72:.55)*(1+(pw-1)*.13),pierce:99});
     if(pw>=3){G.bullets.push({kind:'laser',x:x-7,y,vx:0,vy:-780,r:2,len:18,m:m*.3,pierce:99});G.bullets.push({kind:'laser',x:x+7,y,vx:0,vy:-780,r:2,len:18,m:m*.3,pierce:99});}
@@ -2979,7 +2984,7 @@ function update(dt){
       if(Math.random()<.7)G.parts.push({ty:'trail',x:b.x,y:b.y,vx:rand(-6,6),vy:rand(-6,6),t:0,life:.55,s:.28});
     }
     if(b.kind==='missile'){if(!b.seek){b.vx*=1-dt*2;b.vy-=200*dt;}if(Math.random()<.6)G.parts.push({ty:'trail',x:b.x,y:b.y,vx:rand(-5,5),vy:rand(0,10),t:0,life:.45,s:.24});}
-    if(b.kind==='ripple')b.r=Math.min(b.grow,b.r+dt*90);
+    if(b.kind==='ripple')b.r=Math.min(b.grow,b.r+dt*52);
     if(b.kind==='shell'&&Math.random()<.7)G.parts.push({ty:'blue',x:b.x,y:b.y+4,vx:rand(-10,10),vy:30,t:0,life:.25,s:.9});
     /* 랜스가 지나는 자리의 적탄만 부순다 — 34px 은 화면을 빨아들이는 수준이었다 */
     if(b.kind==='lance')clearBullets(b.x,b.y,13);
@@ -3391,7 +3396,6 @@ function render(dt){
   drawDecoUnder(G.deco,G.bg,G.bgY,G.t);
   for(const d of G.decals)drawS(d.big?SPR.wreckL:SPR.wreck,d.x,d.y);
   for(const e of G.enemies)if(e.ground&&!e.part)drawEnemy(e);
-  for(const e of G.enemies)if(e.ground&&e.part)drawEnemy(e);
   // smoke under aircraft
   for(const q of G.parts)if(q.ty==='smoke'||q.ty==='trail'||q.ty==='foam'){const k=q.t/q.life;ctx.globalAlpha=(1-k)*(q.ty==='foam'?.7:.9);drawS(q.ty==='foam'?SPR.fx.halo:SPR.fx.smoke,q.x,q.y,0,q.s*(1+k*1.4));}
   ctx.globalAlpha=1;
@@ -3405,7 +3409,6 @@ function render(dt){
   }
   for(const it of G.items)if(it.gold)drawItem(it);
   for(const e of G.enemies)if(!e.ground&&!e.part)drawEnemy(e);
-  for(const e of G.enemies)if(!e.ground&&e.part)drawEnemy(e);
   for(const it of G.items)if(!it.gold)drawItem(it);
   ctx.globalCompositeOperation='lighter';
   for(const b of G.bullets)drawPBullet(b);
@@ -3535,17 +3538,11 @@ function drawBoss(e){
   if(kind==='demon'){for(const d of[-1,1])glowAt(e.x+d*52,e.y+8,(red?1.4:.9)+Math.random()*.25,red?SPR.fx.fire:SPR.fx.blue);if(red){glowAt(e.x,e.y+22,2+Math.random()*.4,SPR.fx.fire);if(Math.random()<.5)G.parts.push({ty:'fire',x:e.x+rand(-14,14),y:e.y+24,vx:rand(-10,10),vy:rand(20,60),t:0,life:.4,s:.5});}}
   if(kind==='crawler'||kind==='core')glowAt(e.x,e.y,1.4+Math.sin(G.t*6)*.3,red?SPR.fx.fire:SPR.fx.blue);
   if(e.flash>0){ctx.globalAlpha=.4;drawWince(G.spr[bk+'W'],e.x,e.y,e.wince||0);ctx.globalAlpha=1;}
-  for(const q of e.parts)if(q.dead){drawS(SPR.wreckL,e.x+q.dx,e.y+q.dy,0,.8);if(Math.random()<.25)G.parts.push({ty:'smoke',x:e.x+q.dx+rand(-3,3),y:e.y+q.dy,vx:rand(-8,8),vy:-40,t:0,life:.8,s:.45});}
 }
 function drawEnemy(e){
-  if(e.part){
-    if(!e.parent.entered&&e.parent.y<0)return;
-    drawS(G.spr.part,e.x,e.y);
-    if(e.flash>0){ctx.globalAlpha=.55;drawS(G.spr.partW,e.x,e.y);ctx.globalAlpha=1;}
-    if(e.fac==='human'){ctx.strokeStyle='#15191E';ctx.lineWidth=1.8;ctx.beginPath();for(const o of[-1.6,1.6]){const nx=-Math.sin(e.aim)*o,ny=Math.cos(e.aim)*o;ctx.moveTo(e.x+nx,e.y+ny);ctx.lineTo(e.x+nx+Math.cos(e.aim)*12,e.y+ny+Math.sin(e.aim)*12);}ctx.stroke();}
-    else glowAt(e.x,e.y,.9+Math.sin(G.t*8+e.dx)*.2);
-    return;
-  }
+  /* 보스 몸체 위에 포탑을 덧그리던 걸 없앴다 — 보스 아트 그대로가 낫다.
+     파츠는 발사 지점으로만 남아서 공격 패턴은 전과 똑같이 나온다 */
+  if(e.part)return;
   if(e.boss){drawBoss(e);return;}
   const F=G.spr.fac[e.fac],k=e.kind,fac=e.fac,key=k==='tank'?'walker':k,s=F[key];
   const hs=Math.min(1,e.hitS||0);
