@@ -859,18 +859,20 @@ const sfx={
 };
 /* ---- metal sequencer: every track is generated from a seed, so it is stable across plays ---- */
 const SCALES={maj:[0,2,4,5,7,9,11],mix:[0,2,4,5,7,9,10],min:[0,2,3,5,7,8,10],dor:[0,2,3,5,7,9,10],hmin:[0,2,3,5,7,8,11],phr:[0,1,3,5,7,8,10]};
+/* 전반적으로 템포를 올리고 스테이지 곡을 스피드 메탈로 바꿨다 — 전에는 장송곡에 가까웠다.
+   격납고는 메뉴라 질리지 않게 중속 드라이브, 생체(bio)는 분위기 대비용으로 eerie 유지 */
 const TRACKS={
- hangar:{bpm:104,root:45,scale:'dor',prog:[0,0,6,6,5,5,6,4],style:'calm',seed:3},
- ocean:{bpm:152,root:45,scale:'min',prog:[0,6,3,0,0,6,3,4],style:'march',seed:7},
- storm:{bpm:158,root:43,scale:'phr',prog:[0,5,6,0,0,5,3,4],style:'drive',seed:12},
- desert:{bpm:148,root:45,scale:'phr',prog:[0,1,0,6,0,1,5,4],style:'march',seed:21},
- night:{bpm:154,root:40,scale:'dor',prog:[0,0,5,6,0,0,3,4],style:'drive',seed:99},
- metal:{bpm:166,root:38,scale:'min',prog:[0,0,5,6,0,0,3,4],style:'drive',seed:33},
- magma:{bpm:170,root:40,scale:'hmin',prog:[0,5,3,4,0,5,1,4],style:'drive',seed:44},
- sky:{bpm:160,root:48,scale:'hmin',prog:[0,4,5,3,0,4,3,4],style:'march',seed:55},
- bio:{bpm:132,root:42,scale:'min',prog:[0,1,0,5,0,1,6,4],style:'eerie',seed:66},
- core:{bpm:174,root:41,scale:'hmin',prog:[0,5,6,4,0,5,3,4],style:'drive',seed:77},
- boss:{bpm:178,root:38,scale:'phr',prog:[0,0,5,5,3,3,4,4],style:'boss',seed:88},
+ hangar:{bpm:138,root:45,scale:'dor',prog:[0,0,6,6,5,5,6,4],style:'drive',seed:3},
+ ocean:{bpm:186,root:45,scale:'min',prog:[0,6,3,0,0,6,3,4],style:'speed',seed:7},
+ storm:{bpm:190,root:43,scale:'phr',prog:[0,5,6,0,0,5,3,4],style:'speed',seed:12},
+ desert:{bpm:182,root:45,scale:'phr',prog:[0,1,0,6,0,1,5,4],style:'speed',seed:21},
+ night:{bpm:188,root:40,scale:'dor',prog:[0,0,5,6,0,0,3,4],style:'speed',seed:99},
+ metal:{bpm:196,root:38,scale:'min',prog:[0,0,5,6,0,0,3,4],style:'speed',seed:33},
+ magma:{bpm:198,root:40,scale:'hmin',prog:[0,5,3,4,0,5,1,4],style:'speed',seed:44},
+ sky:{bpm:190,root:48,scale:'hmin',prog:[0,4,5,3,0,4,3,4],style:'speed',seed:55},
+ bio:{bpm:150,root:42,scale:'min',prog:[0,1,0,5,0,1,6,4],style:'eerie',seed:66},
+ core:{bpm:200,root:41,scale:'hmin',prog:[0,5,6,4,0,5,3,4],style:'speed',seed:77},
+ boss:{bpm:200,root:38,scale:'phr',prog:[0,0,5,5,3,3,4,4],style:'boss',seed:88},
 };
 /* ---- song-form composer: intro / verse / pre-chorus / chorus / breakdown / solo / key change ---- */
 const MINOR_SC=new Set(['min','dor','phr','hmin']);
@@ -879,6 +881,8 @@ const PROG_BANK={
  minor:{B:[[3,4,5,5],[5,6,3,4],[3,2,4,4]],C:[[5,6,0,0],[0,5,3,6],[5,3,6,4]],D:[[5,5,6,6],[3,3,4,4]],E:[[0,6,5,4],[0,3,4,4]]},
 };
 const FORMS={
+ /* 스피드 메탈: 인트로를 짧게 끊고 바로 리프로, 솔로와 코러스를 앞당긴다 */
+ speed:[['I',2],['A',8],['A2',8],['B',4],['C',8],['E',8],['A',8],['B',4],['C',8,2],['C2',8,2]],
  march:[['I',4],['A',8],['A2',8],['B',8],['C',8],['D',8],['A',8],['B',8],['C',8,2],['C2',8,2]],
  drive:[['I',4],['A',8],['A2',8],['B',8],['C',8],['D',8],['E',8],['B',8,2],['C',8,2],['C2',8,2]],
  boss:[['I',2],['C',8],['A',8],['B',8],['C2',8],['E',8],['C',8,1],['C2',8,1]],
@@ -905,7 +909,8 @@ function compose(T){
   const midi=(d,base)=>{const o=Math.floor(d/7),i=((d%7)+7)%7;return base+sc[i]+12*o;};
   const arr=()=>new Array(steps).fill(null);
   const lead=arr(),harm=arr(),bass=arr(),gtr=arr(),arp=arr(),pad=arr(),fx=arr(),drum=new Array(steps).fill(0);
-  const fast=T.style==='drive'||T.style==='boss',calm=T.style==='calm'||T.style==='eerie';
+  const speed=T.style==='speed';
+  const fast=T.style==='drive'||T.style==='boss'||speed,calm=T.style==='calm'||T.style==='eerie';
   const riffA=RIFFS[Math.floor(r()*RIFFS.length)],riffB=RIFFS[Math.floor(r()*RIFFS.length)];
   const RB={
     verse:fast?[[0,2,4,6,8,10,12,14],[0,3,6,8,10,12],[0,2,3,6,8,11,12,14],[0,3,6,10,12]]:[[0,4,6,8,12],[0,2,4,8,10,12],[0,3,6,8,12,14],[0,6,8,12]],
@@ -996,7 +1001,7 @@ function compose(T){
         if(type==='I'&&!calm){if(b===nb-1)bass[i]=s%2===0?{m:bm,len:1.6,acc:s%4===0}:null;else if(b>=1&&s===0)bass[i]={m:bm,len:15};continue;}
         if(calm){if(s===0||s===8)bass[i]={m:bm,len:7.6};continue;}
         if(type==='D'){const g=gtr[i];if(g)bass[i]={m:bm,len:g.mute?1.4:5,acc:!!g.acc};continue;}
-        if(solo||chorus||(T.style==='boss'&&!calm)){bass[i]={m:bm+(s%8===6?7:0),len:1.5,acc:s%4===0};continue;}
+        if(solo||chorus||((T.style==='boss'||speed)&&!calm)){bass[i]={m:bm+(s%8===6?7:0),len:1.5,acc:s%4===0};continue;}
         if(s%2===0){let m=bm+(s%8===4&&T.style==='march'?7:0);if(type==='B'&&s===14)m=bn-1;bass[i]={m,len:1.8,acc:s%4===0};}
       }
       // ---- arpeggio / clean layer ----
@@ -1027,13 +1032,16 @@ function compose(T){
           if(s%2===0)d|=DK;if(s===4||s===12)d|=DS;
           if(s%4===2)d|=DO;else if(s%2===0)d|=DH;
           if(T.style==='boss'&&s%2===1)d|=DK;
+          if(speed&&(s%4===1||s%4===3))d|=DK;
         }else if(type==='B'){
           if(s===0||s===6||s===8||s===14)d|=DK;if(s===4||s===12)d|=DS;if(s%2===0)d|=DH;
         }else{
-          const kp=fast?[0,2,3,6,8,10,11,14]:[0,3,6,8,11,14];
+          /* 스피드 메탈은 갤럽 더블베이스 — 16분 중 12칸을 때린다 */
+          const kp=speed?[0,2,3,4,6,7,8,10,11,12,14,15]:fast?[0,2,3,6,8,10,11,14]:[0,3,6,8,11,14];
           if(kp.includes(s))d|=DK;
           if(s===4||s===12)d|=DS;
           if(s%2===0)d|=DH;
+          if(speed&&s%4===0)d|=DO;
         }
         if(s===0&&b%4===0&&!(type==='A'&&b>0)&&type!=='I'&&type!=='D')d|=DC;
         if(lastBar&&!calm&&type!=='I'&&s>=10){d&=~(DH|DO);d|=[DS,DTH,DTH,DS,DTL,DTL][s-10]||0;if(s===10)d|=DK;}
