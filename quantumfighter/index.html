@@ -2897,12 +2897,22 @@ function update(dt){
         }
       }
       if(p.missileLv>0){
+        /* 아이템 미사일이 과했다. 옵션까지 본체와 똑같이 2발씩 쏘다 보니
+           초반에 옵션 3기면 미사일만으로 화력이 두 배가 됐다.
+           본체는 2발, 옵션은 1발을 60% 위력으로 쏜다 */
         p.mfire-=dt;
         if(p.mfire<=0){
-          p.mfire=.75;
-          const srcs=[{x:p.x,y:p.y}];for(let i=0;i<p.opts;i++)srcs.push(optionPos(i));
+          p.mfire=.85;
+          const mm=1.0+(p.missileLv-1)*.25, seek=p.missileLv>=2;
           sfx.missile();
-          for(const s of srcs){[-1,1].forEach(d=>G.bullets.push({kind:'missile',x:s.x+d*6,y:s.y,vx:d*70,vy:-230,r:4,m:1.4,pierce:0,t:0,seek:p.missileLv>=2}));}
+          /* 유도형은 바깥으로 덜 벌어지게 쏜다 — 크게 휘었다 되돌아오느라
+             MSL2 가 MSL1 보다 못 맞히던 문제 */
+          const sx=seek?34:70;
+          for(const d of [-1,1])G.bullets.push({kind:'missile',x:p.x+d*6,y:p.y,vx:d*sx,vy:-230,r:4,m:mm,pierce:0,t:0,seek});
+          for(let i=0;i<p.opts;i++){
+            const o=optionPos(i),d=i%2?1:-1;
+            G.bullets.push({kind:'missile',x:o.x+d*5,y:o.y,vx:d*sx*.86,vy:-230,r:3.4,m:mm*.6,pierce:0,t:0,seek});
+          }
         }
       }
       if(G.charge<1){G.charge=Math.min(1,G.charge+dt/(6.6*pl.chg)*(1+S.stats.foc*.008));}
