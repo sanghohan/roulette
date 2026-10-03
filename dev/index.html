@@ -358,6 +358,7 @@ async function openDetail(id){
   renderComments(p.comments);
   $('#listView').classList.add('hidden');$('#writeView').classList.add('hidden');
   $('#detailView').classList.remove('hidden');window.scrollTo(0,0);
+  setPostUrl(id);
   $('#backBtn').onclick=showList;
   $('#likeBtn').onclick=async()=>{try{const r=await data.like(id);$('#likeBtn').textContent='❤ 좋아요 '+r.likes;}catch(e){alert(e.message);}};
   $('#editBtn').onclick=()=>showEdit(p);
@@ -436,7 +437,10 @@ async function submitPost(){
   }catch(e){alert((editingId?'수정':'등록')+' 실패: '+e.message);}
   finally{$('#submitBtn').disabled=false;}
 }
+// 글 바로가기 주소: /dev/?post=번호 (앱 등에서 소개·설명서 글로 바로 연결)
+function setPostUrl(id){try{const u=new URL(location.href);if(id)u.searchParams.set('post',id);else u.searchParams.delete('post');history.replaceState(null,'',u);}catch(e){}}
 function showList(){
+  setPostUrl(null);
   $('#detailView').classList.add('hidden');$('#writeView').classList.add('hidden');
   $('#listView').classList.remove('hidden');renderCats();renderList();window.scrollTo(0,0);
 }
@@ -451,6 +455,7 @@ $('#wAuthor').addEventListener('input',()=>{$('#adminRow').classList.toggle('hid
 
 /* ---------- 초기 ---------- */
 showBanner();renderCats();renderList();
+{const pid=+new URLSearchParams(location.search).get('post');if(pid)openDetail(pid);} // ?post=번호 로 들어오면 그 글부터
 </script>
 <div id="visitCounter" style="text-align:center;color:#5a6296;font-size:12px;margin:16px 0 4px">·</div>
 <script>
