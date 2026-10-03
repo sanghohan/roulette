@@ -2409,7 +2409,10 @@ function needCap(){
 function dropCap(x,y,type){
   /* soft budget: once a run has handed out enough capsules, extras turn into gold */
   G.capN=(G.capN||0)+1;
-  if(!type&&G.capN>11&&Math.random()<Math.min(.65,(G.capN-11)*.08)){dropGold(x,y,4);return;}
+  /* 캡슐도 화면에 쌓인다 — 동시 6개를 넘으면, 그리고 한 판에 9개를 넘기면서부터는
+     점점 더 자주 현금으로 바꾼다. 현금은 기존 지폐에 합쳐지므로 아이템 수가 늘지 않는다 */
+  const onScr=G.items.reduce((a,i)=>a+((!i.gold&&!i.gone)?1:0),0);
+  if(!type&&(onScr>=6||(G.capN>9&&Math.random()<Math.min(.75,(G.capN-9)*.09)))){dropGold(x,y,4);return;}
   if(G)G.parts.push({ty:'flash',x,y,vx:0,vy:0,t:0,life:.25,s:.6});
   let t=type||needCap();
   if(!type&&!t){dropGold(x,y,5);return;}
@@ -2419,10 +2422,28 @@ function dropCap(x,y,type){
 /* 지폐 액면: $15 녹색 · $30 적색 · $50 금색. 총액은 그대로 두고 화면에 뿌려지는 장수만 줄인다 */
 /* 지폐는 금색 한 종류 — 금액만 다르다. 장수는 강하게 제한한다 */
 const CASH_COL={g:'#FFE08A'};
+const GOLD_MERGE=34;   /* 이 거리 안에 지폐가 있으면 새로 떨구지 않고 금액만 합친다 */
+const GOLD_LIMIT=10;   /* 화면 지폐가 이보다 많으면 거리와 상관없이 합친다 */
 function dropGold(x,y,n){
   /* 1.34 = 예전 '반짝일 때 2배' 보너스의 기댓값 — 액면에 흡수해 수입 총량은 그대로 */
   const V=Math.max(1,Math.round(n*Math.max(.6,G.goldVal)*1.34));
-  /* 한 장이 기본, 큰 보상만 2~3장. 총액은 그대로 두고 장수만 1/5 수준으로 줄였다 */
+  G.goldDropped=(G.goldDropped||0)+V;   /* 수입 총량 검증용 */
+  /* 후반에 지폐가 화면을 덮던 문제 — 가까운 지폐에 금액을 합쳐 장수만 줄인다.
+     수입 총량은 1원도 달라지지 않는다 */
+  /* 한 장에 무한정 쌓으면 그 한 장을 놓쳤을 때 수입이 통째로 날아간다 — 상한을 둔다 */
+  const CAP=Math.max(400,Math.round(G.goldVal*60));
+  let near=null,nd=GOLD_MERGE*GOLD_MERGE,bills=0,small=null;
+  for(const it of G.items){
+    if(!it.gold||it.gone)continue;
+    bills++;
+    if(!small||(it.v||0)<(small.v||0))small=it;
+    if((it.v||0)+V>CAP)continue;
+    const d=(it.x-x)**2+(it.y-y)**2;
+    if(d<nd){nd=d;near=it;}
+  }
+  if(!near&&bills>=GOLD_LIMIT)near=small;   /* 한도를 넘으면 가장 적은 장에 합친다 */
+  if(near){near.v=(near.v||0)+V;return;}
+  /* 한 장이 기본, 큰 보상만 2~3장 */
   const cnt=Math.max(1,Math.min(3,Math.round(V/300))),base=Math.floor(V/cnt);
   for(let i=0;i<cnt;i++){
     const v=Math.max(1,i===cnt-1?V-base*(cnt-1):base);
