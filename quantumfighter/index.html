@@ -153,6 +153,7 @@ h3{font-family:var(--disp);font-weight:400;font-size:1.15em;margin:0;letter-spac
 .stat .v{font-family:var(--num);font-size:1.35em;font-weight:700;min-width:2em;text-align:right}
 .plus{width:2.2em;height:2.2em;border:0;background:var(--amber);color:#1A1200;font-family:var(--num);font-weight:700;font-size:1.05em;clip-path:polygon(.35em 0,100% 0,100% calc(100% - .35em),calc(100% - .35em) 100%,0 100%,0 .35em)}
 .plus:disabled{background:#233554;color:#56698A}
+.stat .capm{font-size:.62em;color:var(--mute);font-weight:500}
 .derived{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
 .derived div{background:#0C1B35;padding:.5em .7em;display:flex;justify-content:space-between;align-items:baseline;gap:.4em}
 .derived span{font-size:.78em;color:var(--mute)}
@@ -473,9 +474,32 @@ const CAP_BAG=['P','P','P','B','S','S','M','M','R','L','O','O','F','F'];
 
 /* ================= SAVE ================= */
 const SAVE_KEY='aetherwing.save.v1';
-function defSave(){return{lv:1,xp:0,sp:0,pts:0,stats:{atk:0,arm:0,rate:0,foc:0},skills:{homing:1},equip:['homing',null,null,null],gold:0,tier:0,spare:0,cleared:[],best:{},sel:0,tab:'ops',plane:'falcon',ufo:false,bombUp:0,spdUp:0,owned:[],bgmVol:6,sfxVol:8,muted:false,v:3,updatedAt:0,endingSeen:false,tclear:{},dsel:{},endless:{best:0,runs:0},seenTiers:[]};}
+function defSave(){return{lv:1,xp:0,sp:0,pts:0,stats:{atk:0,arm:0,rate:0,foc:0},skills:{homing:1},equip:['homing',null,null,null],gold:0,pu:{},tier:0,spare:0,cleared:[],best:{},sel:0,tab:'ops',plane:'falcon',ufo:false,bombUp:0,spdUp:0,owned:[],bgmVol:6,sfxVol:8,muted:false,v:3,updatedAt:0,endingSeen:false,tclear:{},dsel:{},endless:{best:0,runs:0},seenTiers:[]};}
+/* ---- 기체 업그레이드는 기체마다 따로 쌓인다 ----
+   주포·폭탄·추진기·예비옵션은 기체 소유물이고, 파일럿 스탯(공격·장갑·연사·집중)은 공용이다 */
+const PU_KEYS=['tier','bombUp','spdUp','spare'];
+function pu(id){
+  id=id||S.plane||'falcon';
+  if(!S.pu)S.pu={};
+  let r=S.pu[id];
+  if(!r)r=S.pu[id]={tier:0,bombUp:0,spdUp:0,spare:0};
+  for(const k of PU_KEYS)if(typeof r[k]!=='number')r[k]=0;
+  return r;
+}
+/* 구버전 세이브: 공용으로 쌓아 둔 업그레이드를 '이미 가진 기체 전부'에 복사한다.
+   기존 플레이어가 가진 걸 뺏지 않으면서, 앞으로 사는 기체부터 따로 키우게 된다 */
+function migratePU(o){
+  if(o.pu&&Object.keys(o.pu).length)return o;
+  const legacy={tier:o.tier|0,bombUp:o.bombUp|0,spdUp:o.spdUp|0,spare:o.spare|0};
+  o.pu={};
+  const have=['falcon'].concat(o.owned||[]);
+  if(o.ufo)have.push('saucer');
+  if(o.plane&&have.indexOf(o.plane)<0)have.push(o.plane);
+  for(const id of have)o.pu[id]=Object.assign({},legacy);
+  return o;
+}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);const d=defSave();
-if((o.v||1)<3){if(Array.isArray(o.cleared)){o.cleared.splice(3,0,!!o.cleared[2]&&false);}if(o.best){const nb={};for(const k in o.best)nb[+k>=3?+k+1:k]=o.best[k];o.best=nb;}if((o.sel||0)>=3)o.sel++;o.v=3;}if(!o.tclear){o.tclear={};(o.cleared||[]).forEach((c,i)=>{if(c)o.tclear[i]=0;});}if(o.sfx===false&&o.sfxVol===undefined)o.sfxVol=0;return Object.assign(d,o,{stats:Object.assign(d.stats,o.stats||{})});}}catch(e){}return defSave();}
+if((o.v||1)<3){if(Array.isArray(o.cleared)){o.cleared.splice(3,0,!!o.cleared[2]&&false);}if(o.best){const nb={};for(const k in o.best)nb[+k>=3?+k+1:k]=o.best[k];o.best=nb;}if((o.sel||0)>=3)o.sel++;o.v=3;}if(!o.tclear){o.tclear={};(o.cleared||[]).forEach((c,i)=>{if(c)o.tclear[i]=0;});}if(o.sfx===false&&o.sfxVol===undefined)o.sfxVol=0;migratePU(o);return Object.assign(d,o,{stats:Object.assign(d.stats,o.stats||{})});}}catch(e){}return defSave();}
 let S=loadSave();
 function save(){S.updatedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
 /* 레벨이 너무 빨리 올랐다 — LV32 에서 한 판(100초)에 한 레벨이 통째로 올랐다.
@@ -484,6 +508,10 @@ const xpNeed=lv=>Math.round(48*Math.pow(lv,1.55)*(1+lv*.04)+22);
 const slotsOpen=lv=>lv>=10?4:lv>=5?3:2;
 const maxHp=()=>Math.round((22+(S.lv-1)*1.6)*(1+S.stats.arm*.075)*PLANES[S.plane||'falcon'].hp);
 const MAX_LV=60;
+/* 한 스탯은 레벨이 받쳐 주는 만큼만 올릴 수 있다.
+   레벨마다 3포인트가 들어오니 전에는 3레벨이면 공격을 9칸 몰아줘 화력이 한 번에 뛰었다.
+   이제 레벨당 0.7칸씩만 열린다 — 총량은 그대로고, 한 곳에 몰아주는 속도만 묶인다 */
+const statCap=()=>3+Math.floor(S.lv*.7);
 const TIERS=[
  {name:'일반',stars:1,add:0,bonus:1,elite:0,bspd:1,fire:1,extra:0,col:'#7BD389'},
  {name:'정예',stars:2,add:12,bonus:1.35,elite:.25,bspd:1.12,fire:1.2,extra:1,col:'#FFB627'},
@@ -2274,13 +2302,13 @@ function newRun(si,tier,endless){
   const st=endless?endlessStage(si):STAGES[si],mh=maxHp(),T=TIERS[tier];
   G={si,st,t:0,bgY:0,bg:getBg(st.theme),theme:THEMES[st.theme],spr:stageSprites(si,endless?ALL_FAC:null),T,tier,endless:endless?{wave:1,waveEnd:24,waveStart:0,src:si,bosses:0}:null,spawnT:1.5,tt:0,stageLen:stageLen(si),mid:null,ramp:1,deco:makeDeco(st.theme),
     timeline:endless?[]:buildTimeline(si,tier),tl:0,boss:null,phase:'wave',endT:0,intro:1.1,
-    p:{x:W/2,y:H+40,hp:mh,maxHp:mh,inv:2.2,fire:0,optFire:0,mfire:0,trail:[],speedLv:0,missileLv:0,weapon:'normal',wLv:1,opts:S.spare,optBase:S.spare,force:0,dead:false,tilt:0,power:1},
+    p:{x:W/2,y:H+40,hp:mh,maxHp:mh,inv:2.2,fire:0,optFire:0,mfire:0,trail:[],speedLv:0,missileLv:0,weapon:'normal',wLv:1,opts:pu().spare,optBase:pu().spare,force:0,dead:false,tilt:0,power:1},
     bullets:[],eb:[],enemies:[],items:[],parts:[],texts:[],rings:[],decals:[],allies:[],
     forms:{},fid:0,kills:0,xp:0,gold:0,shake:0,flash:0,banner:endless?{t:3.6,title:'무한 공역',sub:'ENDLESS · WAVE 1',story:st.story}:{t:3.6,title:st.name,sub:(st.act===1?'1부 · 독재자 전쟁':'2부 · 외계 침공')+' · '+st.code+' · '+T.name,story:st.story},wing:[],wingT:6,curFac:null,
     /* 기체 전용 스킬은 해당 기체로 출격했을 때만 발동한다 */
     sk:S.equip.map((id,i)=>id&&i<slotsOpen(S.lv)&&S.skills[id]&&(!SKILLS[id].only||SKILLS[id].only===S.plane)?{id,lv:S.skills[id],cd:0}:null),
     laser:0,laserTick:0,chrono:0,barrier:0,drones:0,droneFire:0,swarmT:0,droneAng:0,grav:0,cloneT:0,cloneLv:0,warpFx:null,hitStop:0,over:0,overLv:0,smoke:0,strike:null,
-    charge:0,chargeReady:false,rdy:null,bombs:1+S.bombUp,bombT:0,bombTick:0,bombK:'falcon',collectAll:false,
+    charge:0,chargeReady:false,rdy:null,bombs:1+pu().bombUp,bombT:0,bombTick:0,bombK:'falcon',collectAll:false,
     syn:activeSynergies(),
   };
   applyDiff(endless?ENDLESS_LV():tierLv(si,tier));
@@ -2470,7 +2498,7 @@ function ring(x,y,n,sp,off,big){for(let i=0;i<n;i++)eshot(x,y,off+i*TAU/n,sp,big
 function dmgRoll(m,kind){
   /* 스탯 공격력과 상점 주포 티어를 곱으로 쌓으면 양쪽을 다 올렸을 때 폭주한다.
      둘 다 '총의 위력'이라 더하기로 묶는다 — 계수를 올려 중반 체감은 그대로 두고, 둘 다 몰아준 끝단만 깎는다 */
-  let d=9*(1+S.stats.atk*.10+S.tier*.145)*(1+(S.lv-1)*.025)*plane().dmg*G.sup.pdmg*m;
+  let d=9*(1+S.stats.atk*.10+pu().tier*.145)*(1+(S.lv-1)*.025)*plane().dmg*G.sup.pdmg*m;
   let c=.05+S.stats.foc*.006+passLv('crit')*.06;
   if(G.chrono>0&&syn('deadeye'))c+=.35;
   if(kind==='homing'&&syn('hunter')){c+=.4;d*=1.25;}
@@ -2861,7 +2889,7 @@ function update(dt){
       const m=Math.hypot(mx,my);if(m>1){mx/=m;my/=m;}
     }
     const slow=keys.has('ShiftLeft')||keys.has('ShiftRight')||PAD.slow;
-    const sp=(165+p.speedLv*46)*(1+(S.spdUp||0)*.05)*pl.spd*(slow?.5:1);
+    const sp=(165+p.speedLv*46)*(1+pu().spdUp*.05)*pl.spd*(slow?.5:1);
     const ox=p.x,oy=p.y;
     p.x+=mx*sp*dt;p.y+=my*sp*dt;
     if(drag){
@@ -3945,8 +3973,11 @@ function opsHTML(){
 function pilotHTML(){
   const mh=maxHp();
   let h=`<div class="pts"><div><h3>스탯 포인트</h3><div class="mini" style="text-transform:none;letter-spacing:.02em">레벨업마다 3포인트</div></div><b>${S.pts}</b></div><div class="sec">`;
-  STAT_DEF.forEach(d=>{h+=`<div class="stat"><div><div class="nm">${d.name}</div><div class="ds">${d.ds}</div></div><div class="v">${S.stats[d.id]}</div><button class="plus" data-act="stat" data-id="${d.id}" ${S.pts>0?'':'disabled'} aria-label="${d.name} 올리기">+</button></div>`;});
-  const base=8*(1+S.stats.atk*.10+S.tier*.145)*(1+(S.lv-1)*.025);
+  const cap=statCap();
+  STAT_DEF.forEach(d=>{const v=S.stats[d.id],full=v>=cap;
+    h+=`<div class="stat"><div><div class="nm">${d.name}</div><div class="ds">${d.ds}</div></div><div class="v">${v}${full?` <span class="capm">/ ${cap}</span>`:''}</div><button class="plus" data-act="stat" data-id="${d.id}" ${S.pts>0&&!full?'':'disabled'} aria-label="${d.name} 올리기">+</button></div>`;});
+  h+=`<p class="mini" style="margin:.2em 0 0">한 항목의 상한은 LV ${S.lv} 기준 ${cap} · 레벨이 오르면 함께 열립니다</p>`;
+  const base=8*(1+S.stats.atk*.10+pu().tier*.145)*(1+(S.lv-1)*.025);
   h+=`</div><div class="sec"><h3>기체 성능</h3><div class="derived">
     <div><span>최대 내구도</span><b>${mh}</b></div>
     <div><span>탄당 피해</span><b>${base.toFixed(1)}</b></div>
@@ -4007,10 +4038,10 @@ function skillHTML(){
   });
   return h+'</div></div>';
 }
-const tierCost=()=>Math.round(120*Math.pow(1.55,S.tier));
-const spareCost=()=>[500,1800,5200][S.spare];
-const bombCost=()=>[300,900,2400,5200][S.bombUp];
-const spdCost=()=>[350,800,1700,3200,5600,9000,13500,19000][S.spdUp||0];
+const tierCost=()=>Math.round(120*Math.pow(1.55,pu().tier));
+const spareCost=()=>[500,1800,5200][pu().spare];
+const bombCost=()=>[300,900,2400,5200][pu().bombUp];
+const spdCost=()=>[350,800,1700,3200,5600,9000,13500,19000][pu().spdUp];
 const SPD_MAX=8;   /* QF-07 이후 난이도에 맞춰 상한을 열었다 (+40%) */
 const planeThumbs={};
 function planeThumb(id){
@@ -4026,7 +4057,7 @@ function volHTML(){
 function shopHTML(){
   const shown=PLANE_ORDER.filter(id=>!PLANES[id].hidden||S.ufo);
   S.seenPlanes=shown.filter(id=>PLANES[id].req<=S.lv);
-  const tNext=S.tier<15;
+  const tNext=pu().tier<15;
   let h=`<div class="sec"><div class="sec-h"><h3>출격 기체</h3><span class="mini">레벨에 따라 개방</span></div><div class="planes">`;
   for(const id of shown){
     const P=PLANES[id],lock=S.lv<P.req,on=S.plane===id;
@@ -4043,18 +4074,18 @@ function shopHTML(){
       <div class="pstat"><span>속도</span><em class="bar">${bar(P.spd)}</em><span>장갑</span><em class="bar">${bar(P.hp)}</em><span>화력</span><em class="bar">${bar(P.dmg)}</em><span>차지</span><em class="bar">${bar(1/P.chg*1.0,1.3)}</em></div>
       <p><b>차지 샷 · ${P.charge}</b> ${P.chargeD}</p>
     </div></div>
-  <div class="sec"><h3>정비</h3>
-    <div class="shop"><div><div class="sn">주포 강화 <span class="num" style="color:var(--amber)">${S.tier} / 15</span></div></div>
+  <div class="sec"><div class="sec-h"><h3>정비 · ${P.name}</h3><span class="mini">기체마다 따로 쌓입니다</span></div>
+    <div class="shop"><div><div class="sn">주포 강화 <span class="num" style="color:var(--amber)">${pu().tier} / 15</span></div></div>
       <button class="btn sm" data-act="tier" ${tNext&&S.gold>=tierCost()?'':'disabled'}>${tNext?`<span class="num">$${tierCost().toLocaleString()}</span>`:'MAX'}</button>
-      <div class="ds">단계당 주포 피해 +10% · 탄도는 출격 중 P 캡슐로 강화</div></div>
-    <div class="shop"><div><div class="sn">폭탄 적재 <span class="num" style="color:var(--amber)">${1+S.bombUp} / 5</span></div></div>
-      <button class="btn sm" data-act="bombup" ${S.bombUp<4&&S.gold>=bombCost()?'':'disabled'}>${S.bombUp<4?`<span class="num">$${bombCost().toLocaleString()}</span>`:'MAX'}</button>
+      <div class="ds">단계당 주포 피해 +14.5% · 탄도는 출격 중 P 캡슐로 강화</div></div>
+    <div class="shop"><div><div class="sn">폭탄 적재 <span class="num" style="color:var(--amber)">${1+pu().bombUp} / 5</span></div></div>
+      <button class="btn sm" data-act="bombup" ${pu().bombUp<4&&S.gold>=bombCost()?'':'disabled'}>${pu().bombUp<4?`<span class="num">$${bombCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">출격 시 가지고 나가는 폭탄 수</div></div>
-    <div class="shop"><div><div class="sn">추진기 강화 <span class="num" style="color:var(--amber)">${S.spdUp||0} / ${SPD_MAX}</span></div></div>
-      <button class="btn sm" data-act="spdup" ${(S.spdUp||0)<SPD_MAX&&S.gold>=spdCost()?'':'disabled'}>${(S.spdUp||0)<SPD_MAX?`<span class="num">$${spdCost().toLocaleString()}</span>`:'MAX'}</button>
-      <div class="ds">기본 이동 속도 +5% (현재 +${((S.spdUp||0)*5)}% · 출격 중 S 캡슐과 별도로 적용)</div></div>
-    <div class="shop"><div><div class="sn">예비 옵션 <span class="num" style="color:var(--amber)">${S.spare} / 3</span></div></div>
-      <button class="btn sm" data-act="spare" ${S.spare<3&&S.gold>=spareCost()?'':'disabled'}>${S.spare<3?`<span class="num">$${spareCost().toLocaleString()}</span>`:'MAX'}</button>
+    <div class="shop"><div><div class="sn">추진기 강화 <span class="num" style="color:var(--amber)">${pu().spdUp} / ${SPD_MAX}</span></div></div>
+      <button class="btn sm" data-act="spdup" ${pu().spdUp<SPD_MAX&&S.gold>=spdCost()?'':'disabled'}>${pu().spdUp<SPD_MAX?`<span class="num">$${spdCost().toLocaleString()}</span>`:'MAX'}</button>
+      <div class="ds">기본 이동 속도 +5% (현재 +${pu().spdUp*5}% · 출격 중 S 캡슐과 별도로 적용)</div></div>
+    <div class="shop"><div><div class="sn">예비 옵션 <span class="num" style="color:var(--amber)">${pu().spare} / 3</span></div></div>
+      <button class="btn sm" data-act="spare" ${pu().spare<3&&S.gold>=spareCost()?'':'disabled'}>${pu().spare<3?`<span class="num">$${spareCost().toLocaleString()}</span>`:'MAX'}</button>
       <div class="ds">따라다니며 기본 주포로 함께 사격하는 옵션을 처음부터 달고 출격 · 리플·레이저는 따라 하지 않는다</div></div>
   </div>
   <div class="sec"><h3>캡슐 도감</h3><div class="derived">
@@ -4186,7 +4217,7 @@ frame.addEventListener('click',e=>{
   else if(a==='endless'){startRun(0,0,true);}
   else if(a==='diff'){const i=S.sel||0;S.dsel[i]=+t.dataset.t;save();keepScroll();sfx.click();}
   else if(a==='again'){if(t.dataset.i==='E')startRun(0,0,true);else startRun(+t.dataset.i,+t.dataset.t||0);}
-  else if(a==='stat'){if(S.pts>0){S.stats[t.dataset.id]++;S.pts--;save();renderHangar();}}
+  else if(a==='stat'){const id=t.dataset.id;if(S.pts>0&&S.stats[id]<statCap()){S.stats[id]++;S.pts--;save();renderHangar();}}
   else if(a==='respec'){
     const spent=Object.values(S.stats).reduce((x,y)=>x+y,0);
     if(!spent)toast('초기화할 스탯이 없습니다');
@@ -4203,8 +4234,8 @@ frame.addEventListener('click',e=>{
     save();keepScroll();
   }
   else if(a==='unequip'){S.equip[+t.dataset.i]=null;save();keepScroll();}
-  else if(a==='tier'){if(S.tier<15&&S.gold>=tierCost()){S.gold-=tierCost();S.tier++;save();keepScroll();toast(`주포 ${S.tier}단계`);}}
-  else if(a==='spare'){if(S.spare<3&&S.gold>=spareCost()){S.gold-=spareCost();S.spare++;save();keepScroll();}}
+  else if(a==='tier'){const u=pu();if(u.tier<15&&S.gold>=tierCost()){S.gold-=tierCost();u.tier++;save();keepScroll();toast(`${plane().name} 주포 ${u.tier}단계`);}}
+  else if(a==='spare'){const u=pu();if(u.spare<3&&S.gold>=spareCost()){S.gold-=spareCost();u.spare++;save();keepScroll();}}
   else if(a==='vol'){const k=t.dataset.k;S[k]=clamp(S[k]+(+t.dataset.d),0,10);save();AU.applyVol();if(k==='sfxVol')sfx.cap();refreshVol();}
   else if(a==='mute'){S.muted=!S.muted;save();AU.applyVol();refreshVol();updateMuteBtn();}
   else if(a==='plane'){const id=t.dataset.id,P=PLANES[id];
@@ -4213,8 +4244,8 @@ frame.addEventListener('click',e=>{
     if(P.cost&&P.req<=S.lv&&!(S.owned||[]).includes(id)&&S.gold>=P.cost){
       S.gold-=P.cost;(S.owned=S.owned||[]).push(id);S.plane=id;fixEquip();save();renderHangar();
       sfx.ready();toast(`${P.name} 설계 완료 — 출격 가능`);}}
-  else if(a==='bombup'){if(S.bombUp<4&&S.gold>=bombCost()){S.gold-=bombCost();S.bombUp++;save();keepScroll();toast(`출격 폭탄 ${1+S.bombUp}개`);}}
-  else if(a==='spdup'){if((S.spdUp||0)<SPD_MAX&&S.gold>=spdCost()){S.gold-=spdCost();S.spdUp=(S.spdUp||0)+1;save();keepScroll();toast(`기본 속도 +${S.spdUp*5}%`);}}
+  else if(a==='bombup'){const u=pu();if(u.bombUp<4&&S.gold>=bombCost()){S.gold-=bombCost();u.bombUp++;save();keepScroll();toast(`${plane().name} 폭탄 ${1+u.bombUp}개`);}}
+  else if(a==='spdup'){const u=pu();if(u.spdUp<SPD_MAX&&S.gold>=spdCost()){S.gold-=spdCost();u.spdUp++;save();keepScroll();toast(`${plane().name} 기본 속도 +${u.spdUp*5}%`);}}
   else if(a==='sv-out'){
     try{
       const blob=new Blob([JSON.stringify(S)],{type:'application/json'});
@@ -4234,6 +4265,7 @@ frame.addEventListener('click',e=>{
           const o=JSON.parse(r.result);
           if(!o||typeof o!=='object'||typeof o.lv!=='number')throw 0;
           const d=defSave();
+          migratePU(o);                       /* 구버전 세이브의 공용 업그레이드를 기체별로 옮긴다 */
           S=Object.assign(d,o,{stats:Object.assign(d.stats,o.stats||{})});
           if(!PLANES[S.plane])S.plane='falcon';
           fixEquip();save();renderHangar();toast(`불러왔습니다 — LV ${S.lv}`);
