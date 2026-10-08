@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://www.donjiral.net/nowplayingcd/">
+<title>Now Playing CD · About &amp; Guide</title>
+<meta name="description" content="Now Playing CD shows the song playing in your music app as a 90s CD player — a spinning CD printed with the album cover, and a remote to control your music app.">
+<!-- 안드로이드 앱 Now Playing CD 영어 소개·설명서. 앱이 영어 화면이면 "About · Guide" 링크가 여기로 옴 (한국어는 게시판 /dev/?post=130). 원문: cdplayer 저장소 docs/ -->
+<style>
+  body{background:#0f1226;color:#eef1ff;font-family:'Segoe UI',system-ui,sans-serif;line-height:1.7;padding:24px}
+  .wrap{max-width:720px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 4px}
+  h2{font-size:18px;margin:26px 0 8px}
+  p,li,td,th{color:#c7cdf0;font-size:15px}
+  ul,ol{margin:8px 0 8px 22px}
+  a{color:#60a5fa}
+  .sub{color:#9aa3d4;font-size:14px;margin-bottom:14px}
+  .note{background:#171b3a;border-left:3px solid #d9b26b;padding:8px 12px;border-radius:6px}
+  table{width:100%;border-collapse:collapse;margin:8px 0}
+  th,td{border:1px solid #2a3060;padding:6px 8px;text-align:left;vertical-align:top}
+  th{color:#eef1ff;background:#171b3a;font-weight:600}
+  .ko{float:right;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="ko" href="/dev/?post=130" lang="ko">한국어</a>
+  <h1>💿 Now Playing CD</h1>
+  <div class="sub">What you're listening to, on a CD player from back then. · Android</div>
+
+  <p>Play a song in YouTube Music or any music app, and Now Playing CD shows it on a 90s CD player.
+  A CD printed with the album cover spins, a new CD goes in when the album changes, and the remote controls your music app.
+  Open it and the music app you last used picks up where you left off.</p>
+  <p class="note">Now Playing CD <b>doesn't play music itself.</b> Your music app keeps playing as usual — Now Playing CD shows it and controls it.</p>
+  <p><a href="https://play.google.com/store/apps/details?id=com.donjiral.nowplayingcd">Get it on Google Play</a></p>
+
+  <h2>1. First launch — connect your music app</h2>
+  <ol>
+    <li>Open Now Playing CD → when <b>"Connect your music app"</b> appears, tap <b>Open settings</b>.</li>
+    <li>Turn on <b>Now Playing CD</b> under notification access → <b>Allow</b>.</li>
+    <li>Go back to Now Playing CD. That's it.</li>
+  </ol>
+  <p class="note"><b>Why notification access?</b> On Android it's the only way to see what another app is playing (title, cover, position).
+  Now Playing CD reads only playback info — never the contents of your notifications.</p>
+
+  <h2>2. Playing music</h2>
+  <ul>
+    <li>Play a song in your music app and come back — the CD goes in and starts spinning.</li>
+    <li>A new CD goes in <b>when the album changes</b>. Next track on the same album? The CD keeps spinning.</li>
+    <li>Cover art comes from your music app first; if there's none, it's looked up by album name. If nothing is found, you get a rainbow CD.</li>
+    <li><b>No need to open your music app.</b> When you open Now Playing CD, "▶ Resuming in …" appears and the app you last listened to starts playing (turn off in <b>Menu → Play on open</b>). Tap <b>▶</b> on the remote any time to do the same. To use another app, pick it in <b>Menu → Music apps</b>.</li>
+  </ul>
+
+  <h2>3. Skins</h2>
+  <p>Tap <b>Skin</b> (bottom right) to choose a player: <b>Classroom</b> (a slot-in player on a desk) or <b>Bus</b> (a portable player whose lid opens and closes).</p>
+
+  <h2>4. Remote</h2>
+  <table>
+    <tr><th>Action</th><th>Classroom</th><th>Bus</th></tr>
+    <tr><td>Track list on/off</td><td>Remote's LCD</td><td>Remote's blue LCD</td></tr>
+    <tr><td>Play · Pause</td><td>▶ II</td><td>Round button at the end of the remote</td></tr>
+    <tr><td>Previous / Next</td><td>◀◀ / ▶▶</td><td>Black buttons under the remote, left / right</td></tr>
+    <tr><td>Volume − / +</td><td>VOL − / +</td><td>SlimY logo, left half / right half</td></tr>
+    <tr><td>Stop</td><td>■</td><td>Front of the player</td></tr>
+    <tr><td>Open music app</td><td>OPEN on the player</td><td>SlimY badge in the middle</td></tr>
+  </table>
+  <p>The LCD shows the track number, time and "artist - title". <code>READING</code> means a new CD is being read; when music has been paused for a while, the time turns into a clock.</p>
+
+  <h2>5. Menu</h2>
+  <table>
+    <tr><th>Item</th><th>What it does</th></tr>
+    <tr><td>Music app controls</td><td>Buttons your music app offers (YouTube Music: ♥ like · ⇄ shuffle · ↻ repeat)</td></tr>
+    <tr><td>💤 Sleep timer</td><td>Off → 15 → 30 → 60 min. When time's up, music pauses and the app closes</td></tr>
+    <tr><td>▶ Play on open</td><td>When you open the app and nothing is playing, the music app you last used resumes (on by default)</td></tr>
+    <tr><td>⏰ Alarm</td><td>Every day at the time you set, a CD goes in and the music you last played starts — softly at first. Allow <b>Alarms &amp; reminders</b> when asked. Leave the app open on your desk overnight and you'll wake up to the CD screen</td></tr>
+    <tr><td>🔊 CD sounds</td><td>Real recordings of a CD going in. While on, music pauses briefly when the album changes and continues after the disc is read</td></tr>
+    <tr><td>🌙 Screen care</td><td>Shifts the picture a few pixels against burn-in and dims after 5 idle minutes</td></tr>
+    <tr><td>📼 Played today</td><td>Today's songs on a cassette label. <b>Share</b> or <b>Save</b> it as a picture</td></tr>
+    <tr><td>Music apps</td><td>Your music apps, most used first. Tap one to play it right away (whatever was playing stops)</td></tr>
+  </table>
+
+  <h2>6. Screen, lock &amp; quit</h2>
+  <ul>
+    <li>The screen stays on while the app is open — nice on a desk. It also shows right on the lock screen.</li>
+    <li>Phones stay in portrait; unfolded foldables and tablets can rotate.</li>
+    <li><b>Lock</b> blocks accidental touches. Press and hold anywhere for a second to unlock.</li>
+    <li><b>Quit</b> pauses the music and closes the app.</li>
+  </ul>
+
+  <h2>7. Troubleshooting</h2>
+  <p><b>No song shows up.</b> Check that Now Playing CD is on under notification access and that your music app is actually playing. App updates sometimes turn the access off — the prompt will appear again; tap Open settings.</p>
+  <p><b>▶ doesn't start a music app I've never used.</b> Play a song in that app once (OPEN opens it); after that ▶ works.</p>
+  <p><b>The alarm doesn't ring.</b> Make sure <b>Alarms &amp; reminders</b> is allowed for Now Playing CD in Settings.</p>
+
+  <h2>Privacy</h2>
+  <p>No accounts, no servers, no ads. Everything stays on your device. <a href="/privacy/nowplayingcd/#en">Privacy policy</a></p>
+
+  <h2>Contact</h2>
+  <p><a href="mailto:sanghohan@gmail.com">sanghohan@gmail.com</a></p>
+  <p style="margin-top:24px;font-size:13px;color:#9aa3d4">Album covers belong to their rights holders. Now Playing CD shows covers provided by your music app or found in public databases (MusicBrainz · Cover Art Archive), keeps them only on your device and doesn't distribute them.</p>
+</div>
+</body>
+</html>
