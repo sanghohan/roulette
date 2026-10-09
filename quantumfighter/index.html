@@ -5085,7 +5085,10 @@ function updateSkillbar(){
   const bm=skillbar.querySelector('.bmb');
   if(bm){bm.querySelector('.bc').textContent='×'+G.bombs;bm.classList.toggle('ready',G.bombs>0&&G.bombT<=0);bm.classList.toggle('dim',G.bombs<=0);}
 }
-function updateMuteBtn(){const b=$('#btn-mute');if(b){b.setAttribute('aria-pressed',String(!S.muted));b.querySelector('span').textContent=S.muted?'소리 꺼짐':'소리 켜짐';b.classList.toggle('off',S.muted);}}
+/* 타이틀의 소리 버튼 — 예전엔 '소리 켜짐'만 적혀 있어, 휴대폰에서 아직 소리가 안 나는 걸 보고
+   켜려고 누르면 오히려 꺼졌다. 지금 상태와 누르면 할 일을 같이 적고, 꺼져 있으면 아이콘에도 X 를 긋는다 */
+function updateMuteBtn(){const b=$('#btn-mute');if(b){b.setAttribute('aria-pressed',String(!S.muted));b.querySelector('span').textContent=S.muted?'소리 꺼짐 · 켜기':'소리 켜짐 · 끄기';b.classList.toggle('off',S.muted);
+  const w=b.querySelector('path:last-child');if(w)w.setAttribute('d',S.muted?'M17 9l5 6M22 9l-5 6':'M17 9a4 4 0 010 6M19.5 6.5a8 8 0 010 11');}}
 
 /* ---------- events ---------- */
 frame.addEventListener('click',e=>{
@@ -5281,6 +5284,9 @@ function unlockUfo(){
   toast('■ 미확인 비행체 격납 — 리버스엔지니어드 UFO 개방');
   if(mode==='hangar')renderHangar();
 }
+/* 모바일 브라우저·앱은 사용자가 화면을 처음 만질 때까지 소리를 막는다.
+   예전엔 특정 버튼을 눌러야만 오디오를 켰다 — 이제 화면 어디를 처음 눌러도 켜지고, 멈춰 있으면 다시 깨운다 */
+for(const ev of['pointerup','touchend','keydown'])addEventListener(ev,()=>{if(!AU.ctx||AU.ctx.state!=='running')AU.init();},{capture:true,passive:true});
 addEventListener('keydown',e=>{
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)&&(mode==='play'))e.preventDefault();
   keys.add(e.code);AU.init();
