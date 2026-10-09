@@ -103,14 +103,14 @@
   <header>
     <h1>📱 돈지랄 앱 게시판</h1>
     <p>돈지랄 앱 소개, 사용법</p>
-    <div class="nav"><a href="/aicheck/">🔍 AI판별</a> · <a href="/dev/">📱 돈지랄의 앱</a> · <a href="/quantumfighter/">🛸 퀀텀 파이터</a></div>
+    <div class="nav"><a href="/aicheck/">🔍 AI판별</a> · <a href="/dev/">📱 돈지랄의 앱</a> · <a href="/quantumfighter/">🛸 마스크폴</a></div>
   </header>
 
   <div id="banner"></div>
 
   <div class="card" id="listView">
     <details class="appintro">
-      <summary>🛸 퀀텀 파이터 — 소개 · 사용법</summary>
+      <summary>🛸 마스크폴 — 소개 · 사용법</summary>
       <p>설치 없이 <a href="/quantumfighter/">브라우저에서 바로</a> 즐기는 종스크롤 슈팅 게임. PC·모바일 모두 지원합니다.</p>
       <ul>
         <li><b>구성</b> — 2부 9스테이지. 1부 독재자 전쟁 → 2부 외계 침공(그레이·렙틸리언·마계) → 거대 UFO 모선 → 엔딩</li>
@@ -181,8 +181,8 @@ let filter='전체';
 const LS='dev_v1';
 const SEED=[
   {id:0,board:'dev',category:'notice',title:'돈지랄 앱 게시판을 오픈했습니다',author:'돈지랄',content:'돈지랄 앱 소개와 사용법을 안내하는 게시판이 열렸어요. 공지사항 확인, 궁금한 점 질문, 자유로운 이야기 모두 환영합니다.',media:'',likes:3,views:52,comments:[],createdAt:Date.now()-3600e3},
-  {id:1,board:'dev',category:'notice',title:'🛸 퀀텀 파이터 — 소개와 사용법',author:'돈지랄',content:'설치 없이 브라우저에서 바로 즐기는 종스크롤 슈팅 게임입니다. 자세한 내용은 게시판 상단의 앱 소개를 펼쳐보세요.\n\n바로가기: https://www.donjiral.net/quantumfighter/',media:'',likes:7,views:120,comments:[],createdAt:Date.now()-7200e3},
-  {id:2,board:'dev',category:'qna',title:'퀀텀 파이터 진행 상황이 사라졌어요',author:'조종사',content:'레벨이랑 스테이지 진행이 초기화됐습니다. 혹시 확인해볼 게 있을까요?',media:'',likes:2,views:34,comments:[],createdAt:Date.now()-86400e3}
+  {id:1,board:'dev',category:'notice',title:'🛸 마스크폴 — 소개와 사용법',author:'돈지랄',content:'설치 없이 브라우저에서 바로 즐기는 종스크롤 슈팅 게임입니다. 자세한 내용은 게시판 상단의 앱 소개를 펼쳐보세요.\n\n바로가기: https://www.donjiral.net/quantumfighter/',media:'',likes:7,views:120,comments:[],createdAt:Date.now()-7200e3},
+  {id:2,board:'dev',category:'qna',title:'마스크폴 진행 상황이 사라졌어요',author:'조종사',content:'레벨이랑 스테이지 진행이 초기화됐습니다. 혹시 확인해볼 게 있을까요?',media:'',likes:2,views:34,comments:[],createdAt:Date.now()-86400e3}
 ];
 function lsLoad(){try{const o=JSON.parse(localStorage.getItem(LS));if(o&&o.posts)return o;}catch(e){}return {posts:SEED.slice(),nextId:100,nextCid:1000};}
 function lsSave(d){localStorage.setItem(LS,JSON.stringify(d));}

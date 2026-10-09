@@ -7,8 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="퀀텀 파이터 — 웹 종스크롤 슈팅">
-<title>퀀텀 파이터</title>
+<meta name="description" content="마스크폴 — 종스크롤 슈팅 게임">
+<title>마스크폴 · MASKFALL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
@@ -52,7 +52,7 @@ button:disabled{cursor:not-allowed}
 #scr-title{justify-content:space-between;padding:calc(var(--u)*28) calc(var(--u)*24) calc(var(--u)*26);background:linear-gradient(180deg,rgba(6,14,28,.9) 0%,rgba(6,14,28,.72) 42%,rgba(6,14,28,.15) 58%,rgba(6,14,28,.2) 70%,rgba(6,14,28,.94) 100%)}
 .t-head{display:flex;flex-direction:column;gap:calc(var(--u)*4)}
 .t-head>.mini{padding-right:8.5em}
-.t-logo{font-family:var(--num);font-weight:700;line-height:.84;font-size:calc(var(--u)*60);letter-spacing:-.02em;color:var(--cream);margin:calc(var(--u)*10) 0 0}
+.t-logo{font-family:var(--num);font-weight:700;line-height:.84;font-size:calc(var(--u)*84);letter-spacing:-.02em;color:var(--cream);margin:calc(var(--u)*10) 0 0}
 .t-logo span{display:block}
 .t-logo span:last-child{color:transparent;-webkit-text-stroke:calc(var(--u)*1.6) var(--amber)}
 .t-kr{font-family:var(--disp);font-size:calc(var(--u)*22);color:var(--amber);letter-spacing:.08em}
@@ -320,8 +320,8 @@ h3{font-family:var(--disp);font-weight:400;font-size:1.15em;margin:0;letter-spac
       <button class="snd" id="btn-mute" data-act="mute" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9a4 4 0 010 6M19.5 6.5a8 8 0 010 11"/></svg><span>소리 켜짐</span></button>
       <div class="t-head">
         <div class="mini">Sortie Program · 종스크롤 비행 작전</div>
-        <h1 class="t-logo"><span>QUANTUM</span><span>FIGHTER</span></h1>
-        <div class="t-kr">퀀텀 파이터</div>
+        <h1 class="t-logo"><span>MASK</span><span>FALL</span></h1>
+        <div class="t-kr">마스크폴</div>
         <p class="t-tag">1부, 세계를 짓누르는 독재자들을 격파하라. 2부, 하늘이 갈라지고 외계 함대가 침공한다. 어제의 적과 손잡고 거대 UFO 모선을 무너뜨려라.</p>
       </div>
       <div class="t-foot">
@@ -363,7 +363,7 @@ h3{font-family:var(--disp);font-weight:400;font-size:1.15em;margin:0;letter-spac
       <p>한때 서로 총구를 겨누던 독재자들의 군대와 당신의 편대는, 같은 하늘 아래에서 마지막 외계 함선이 사라지는 모습을 지켜보았다.</p>
       <p>그레이는 물러갔고, 렙틸리언의 가면은 모두 벗겨졌으며, 마계의 차원문은 닫혔다.</p>
       <p class="end-stats"></p>
-      <p style="color:var(--mute);font-size:.85em">— QUANTUM FIGHTER · 끝 —<br>격납고에서 계속 레벨을 올리고 모든 스테이지를 다시 도전할 수 있습니다.</p>
+      <p style="color:var(--mute);font-size:.85em">— MASKFALL · 끝 —<br>격납고에서 계속 레벨을 올리고 모든 스테이지를 다시 도전할 수 있습니다.</p>
       <button class="btn" data-act="go-hangar">격납고로</button>
     </section>
     <section id="scr-pause" class="screen" hidden>
@@ -5137,7 +5137,7 @@ frame.addEventListener('click',e=>{
   else if(a==='bombup'){const u=pu();if(u.bombUp<4&&S.gold>=bombCost()){S.gold-=bombCost();u.bombUp++;save();keepScroll();toast(`${plane().name} 폭탄 ${1+u.bombUp}개`);}}
   else if(a==='spdup'){const u=pu();if(u.spdUp<SPD_MAX&&S.gold>=spdCost()){S.gold-=spdCost();u.spdUp++;save();keepScroll();toast(`${plane().name} 기본 속도 +${u.spdUp*5}%`);}}
   else if(a==='sv-out'){
-    const fname='quantumfighter-save-'+new Date().toISOString().slice(0,10)+'.json';
+    const fname='maskfall-save-'+new Date().toISOString().slice(0,10)+'.json';
     /* 앱(WebView)에선 <a download> 가 먹지 않는다 — 래퍼가 파일을 만들어 공유 시트로 넘긴다 */
     if(window.__qfExport){window.__qfExport(fname,JSON.stringify(S)).then(ok=>{if(ok)toast('세이브를 내보냈습니다');},()=>toast('내보내기에 실패했습니다'));return;}
     try{
@@ -5354,7 +5354,7 @@ function loop(now){
    (보스 이름·스토리는 실존 인물 대신 가상의 지휘 요새명 사용)
    ========================================================= */
 (() => {
-  const EDITION = '국가별 SF 전선';
+  const EDITION = '퀀텀 편대';   /* 옛 제목 '퀀텀 파이터'는 주인공 편대 이름으로 남긴다 */
   /* ---------- 작전 구성 ---------- */
   const fronts = [
     {
@@ -5907,7 +5907,7 @@ function loop(now){
     originalTickDeco(deco, dt, t);
   };
   const tag = document.querySelector('.t-tag');
-  if (tag) tag.textContent = '가상 SF 전쟁. 다섯 지휘 요새를 격파하고, 침공한 외계 함대에 맞서 지구의 하늘을 지켜라.';
+  if (tag) tag.textContent = '가상 SF 전쟁. 다섯 독재자의 지휘 요새를 격파하라. 마지막 가면이 벗겨지는 순간, 진짜 전쟁이 시작된다.';
   const mini = document.querySelector('.t-head > .mini');
   if (mini) mini.textContent = EDITION + ' · 종스크롤 비행 작전';
 })();
