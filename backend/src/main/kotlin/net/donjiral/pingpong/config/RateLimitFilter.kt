@@ -13,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * 간단한 인메모리 속도 제한 (단일 인스턴스 기준).
  * - 모든 /api: IP당 분당 제한 (스팸/플러딩 완화)
- * - /api/aicheck: IP당 분/일 제한 + 전체 일일 상한 (비용 폭탄 방지)
  * - /api/uploads: IP당 시간/일 제한 (S3 저장 비용 폭탄 방지)
  *
  * Caddy 뒤에 있으므로 X-Forwarded-For 로 실제 IP를 봅니다.
@@ -25,9 +24,6 @@ import java.util.concurrent.ConcurrentHashMap
 @Component
 class RateLimitFilter(
     @Value("\${app.ratelimit.api-per-min:120}") private val apiPerMin: Int,
-    @Value("\${app.ratelimit.aicheck-per-min:6}") private val aicheckPerMin: Int,
-    @Value("\${app.ratelimit.aicheck-per-day:50}") private val aicheckPerDay: Int,
-    @Value("\${app.ratelimit.aicheck-global-per-day:1000}") private val aicheckGlobalPerDay: Int,
     @Value("\${app.ratelimit.upload-per-hour:20}") private val uploadPerHour: Int,
     @Value("\${app.ratelimit.upload-per-day:50}") private val uploadPerDay: Int,
     @Value("\${app.ratelimit.upload-global-per-day:2000}") private val uploadGlobalPerDay: Int,
@@ -36,12 +32,9 @@ class RateLimitFilter(
 
     // key -> [windowId, count]
     private val minuteApi = ConcurrentHashMap<String, LongArray>()
-    private val minuteAi = ConcurrentHashMap<String, LongArray>()
-    private val dayAi = ConcurrentHashMap<String, LongArray>()
     private val hourUpload = ConcurrentHashMap<String, LongArray>()
     private val dayUpload = ConcurrentHashMap<String, LongArray>()
     private val dayVisit = ConcurrentHashMap<String, LongArray>()
-    private val globalAi = LongArray(2)     // [dayId, count]
     private val globalUpload = LongArray(2) // [dayId, count]
 
     override fun doFilterInternal(req: HttpServletRequest, res: HttpServletResponse, chain: FilterChain) {
@@ -57,18 +50,6 @@ class RateLimitFilter(
 
         if (!allow(minuteApi, ip, minWin, apiPerMin)) {
             reject(res, "요청이 너무 많아요. 잠시 후 다시 시도해주세요."); return
-        }
-
-        if (path.startsWith("/api/aicheck")) {
-            if (!allowGlobal(globalAi, dayWin, aicheckGlobalPerDay)) {
-                reject(res, "오늘 분석 요청이 한도에 도달했어요. 내일 다시 이용해주세요."); return
-            }
-            if (!allow(minuteAi, ip, minWin, aicheckPerMin)) {
-                reject(res, "분석 요청이 너무 빨라요. 잠시 후 다시 시도해주세요."); return
-            }
-            if (!allow(dayAi, ip, dayWin, aicheckPerDay)) {
-                reject(res, "오늘 분석 가능 횟수를 모두 사용했어요. 내일 다시 이용해주세요."); return
-            }
         }
 
         // 업로드는 S3 저장 비용에 직결되므로 별도로 더 촘촘히 막습니다.
@@ -99,8 +80,6 @@ class RateLimitFilter(
 
         // 맵 과다 증가 방지
         if (minuteApi.size > 50000) minuteApi.clear()
-        if (minuteAi.size > 50000) minuteAi.clear()
-        if (dayAi.size > 100000) dayAi.clear()
         if (hourUpload.size > 50000) hourUpload.clear()
         if (dayUpload.size > 100000) dayUpload.clear()
         if (dayVisit.size > 100000) dayVisit.clear()

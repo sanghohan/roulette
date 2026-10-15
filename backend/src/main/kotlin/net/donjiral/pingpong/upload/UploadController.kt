@@ -18,7 +18,7 @@ import java.util.UUID
  *  1) RateLimitFilter  - IP당 시간/일 업로드 횟수, 전체 일일 횟수
  *  2) UploadQuota      - 전체 일일 업로드 총 바이트
  *  3) 여기(컨트롤러)   - 관리자 인증, 형식별 용량 제한, 실제 파일 내용 검사
- *  4) S3 라이프사이클  - tmp/ 자동 삭제, 미완료 멀티파트 정리 (배포 가이드 참고)
+ *  4) S3 라이프사이클  - 미완료 멀티파트 정리 (배포 가이드 참고)
  */
 @RestController
 @RequestMapping("/api/uploads")
@@ -44,16 +44,6 @@ class UploadController(
         requireAdmin(adminPasswordParam ?: adminPasswordHeader)
         return store(file, props.keyPrefix, imageTypes + videoTypes)
     }
-
-    /**
-     * aicheck 분석용 임시 업로드: 인증 없이 열어둡니다.
-     * tmp/ 로 올라가고 S3 라이프사이클 규칙이 1일 뒤 자동 삭제하므로
-     * 저장 비용이 누적되지 않습니다. 이미지만 허용합니다.
-     */
-    @PostMapping("/temp")
-    @ResponseStatus(HttpStatus.CREATED)
-    fun uploadTemp(@RequestParam("file") file: MultipartFile): Map<String, String> =
-        store(file, props.tempKeyPrefix, imageTypes)
 
     private fun requireAdmin(supplied: String?) {
         // 관리자 암호가 설정되지 않았으면 아무도 통과시키지 않습니다(fail closed).

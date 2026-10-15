@@ -1,14 +1,20 @@
 # donjiral.net
 
-여러 무료 웹 도구를 모아둔 정적 사이트.
+돈지랄이 만든 안드로이드 앱을 소개하는 정적 사이트. 앱마다 소개 + 게시판(공지·질문답변·자유) 페이지가 있다.
 
-- 서비스 주소: https://www.donjiral.net/ (루트는 `/aicheck/`로 리다이렉트)
+- 서비스 주소: https://www.donjiral.net/
 
 ## 페이지 구성
 ```
-index.html            # 루트 → /aicheck/ 리다이렉트
-aicheck/index.html    # 🔍 AI 영상 판별
-dev/index.html        # 📱 돈지랄의 앱 게시판 (앱 소개·사용법 + 커뮤니티)
+index.html            # 홈 — 앱 목록 (참교육 · Now Playing CD · 마스크폴)
+apps/chamedu/         # 🛡️ 참교육 소개 + 게시판 (board=chamedu)
+apps/nowplayingcd/    # 💿 Now Playing CD 소개 + 게시판 (board=nowplayingcd)
+apps/maskfall/        # 🛸 마스크폴 MASKFALL 소개 + 게시판 (board=maskfall)
+apps/board.js         # 앱별 게시판 공용 코드 — 페이지의 <body data-board="앱"> 로 게시판을 고른다
+apps/site.css, site.js, img/  # 공용 스타일 · 방문 수 · 앱 아이콘
+nowplayingcd/index.html  # Now Playing CD 영어 소개·설명서 (앱 영어 화면의 About 링크)
+dev/index.html        # 옛 '돈지랄 앱 게시판' 주소 → 앱 페이지로 옮겨 줌 (앱에 박힌 /dev/?post=68 · 130 링크용)
+aicheck/index.html    # 옛 AI 영상 판별 주소 → 홈 (2026-10 서비스 종료)
 lotto/index.html      # 🍀 로또 6/45 번호 생성기 (자동·반자동·수동·통계·추천)
 pension/index.html    # 💰 연금복권720+ 번호 생성기 (자동·반자동·수동)
 pingpong/index.html   # 🏓 탁구 커뮤니티

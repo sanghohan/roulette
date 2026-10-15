@@ -1,0 +1,129 @@
+/* donjiral.net 앱 소개 사이트 공용 스타일 — 홈(/)과 앱 페이지(/apps/<앱>/)가 같이 쓴다 */
+:root{
+  --bg:#0f1226; --card:#171a33; --card2:#222647; --line:#2e3566;
+  --txt:#eef1ff; --sub:#9aa3d4; --accent:#8b5cf6; --accent2:#22d3ee;
+  --good:#4ade80; --blue:#60a5fa; --red:#ff6b6b;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI','Apple SD Gothic Neo',system-ui,sans-serif}
+body{background:radial-gradient(1200px 600px at 50% -10%,#241a52,#0f1226) #0f1226;color:var(--txt);min-height:100vh;padding:20px}
+.wrap{max-width:880px;margin:0 auto}
+a{color:var(--blue)}
+
+/* ---------- 상단 메뉴 ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-bottom:18px}
+.brand{color:var(--txt);text-decoration:none;font-weight:800;font-size:18px;letter-spacing:-.3px}
+.brand span{color:var(--sub);font-weight:600;font-size:13px;margin-left:6px}
+.nav{display:flex;gap:6px;flex-wrap:wrap}
+.nav a{display:flex;align-items:center;gap:6px;color:var(--sub);text-decoration:none;font-size:13px;font-weight:600;padding:6px 11px 6px 7px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+.nav a:hover{color:var(--txt);border-color:#454e8c}
+.nav a[aria-current="page"]{color:#fff;background:var(--card2);border-color:var(--accent)}
+.nav img{width:20px;height:20px;border-radius:6px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+
+/* ---------- 홈: 앱 목록 ---------- */
+.hello{text-align:center;margin:10px 0 22px}
+.hello h1{font-size:28px;letter-spacing:-.5px}
+.hello p{color:var(--sub);margin-top:6px;font-size:14px}
+.apps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.app{display:flex;flex-direction:column;gap:10px;color:var(--txt);text-decoration:none;transition:.15s}
+.app:hover{border-color:#454e8c;transform:translateY(-2px)}
+.app .head{display:flex;gap:12px;align-items:center}
+.app img{width:60px;height:60px;border-radius:15px;flex-shrink:0}
+.app h2{font-size:18px}
+.app .tag{color:var(--sub);font-size:13px;margin-top:2px}
+.app .desc{font-size:14px;line-height:1.6;color:#d7dbf5;flex:1}
+.app .go{font-size:13px;font-weight:700;color:var(--accent2)}
+
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:11.5px;padding:3px 9px;border-radius:999px;background:var(--card2);border:1px solid var(--line);color:var(--sub)}
+.chip.hi{color:#d9fbe3;border-color:#2f6b47;background:#18352a}
+
+/* ---------- 앱 페이지: 머리 · 소개 ---------- */
+.hero{display:flex;gap:16px;align-items:center;margin-bottom:14px}
+.hero img{width:76px;height:76px;border-radius:18px;flex-shrink:0}
+.hero h1{font-size:26px;letter-spacing:-.4px}
+.hero .tag{color:var(--sub);font-size:14px;margin:3px 0 8px}
+.intro{margin-bottom:14px;font-size:14.5px;line-height:1.75;color:#d7dbf5}
+.intro h2{font-size:16px;color:var(--txt);margin:16px 0 6px}
+.intro h2:first-child{margin-top:0}
+.intro p{margin:6px 0}
+.intro ul,.intro ol{margin:6px 0 6px 20px}
+.intro li{margin:2px 0}
+.intro b{color:var(--txt)}
+.intro .warn{background:#2a2540;border-left:3px solid var(--accent);border-radius:8px;padding:8px 12px;margin:10px 0;font-size:13.5px}
+.links{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.links a{display:inline-block;text-decoration:none;font-size:13px;font-weight:700;padding:9px 13px;border-radius:11px;background:var(--card2);border:1px solid var(--line);color:var(--txt)}
+.links a.main{background:var(--accent);border-color:var(--accent);color:#fff}
+.links a:hover{filter:brightness(1.12)}
+.sec{font-size:16px;margin:22px 4px 10px}
+/* 글을 읽거나 쓰는 동안엔 소개를 접어 글이 바로 보이게 */
+body.reading .intro,body.reading .sec{display:none}
+
+/* ---------- 게시판 (board.js) ---------- */
+#board{scroll-margin-top:48px} /* 게시판으로 돌아올 때 위의 '게시판' 제목까지 보이게 */
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.toolbar input{flex:1;min-width:140px;background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:14px}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:11px;padding:10px 16px;font-size:14px;font-weight:800;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{filter:brightness(1.1)} .btn:active{transform:scale(.97)}
+.btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line);font-weight:600}
+.btn.sm{padding:7px 11px;font-size:12px}
+.cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.cat{padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--card2);color:var(--sub);cursor:pointer;font-size:13px}
+.cat.on{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
+.list{display:flex;flex-direction:column}
+.post{display:flex;gap:12px;padding:13px 6px;border-bottom:1px solid var(--line);cursor:pointer;align-items:flex-start}
+.post:hover{background:#ffffff08}
+.thumb{width:54px;height:54px;border-radius:10px;object-fit:cover;flex-shrink:0;background:#0e1230}
+.post .body{flex:1;min-width:0}
+.post .badge{font-size:11px;color:var(--accent2);font-weight:700}
+.post .title{font-size:15px;font-weight:600;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.post .meta{font-size:12px;color:var(--sub)}
+.post .meta span{margin-right:10px}
+.empty{text-align:center;color:var(--sub);padding:40px 0;font-size:14px}
+.pager{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:16px}
+.pager button{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 14px;font-size:13px;cursor:pointer}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager .pinfo{font-size:13px;color:var(--sub)}
+.detail .badge{font-size:12px;color:var(--accent2);font-weight:700}
+.detail h2{font-size:20px;margin:6px 0}
+.detail .meta{font-size:12px;color:var(--sub);margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:12px}
+.md{font-size:15px;line-height:1.7;word-break:break-word}
+.md h1,.md h2,.md h3{margin:14px 0 8px;line-height:1.3}
+.md h1{font-size:22px}.md h2{font-size:19px}.md h3{font-size:16px}
+.md p{margin:8px 0}
+.md ul,.md ol{margin:8px 0 8px 22px}
+.md a{color:var(--blue)}
+.md code{background:#0e1230;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-family:'SFMono-Regular',Consolas,monospace;font-size:13px}
+.md pre{background:#0d1117;border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;margin:10px 0}
+.md pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.5}
+.md img{max-width:100%;border-radius:10px}
+.md blockquote{border-left:3px solid var(--accent);margin:8px 0;padding:4px 12px;color:var(--sub)}
+.md table{border-collapse:collapse;margin:10px 0;display:block;overflow-x:auto}.md th,.md td{border:1px solid var(--line);padding:6px 10px}
+.media{max-width:100%;border-radius:12px;margin:12px 0}
+.likebar{display:flex;gap:10px;align-items:center;margin:16px 0}
+.comments{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+.comment{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:8px}
+.comment .who{color:var(--blue);font-weight:600;font-size:13px} .comment .ct{color:var(--sub);font-size:11px;float:right}
+.comment .cx{font-size:14px;margin-top:3px;white-space:pre-wrap}
+.form label{display:block;font-size:12px;color:var(--sub);margin:10px 0 4px}
+.form input,.form select,.form textarea{width:100%;background:#0e1230;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font-size:14px}
+.form textarea{min-height:200px;resize:vertical;line-height:1.6;font-family:'SFMono-Regular',Consolas,monospace}
+.hidden{display:none}
+.note{color:var(--sub);font-size:12px;line-height:1.5}
+.banner{border-radius:12px;padding:11px 14px;font-size:12.5px;margin-bottom:14px;line-height:1.5}
+.banner.local{background:#1c1a3a;border:1px solid #3a3470;color:#cdc9f0}
+.banner.err{background:#3a2a2a;border:1px solid #6e4a4a;color:#ffd0d0}
+
+footer{text-align:center;margin-top:22px;font-size:12px;color:var(--sub)}
+footer a{color:var(--sub);text-decoration:none;margin:0 6px}
+#visitCounter{text-align:center;color:#5a6296;font-size:12px;margin:10px 0 4px}
+
+@media(max-width:640px){
+  body{padding:16px 12px}
+  .hello h1{font-size:23px}
+  .card{padding:14px;border-radius:14px}
+  .hero img{width:60px;height:60px;border-radius:15px}
+  .hero h1{font-size:22px}
+  .thumb{width:44px;height:44px}
+}
