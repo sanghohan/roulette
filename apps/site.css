@@ -56,9 +56,9 @@ a{color:var(--blue)}
 .links a{display:inline-block;text-decoration:none;font-size:13px;font-weight:700;padding:9px 13px;border-radius:11px;background:var(--card2);border:1px solid var(--line);color:var(--txt)}
 .links a.main{background:var(--accent);border-color:var(--accent);color:#fff}
 .links a:hover{filter:brightness(1.12)}
-.sec{font-size:16px;margin:22px 4px 10px}
+h2.sec{font-size:16px;margin:22px 4px 10px}
 /* 글을 읽거나 쓰는 동안엔 소개를 접어 글이 바로 보이게 */
-body.reading .intro,body.reading .sec{display:none}
+body.reading .intro,body.reading h2.sec{display:none}
 
 /* ---------- 게시판 (board.js) ---------- */
 #board{scroll-margin-top:48px} /* 게시판으로 돌아올 때 위의 '게시판' 제목까지 보이게 */
