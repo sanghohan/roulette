@@ -17,14 +17,16 @@ const CATS=[
 const catName=k=>(CATS.find(c=>c.k===k)||{n:'기타',e:'📱'});
 let filter='전체';
 
+// 검색창과 글쓰기 칸을 각자 <form> 으로 나누고 autocomplete 를 끈다. 폼 없이 비밀번호 칸과 한데 섞여 있으면
+// 크롬 비밀번호 관리자가 첫 글자 칸(검색창)을 아이디 칸으로 보고 저장된 아이디를 채워, 목록이 그 글자로 걸러졌다.
 $('#board').innerHTML=`
   <div id="banner"></div>
 
   <div class="card" id="listView">
-    <div class="toolbar">
-      <input id="search" placeholder="🔍 제목·내용·작성자 검색">
-      <button class="btn" id="writeBtn">✏️ 글쓰기</button>
-    </div>
+    <form class="toolbar" role="search" autocomplete="off" onsubmit="return false">
+      <input id="search" type="search" name="q" autocomplete="off" placeholder="🔍 제목·내용·작성자 검색">
+      <button class="btn" type="button" id="writeBtn">✏️ 글쓰기</button>
+    </form>
     <div class="cats" id="cats"></div>
     <div class="list" id="list"></div>
     <div class="pager" id="pager"></div>
@@ -32,31 +34,31 @@ $('#board').innerHTML=`
 
   <div class="card detail hidden" id="detailView"></div>
 
-  <div class="card form hidden" id="writeView">
+  <form class="card form hidden" id="writeView" autocomplete="off" onsubmit="return false">
     <h2 style="font-size:18px" id="writeTitle">✏️ 새 글 쓰기</h2>
     <label>게시판</label>
     <select id="wCat"></select>
     <label>제목</label>
-    <input id="wTitle" placeholder="제목을 입력하세요">
+    <input id="wTitle" autocomplete="off" placeholder="제목을 입력하세요">
     <label id="authorLabel">작성자</label>
-    <input id="wAuthor" placeholder="닉네임">
+    <input id="wAuthor" autocomplete="off" placeholder="닉네임">
     <div id="adminRow" class="hidden">
       <label>🔑 관리자 암호 — ‘돈지랄’ 이름은 관리자만 쓸 수 있어요</label>
-      <input id="wAdmin" type="password" placeholder="관리자 암호">
+      <input id="wAdmin" type="password" autocomplete="new-password" placeholder="관리자 암호">
     </div>
     <label>이미지/영상 — 링크를 붙여넣으세요 (파일 업로드는 중단되었습니다)</label>
     <input type="file" id="wFile" accept="image/*,video/*" style="display:none" disabled>
     <div id="uploadState" class="note"></div>
-    <input id="wMedia" placeholder="https://... (jpg, png, mp4, youtube 링크)" style="margin-top:6px">
+    <input id="wMedia" autocomplete="off" placeholder="https://... (jpg, png, mp4, youtube 링크)" style="margin-top:6px">
     <label>내용 — <b>마크다운</b> 지원 (코드는 \`\`\`언어 로 감싸면 색상 강조)</label>
     <textarea id="wContent" placeholder="## 제목&#10;설명...&#10;&#10;\`\`\`python&#10;print('hello')&#10;\`\`\`"></textarea>
     <label>비밀번호 — 수정/삭제할 때 필요해요</label>
-    <input id="wPassword" type="password" placeholder="글 비밀번호">
+    <input id="wPassword" type="password" autocomplete="new-password" placeholder="글 비밀번호">
     <div class="toolbar" style="margin-top:14px;margin-bottom:0">
-      <button class="btn" id="submitBtn">등록</button>
-      <button class="btn sec" id="cancelBtn">취소</button>
+      <button class="btn" type="button" id="submitBtn">등록</button>
+      <button class="btn sec" type="button" id="cancelBtn">취소</button>
     </div>
-  </div>`;
+  </form>`;
 
 /* ---------- 데이터 계층 ---------- */
 const LS='board_'+BOARD+'_v1';
