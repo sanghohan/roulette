@@ -13,6 +13,7 @@ apps/maskfall/        # 🛸 마스크폴 MASKFALL 소개 + 게시판 (board=mas
 apps/board.js         # 앱별 게시판 공용 코드 — 페이지의 <body data-board="앱"> 로 게시판을 고른다
 apps/site.css, site.js, img/  # 공용 스타일 · 방문 수 · 앱 아이콘
 nowplayingcd/index.html  # Now Playing CD 영어 소개·설명서 (앱 영어 화면의 About 링크)
+nowplayingcd/ja/, es/    # 같은 글의 일본어 · 스페인어 (앱 일본어 · 스페인어 화면의 링크, 1.9부터)
 dev/index.html        # 옛 '돈지랄 앱 게시판' 주소 → 앱 페이지로 옮겨 줌 (앱에 박힌 /dev/?post=68 · 130 링크용)
 aicheck/index.html    # 옛 AI 영상 판별 주소 → 홈 (2026-10 서비스 종료)
 lotto/index.html      # 🍀 로또 6/45 번호 생성기 (자동·반자동·수동·통계·추천)
